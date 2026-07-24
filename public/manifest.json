@@ -1,0 +1,14 @@
+{
+  "name": "ZedBeatz — Zambian Music Streaming",
+  "short_name": "ZedBeatz",
+  "description": "Discover and stream the latest Zambian music. Listen to Zambian songs, albums, and playlists online.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0a0a0f",
+  "theme_color": "#E8730A",
+  "categories": ["music", "entertainment"],
+  "icons": [
+    { "src": "/logo-white.png", "sizes": "512x512", "type": "image/png" },
+    { "src": "/logo-white.png", "sizes": "192x192", "type": "image/png" }
+  ]
+}
