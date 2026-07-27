@@ -152,8 +152,8 @@ export default function ArtistRegisterPage() {
 
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px 24px", maxWidth: 420 }}>
             {perks.map((p) => (
-              <div key={p.icon} style={{ display: "flex", gap: 10 }}>
-                <div style={{ width: 36, height: 36, borderRadius: 10, background: "rgba(255,255,255,0.12)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                <div key={p.icon} style={{ display: "flex", gap: 10 }}>
+                <div className="perk-icon-box" style={{ width: 36, height: 36, borderRadius: 10, background: "rgba(255,255,255,0.12)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
                   <PerkIcon name={p.icon} />
                 </div>
                 <div>
@@ -175,9 +175,9 @@ export default function ArtistRegisterPage() {
       >
         <div style={{ maxWidth: 400, width: "100%" }}>
           <div style={{ marginBottom: 32 }}>
-            <img src={theme === "dark" ? "/logo-white.png" : "/logo-black.png"} alt="ZedBeatz" style={{ height: 24, marginBottom: 16 }} />
-            <h2 style={{ fontSize: 24, fontWeight: 800, color: "var(--foreground)", margin: "0 0 4px", letterSpacing: "-0.4px" }}>Create your profile</h2>
-            <p style={{ fontSize: 14, color: "var(--muted-foreground)", margin: 0 }}>Fill in the details below to get started.</p>
+            <img src={theme === "dark" ? "/logo-white.png" : "/logo-black.png"} alt="ZedBeatz" style={{ height: 24, marginBottom: 16, display: "block", margin: "0 auto 16px" }} className="register-logo" />
+            <h2 style={{ fontSize: 24, fontWeight: 800, color: "var(--foreground)", margin: "0 0 4px", letterSpacing: "-0.4px", textAlign: "center" }}>Create your profile</h2>
+            <p style={{ fontSize: 14, color: "var(--muted-foreground)", margin: 0, textAlign: "center" }}>Fill in the details below to get started.</p>
           </div>
 
           {error && (
@@ -254,13 +254,13 @@ export default function ArtistRegisterPage() {
                 placeholder="e.g. Yo Maps, Chef 187, Macky 2"
                 autoFocus
                 style={{
-                  width: "100%", padding: "14px 16px", fontSize: 15, borderRadius: 12,
-                  border: isOverLimit ? "2px solid #ef4444" : error && !stageName.trim() ? "2px solid #ef4444" : "1.5px solid var(--border)",
+                  width: "100%", padding: "14px 16px", fontSize: 15, borderRadius: 2,
+                  border: isOverLimit ? "1px solid #ef4444" : error && !stageName.trim() ? "1px solid #ef4444" : "1px solid var(--border)",
                   background: "var(--card-bg)", color: "var(--foreground)", outline: "none",
                   boxSizing: "border-box", fontFamily: "inherit",
                   transition: "border-color 0.2s, box-shadow 0.2s",
                 }}
-                onFocus={(e) => { e.currentTarget.style.borderColor = "var(--brand)"; e.currentTarget.style.boxShadow = "0 0 0 3px var(--brand-bg)" }}
+                onFocus={(e) => { e.currentTarget.style.borderColor = "var(--muted-foreground)"; e.currentTarget.style.boxShadow = "0 0 0 1px var(--muted-foreground)" }}
                 onBlur={(e) => { e.currentTarget.style.borderColor = isOverLimit ? "#ef4444" : "var(--border)"; e.currentTarget.style.boxShadow = "none" }}
               />
               {isOverLimit && <p style={{ margin: "4px 0 0", fontSize: 11, color: "#ef4444" }}>Stage name is too long</p>}
@@ -301,6 +301,10 @@ export default function ArtistRegisterPage() {
       <style>{`
         @keyframes spin {
           to { transform: rotate(360deg); }
+        }
+        @media (min-width: 769px) {
+          .perk-icon-box { background: transparent !important; }
+          .register-logo { margin: 0 auto 16px !important; }
         }
         @media (max-width: 768px) {
           .register-hero { display: none !important; }

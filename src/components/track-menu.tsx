@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useRef, useEffect, useCallback } from "react"
+import { createPortal } from "react-dom"
 import { useRouter } from "next/navigation"
 import { useQuery } from "@tanstack/react-query"
 import { api } from "@/lib/api"
@@ -44,8 +45,8 @@ export function PremiumTrackMenu({ track, liked, onLikeToggle }: Props) {
   const [showShare, setShowShare] = useState(false)
   const [addingTo, setAddingTo] = useState<string | null>(null)
   const [likeLoading, setLikeLoading] = useState(false)
-  const [menuPos, setMenuPos] = useState<{ top?: number; bottom?: number; right: number } | null>(null)
-  const menuRef = useRef<HTMLDivElement>(null)
+  const [isMobile, setIsMobile] = useState(false)
+  const sheetRef = useRef<HTMLDivElement>(null)
   const btnRef = useRef<HTMLButtonElement>(null)
   const router = useRouter()
   const { playNext, addToQueue, currentTrack } = usePlayerStore()
@@ -60,23 +61,25 @@ export function PremiumTrackMenu({ track, liked, onLikeToggle }: Props) {
   })
 
   useEffect(() => {
-    function handleClick(e: MouseEvent) {
-      if (
-        menuRef.current && !menuRef.current.contains(e.target as Node) &&
-        btnRef.current && !btnRef.current.contains(e.target as Node)
-      ) {
-        setOpen(false)
-        setShowPlaylists(false)
-        setShowShare(false)
-      }
-    }
+    const mq = window.matchMedia("(max-width: 640px)")
+    setIsMobile(mq.matches)
+    const handler = (e: MediaQueryListEvent) => setIsMobile(e.matches)
+    mq.addEventListener("change", handler)
+    return () => mq.removeEventListener("change", handler)
+  }, [])
+
+  useEffect(() => {
     if (open) {
-      document.addEventListener("mousedown", handleClick)
-      return () => document.removeEventListener("mousedown", handleClick)
+      document.body.style.overflow = "hidden"
     } else {
-      setMenuPos(null)
+      document.body.style.overflow = ""
+      setShowPlaylists(false)
+      setShowShare(false)
     }
+    return () => { document.body.style.overflow = "" }
   }, [open])
+
+  const close = useCallback(() => setOpen(false), [])
 
   const handleLike = useCallback(async (e: React.MouseEvent) => {
     e.stopPropagation()
@@ -87,7 +90,8 @@ export function PremiumTrackMenu({ track, liked, onLikeToggle }: Props) {
       onLikeToggle?.(newState)
     } catch { /* ignore */ }
     setLikeLoading(false)
-  }, [likeLoading, track.id, onLikeToggle, likesStoreToggle])
+    close()
+  }, [likeLoading, track.id, onLikeToggle, likesStoreToggle, close])
 
   const handleAddToPlaylist = useCallback(async (playlistId: string, e: React.MouseEvent) => {
     e.stopPropagation()
@@ -96,41 +100,22 @@ export function PremiumTrackMenu({ track, liked, onLikeToggle }: Props) {
       await api.addTrackToPlaylist(playlistId, track.id)
     } catch { /* ignore */ }
     setAddingTo(null)
-    setOpen(false)
-    setShowPlaylists(false)
-  }, [track.id])
-
-  const handleClickBtn = useCallback((e: React.MouseEvent) => {
-    e.stopPropagation()
-    const rect = (e.currentTarget as HTMLElement).getBoundingClientRect()
-    const spaceBelow = window.innerHeight - rect.bottom
-    const menuHeight = 320
-    if (spaceBelow < menuHeight) {
-      setMenuPos({ bottom: window.innerHeight - rect.top + 4, right: window.innerWidth - rect.right })
-    } else {
-      setMenuPos({ top: rect.bottom + 4, right: window.innerWidth - rect.right })
-    }
-    setOpen((prev) => {
-      if (prev) { setShowPlaylists(false); setShowShare(false) }
-      return !prev
-    })
-  }, [])
+    close()
+  }, [track.id, close])
 
   const triggerAction = useCallback((fn: () => void) => {
     return (e: React.MouseEvent) => {
       e.stopPropagation()
       fn()
-      setOpen(false)
-      setShowPlaylists(false)
-      setShowShare(false)
+      close()
     }
-  }, [])
+  }, [close])
 
   return (
     <div style={{ position: "relative", flexShrink: 0 }}>
       <button
         ref={btnRef}
-        onClick={handleClickBtn}
+        onClick={(e) => { e.stopPropagation(); setOpen(true) }}
         style={{
           display: "flex", alignItems: "center", justifyContent: "center",
           width: 30, height: 30, borderRadius: 6,
@@ -150,149 +135,168 @@ export function PremiumTrackMenu({ track, liked, onLikeToggle }: Props) {
         </svg>
       </button>
 
-      {open && menuPos && (
-        <div
-          ref={menuRef}
-          className="premium-menu"
-          style={{
-            position: "fixed",
-            right: menuPos.right,
-            top: menuPos.top,
-            bottom: menuPos.bottom,
-            marginTop: menuPos.top !== undefined ? 0 : undefined,
-            minWidth: 220,
-            background: "rgba(30,30,35,0.92)",
-            backdropFilter: "blur(20px) saturate(1.6)",
-            WebkitBackdropFilter: "blur(20px) saturate(1.6)",
-            borderRadius: 10,
-            border: "1px solid rgba(255,255,255,0.08)",
-            boxShadow: "0 12px 48px rgba(0,0,0,0.55), 0 4px 16px rgba(0,0,0,0.3)",
-            padding: "6px",
-            zIndex: 999999,
-            animation: "menuFadeIn 0.12s ease-out",
-            transformOrigin: menuPos.top !== undefined ? "top right" : "bottom right",
-          }}
-        >
-          {/* Play Next */}
-          <MenuItem
-            icon={<PlayNextIcon />}
-            label="Play Next"
-            onClick={triggerAction(() => playNext(toTrackInfo(track)))}
+      {open && typeof document !== "undefined" && createPortal(
+        <>
+          <div
+            onPointerDown={(e) => { e.preventDefault(); close() }}
+            style={{
+              position: "fixed", inset: 0, zIndex: 999998,
+              background: "rgba(0,0,0,0.5)",
+              backdropFilter: "blur(8px)",
+              WebkitBackdropFilter: "blur(8px)",
+              animation: "sheetFadeIn 0.2s ease",
+            }}
           />
 
-          {/* Add to Queue */}
-          <MenuItem
-            icon={<QueueIcon />}
-            label="Add to Queue"
-            onClick={triggerAction(() => addToQueue(toTrackInfo(track)))}
-          />
+          <div
+            ref={sheetRef}
+            className="bottom-sheet"
+            style={{
+              position: "fixed", left: 0, right: 0, bottom: 0, zIndex: 999999,
+              maxHeight: isMobile ? "96vh" : "80vh",
+              background: "rgba(20,20,25,0.98)",
+              backdropFilter: "blur(24px) saturate(1.6)",
+              WebkitBackdropFilter: "blur(24px) saturate(1.6)",
+              borderTopLeftRadius: 20,
+              borderTopRightRadius: 20,
+              border: "none",
+              boxShadow: "0 -8px 40px rgba(0,0,0,0.6)",
+              display: "flex", flexDirection: "column",
+              animation: "sheetSlideUp 0.35s cubic-bezier(0.32,0.72,0,1)",
+              overflow: "hidden",
+            }}
+          >
+            {/* Drag handle */}
+            <div style={{ display: "flex", justifyContent: "center", padding: "10px 0 4px", flexShrink: 0 }}>
+              <div style={{ width: 40, height: 5, borderRadius: 999, background: "rgba(255,255,255,0.2)" }} />
+            </div>
 
-          {/* Divider */}
-          <MenuDivider />
-
-          {/* Add to Playlist */}
-          <div>
-            <MenuItem
-              icon={<PlaylistIcon />}
-              label="Add to Playlist"
-              onClick={(e) => { e.stopPropagation(); setShowPlaylists((p) => !p) }}
-              right={showPlaylists ? <ChevronUp /> : <ChevronDown />}
-            />
-            {showPlaylists && (
-              <div style={{ padding: "2px 0 2px 8px" }}>
-                {playlistsData?.playlists?.length ? (
-                  playlistsData.playlists.map((p: any) => (
-                    <MenuItem
-                      key={p.id}
-                      label={p.title}
-                      onClick={(e) => handleAddToPlaylist(p.id, e)}
-                      right={addingTo === p.id ? <Spinner /> : undefined}
-                      compact
-                    />
-                  ))
-                ) : (
-                  <MenuItem label="No playlists" disabled compact />
-                )}
+            {/* Track header */}
+            <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "4px 16px 12px", flexShrink: 0 }}>
+              {track.cover_url ? (
+                <img src={track.cover_url} alt="" style={{ width: 48, height: 48, borderRadius: 8, objectFit: "cover", flexShrink: 0 }} />
+              ) : (
+                <div style={{ width: 48, height: 48, borderRadius: 8, background: "linear-gradient(135deg, var(--brand), var(--brand-light))", flexShrink: 0 }} />
+              )}
+              <div style={{ minWidth: 0 }}>
+                <p style={{ margin: 0, fontSize: 15, fontWeight: 700, color: "#fff", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{track.title}</p>
+                <p style={{ margin: "2px 0 0", fontSize: 12, fontWeight: 500, color: "rgba(255,255,255,0.5)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{track.artist_name}</p>
               </div>
-            )}
-          </div>
+            </div>
 
-          {/* Divider */}
-          <MenuDivider />
+            {/* Scrollable menu items */}
+            <div style={{ overflowY: "auto", flex: 1, padding: "0 8px 16px", WebkitOverflowScrolling: "touch" }}>
+              <SheetItem
+                icon={<PlayNextIcon />}
+                label="Play Next"
+                onClick={triggerAction(() => playNext(toTrackInfo(track)))}
+              />
+              <SheetItem
+                icon={<QueueIcon />}
+                label="Add to Queue"
+                onClick={triggerAction(() => addToQueue(toTrackInfo(track)))}
+              />
 
-          {/* Like / Unlike */}
-          <MenuItem
-            icon={effectiveLiked ? <HeartFilledIcon /> : <HeartIcon />}
-            label={effectiveLiked ? "Remove from Likes" : "Add to Likes"}
-            onClick={handleLike}
-          />
+              <SheetDivider />
 
-          {/* Divider */}
-          <MenuDivider />
+              <SheetItem
+                icon={<PlaylistIcon />}
+                label="Add to Playlist"
+                onClick={(e) => { e.stopPropagation(); setShowPlaylists((p) => !p) }}
+                right={showPlaylists ? <ChevronUp /> : <ChevronDown />}
+              />
+              {showPlaylists && (
+                <div style={{ paddingLeft: 12 }}>
+                  {playlistsData?.playlists?.length ? (
+                    playlistsData.playlists.map((p: any) => (
+                      <SheetItem
+                        key={p.id}
+                        label={p.title}
+                        onClick={(e) => handleAddToPlaylist(p.id, e)}
+                        right={addingTo === p.id ? <Spinner /> : undefined}
+                        compact
+                      />
+                    ))
+                  ) : (
+                    <SheetItem label="No playlists" disabled compact />
+                  )}
+                </div>
+              )}
 
-          {/* Go to Artist */}
-          <MenuItem
-            icon={<ArtistIcon />}
-            label="Go to Artist"
-            onClick={triggerAction(() => router.push(`/artist/${track.artist_id}`))}
-          />
+              <SheetDivider />
 
-          {/* Share */}
-          <div>
-            <MenuItem
-              icon={<ShareIcon />}
-              label="Share"
-              onClick={(e) => { e.stopPropagation(); setShowShare((p) => !p) }}
-              right={showShare ? <ChevronUp /> : <ChevronDown />}
-            />
-            {showShare && (
-              <div style={{ padding: "2px 0 2px 8px" }}>
-                <MenuItem
-                  label="Copy Link"
-                  onClick={triggerAction(() => {
-                    navigator.clipboard.writeText(`${window.location.origin}/track/${track.id}`)
-                  })}
-                  compact
-                  icon={<LinkIcon />}
-                />
-                <MenuItem
-                  label="WhatsApp"
-                  onClick={triggerAction(() => {
-                    const text = encodeURIComponent(`Listen to "${track.title}" on ZedBeatz: ${window.location.origin}/track/${track.id}`)
-                    window.open(`https://wa.me/?text=${text}`, "_blank")
-                  })}
-                  compact
-                  icon={<WhatsAppIcon />}
-                />
-                {typeof navigator.share !== "undefined" && (
-                  <MenuItem
-                    label="More..."
+              <SheetItem
+                icon={effectiveLiked ? <HeartFilledIcon /> : <HeartIcon />}
+                label={effectiveLiked ? "Remove from Likes" : "Add to Likes"}
+                onClick={handleLike}
+              />
+
+              <SheetDivider />
+
+              <SheetItem
+                icon={<ArtistIcon />}
+                label="Go to Artist"
+                onClick={triggerAction(() => router.push(`/artist/${track.artist_id}`))}
+              />
+
+              <SheetItem
+                icon={<ShareIcon />}
+                label="Share"
+                onClick={(e) => { e.stopPropagation(); setShowShare((p) => !p) }}
+                right={showShare ? <ChevronUp /> : <ChevronDown />}
+              />
+              {showShare && (
+                <div style={{ paddingLeft: 12 }}>
+                  <SheetItem
+                    label="Copy Link"
                     onClick={triggerAction(() => {
-                      navigator.share({ title: track.title, text: `Listen to "${track.title}" on ZedBeatz`, url: `${window.location.origin}/track/${track.id}` }).catch(() => {})
+                      navigator.clipboard.writeText(`${window.location.origin}/track/${track.id}`)
                     })}
                     compact
-                    icon={<ShareIcon />}
+                    icon={<LinkIcon />}
                   />
-                )}
-              </div>
-            )}
+                  <SheetItem
+                    label="WhatsApp"
+                    onClick={triggerAction(() => {
+                      const text = encodeURIComponent(`Listen to "${track.title}" on ZedBeatz: ${window.location.origin}/track/${track.id}`)
+                      window.open(`https://wa.me/?text=${text}`, "_blank")
+                    })}
+                    compact
+                    icon={<WhatsAppIcon />}
+                  />
+                  {typeof navigator.share !== "undefined" && (
+                    <SheetItem
+                      label="More..."
+                      onClick={triggerAction(() => {
+                        navigator.share({ title: track.title, text: `Listen to "${track.title}" on ZedBeatz`, url: `${window.location.origin}/track/${track.id}` }).catch(() => {})
+                      })}
+                      compact
+                      icon={<ShareIcon />}
+                    />
+                  )}
+                </div>
+              )}
+            </div>
           </div>
 
           <style>{`
-            @keyframes menuFadeIn {
-              from { opacity: 0; transform: scale(0.92); }
-              to   { opacity: 1; transform: scale(1); }
+            @keyframes sheetSlideUp {
+              from { transform: translateY(100%); }
+              to   { transform: translateY(0); }
+            }
+            @keyframes sheetFadeIn {
+              from { opacity: 0; }
+              to   { opacity: 1; }
             }
           `}</style>
-        </div>
+        </>,
+        document.body
       )}
-
-
     </div>
   )
 }
 
-function MenuItem({ icon, label, onClick, right, disabled, compact }: {
+function SheetItem({ icon, label, onClick, right, disabled, compact }: {
   icon?: React.ReactNode
   label: string
   onClick?: (e: React.MouseEvent) => void
@@ -305,27 +309,26 @@ function MenuItem({ icon, label, onClick, right, disabled, compact }: {
       onClick={disabled || !onClick ? undefined : onClick}
       style={{
         display: "flex", alignItems: "center", gap: compact ? 8 : 10,
-        padding: compact ? "6px 10px" : "9px 12px",
-        borderRadius: 6,
+        padding: compact ? "10px 12px" : "12px 12px",
+        borderRadius: 8,
         cursor: disabled ? "default" : "pointer",
         color: disabled ? "rgba(255,255,255,0.25)" : "rgba(255,255,255,0.88)",
-        fontSize: 13,
+        fontSize: 14,
         fontWeight: 500,
         transition: "background 0.1s",
-        whiteSpace: "nowrap",
       }}
-      onMouseEnter={(e) => { if (!disabled) e.currentTarget.style.background = "rgba(255,255,255,0.08)" }}
+      onMouseEnter={(e) => { if (!disabled) e.currentTarget.style.background = "rgba(255,255,255,0.06)" }}
       onMouseLeave={(e) => { e.currentTarget.style.background = "transparent" }}
     >
-      {icon && <span style={{ display: "flex", flexShrink: 0, opacity: 0.75 }}>{icon}</span>}
+      {icon && <span style={{ display: "flex", flexShrink: 0, opacity: 0.7 }}>{icon}</span>}
       <span style={{ flex: 1 }}>{label}</span>
       {right && <span style={{ display: "flex", flexShrink: 0, opacity: 0.5 }}>{right}</span>}
     </div>
   )
 }
 
-function MenuDivider() {
-  return <div style={{ height: 1, background: "rgba(255,255,255,0.06)", margin: "3px 8px" }} />
+function SheetDivider() {
+  return <div style={{ height: 1, background: "rgba(255,255,255,0.05)", margin: "4px 12px" }} />
 }
 
 /* ─── Icons ─── */

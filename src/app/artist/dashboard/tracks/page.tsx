@@ -266,8 +266,8 @@ export default function TracksPage() {
   }
 
   return (
-    <div>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 24 }}>
+    <div className="tracks-page">
+      <div className="tracks-header" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 24 }}>
         <div>
           <h2 style={{ fontSize: 20, fontWeight: 800, color: "var(--foreground)", margin: 0 }}>Your Tracks</h2>
           <p style={{ margin: "2px 0 0", fontSize: 13, color: "var(--muted-foreground)" }}>{tracks.length} tracks</p>
@@ -279,7 +279,7 @@ export default function TracksPage() {
 
       {/* Bulk action bar */}
       {selected.size > 0 && (
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "12px 18px", borderRadius: 12, background: "var(--brand-bg)", border: "1px solid var(--brand)", marginBottom: 12 }}>
+        <div className="bulk-bar" style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "12px 18px", borderRadius: 12, background: "var(--brand-bg)", border: "1px solid var(--brand)", marginBottom: 12 }}>
           <p style={{ margin: 0, fontSize: 13, fontWeight: 600, color: "var(--brand)" }}>{selected.size} selected</p>
           <div style={{ display: "flex", gap: 8 }}>
             <button onClick={() => bulkPublishMut.mutate([...selected])} disabled={bulkPublishMut.isPending} style={{ ...pillBtn, padding: "6px 16px", fontSize: 12, background: "var(--brand)" }}>Publish</button>
@@ -319,7 +319,7 @@ export default function TracksPage() {
       )}
 
       {showForm && (
-        <form onSubmit={handleUpload} style={{ background: "var(--card-bg)", borderRadius: 16, padding: "24px 28px", marginBottom: 28, display: "flex", flexDirection: "column", gap: 18 }}>
+        <form onSubmit={handleUpload} className="tracks-form" style={{ background: "var(--card-bg)", borderRadius: 16, padding: "24px 28px", marginBottom: 28, display: "flex", flexDirection: "column", gap: 18 }}>
           <h3 style={{ fontSize: 16, fontWeight: 700, color: "var(--foreground)", margin: 0 }}>Upload New Track</h3>
 
           {/* Title */}
@@ -463,7 +463,7 @@ export default function TracksPage() {
           </div>
 
           {/* Genre + Album row */}
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
+          <div className="genre-album-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
             <div>
               <label style={labelStyle}>Genre</label>
               <select value={genreId} onChange={(e) => setGenreId(e.target.value)} style={{ ...inputStyle, width: "100%", appearance: "auto" }}>
@@ -790,6 +790,14 @@ export default function TracksPage() {
         </div>
         </div>
       )}
+      <style>{`
+        @media (max-width: 640px) {
+          .tracks-page .tracks-header { flex-direction: column; align-items: flex-start; gap: 10px; }
+          .tracks-page .bulk-bar { flex-wrap: wrap; gap: 8px; }
+          .tracks-page .tracks-form { padding: 16px !important; }
+          .tracks-page .genre-album-grid { grid-template-columns: 1fr !important; }
+        }
+      `}</style>
     </div>
   )
 }

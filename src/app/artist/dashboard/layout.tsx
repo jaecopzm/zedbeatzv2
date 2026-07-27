@@ -20,6 +20,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
   const pathname = usePathname()
   const router = useRouter()
   const [mounted, setMounted] = useState(false)
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const user = useAuthStore((s) => s.user)
   const logout = useAuthStore((s) => s.logout)
   const { theme, toggle: toggleTheme } = useThemeStore()
@@ -33,18 +34,35 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
     }
   }, [user, router])
 
+  useEffect(() => {
+    document.body.style.overflow = mobileMenuOpen ? "hidden" : ""
+    return () => { document.body.style.overflow = "" }
+  }, [mobileMenuOpen])
+
   if (!mounted || !user || (user.role !== "artist" && user.role !== "admin")) return null
 
+  const closeMenu = () => setMobileMenuOpen(false)
+
   return (
-    <div style={{ display: "flex", height: "100vh", background: "var(--background)", overflow: "hidden" }}>
+    <div className="dash-layout" style={{ display: "flex", height: "100vh", background: "var(--background)", overflow: "hidden" }}>
+      {/* ── Mobile header ── */}
+      <div className="mobile-dash-header">
+        <button onClick={() => setMobileMenuOpen((p) => !p)} className="mobile-hamburger" aria-label={mobileMenuOpen ? "Close menu" : "Open menu"}>
+          {mobileMenuOpen ? (
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
+          ) : (
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><line x1="3" y1="6" x2="21" y2="6" /><line x1="3" y1="12" x2="21" y2="12" /><line x1="3" y1="18" x2="21" y2="18" /></svg>
+          )}
+        </button>
+        <img src={theme === "dark" ? "/logo-white.png" : "/logo-black.png"} alt="ZedBeatz" style={{ height: 20 }} />
+        <div style={{ width: 22 }} />
+      </div>
+
+      {/* ── Mobile overlay backdrop ── */}
+      {mobileMenuOpen && <div className="mobile-overlay" onClick={closeMenu} />}
+
       {/* ── Studio Sidebar ── */}
-      <aside style={{
-        width: 240, flexShrink: 0,
-        background: "var(--sidebar-bg)",
-        borderRight: "1px solid var(--border)",
-        display: "flex", flexDirection: "column",
-        overflowY: "auto",
-      }}>
+      <aside className={`dash-sidebar ${mobileMenuOpen ? "dash-sidebar--open" : ""}`}>
         {/* Logo area */}
         <div style={{ padding: "20px 16px 16px" }}>
           <Link href="/" style={{ display: "flex", alignItems: "center", gap: 10, textDecoration: "none" }}>
@@ -66,6 +84,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
               <Link
                 key={link.href}
                 href={link.href}
+                onClick={closeMenu}
                 style={{
                   display: "flex", alignItems: "center", gap: 10,
                   padding: "9px 12px", borderRadius: 8, marginBottom: 2,
@@ -134,12 +153,51 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
       </aside>
 
       {/* ── Main content ── */}
-      <main style={{
-        flex: 1, minWidth: 0, overflowY: "auto", overflowX: "hidden",
-        padding: "28px 32px 40px", background: "var(--content-bg)",
-      }}>
+      <main className="dash-main">
         {children}
       </main>
+
+      <style>{`
+        .dash-main {
+          flex: 1; min-width: 0; overflow-y: auto; overflow-x: hidden;
+          padding: 28px 32px 40px; background: var(--content-bg);
+        }
+        .mobile-dash-header { display: none; }
+
+
+        @media (max-width: 768px) {
+          .dash-layout { flex-direction: column !important; }
+          .dash-sidebar {
+            position: fixed; top: 49px; left: 0; bottom: 0; z-index: 100;
+            width: 280px; background: var(--sidebar-bg);
+            border-right: 1px solid var(--border);
+            display: flex; flex-direction: column; overflow-y: auto;
+            transform: translateX(-100%); transition: transform 0.25s ease;
+          }
+          .dash-sidebar--open { transform: translateX(0); }
+          .mobile-overlay {
+            position: fixed; top: 49px; left: 0; right: 0; bottom: 0; z-index: 99;
+            background: rgba(0,0,0,0.5);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+          }
+          .mobile-dash-header {
+            display: flex !important; align-items: center; justify-content: center;
+            padding: 10px 16px; border-bottom: 1px solid var(--border);
+            background: var(--background); flex-shrink: 0;
+            position: sticky; top: 0; z-index: 101;
+          }
+          .mobile-hamburger {
+            position: absolute; left: 14px;
+            background: none; border: none; cursor: pointer;
+            color: var(--foreground); padding: 6px; border-radius: 0;
+          }
+          .dash-main {
+            padding: 16px !important;
+            flex: 1 !important; height: auto !important;
+          }
+        }
+      `}</style>
     </div>
   )
 }

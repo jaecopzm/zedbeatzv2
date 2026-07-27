@@ -36,7 +36,7 @@ export default function CreditsPage() {
   ]
 
   return (
-    <div>
+    <div className="credits-page">
       <div style={{ marginBottom: 28 }}>
         <h2 style={{ fontSize: 18, fontWeight: 800, color: "var(--foreground)", margin: 0 }}>Credits</h2>
         <p style={{ margin: "2px 0 0", fontSize: 13, color: "var(--muted-foreground)" }}>
@@ -55,7 +55,7 @@ export default function CreditsPage() {
         }}>
           <p style={{ margin: "0 0 4px", fontSize: 13, fontWeight: 600, opacity: 0.85 }}>Available Credits</p>
           <p style={{ margin: 0, fontSize: 42, fontWeight: 900, lineHeight: 1 }}>{balance?.balance ?? 0}</p>
-          <div style={{ display: "flex", gap: 24, marginTop: 16, opacity: 0.8, fontSize: 12 }}>
+          <div className="credits-balance-stats" style={{ display: "flex", gap: 24, marginTop: 16, opacity: 0.8, fontSize: 12 }}>
             <span>Granted: {balance?.lifetime_granted ?? 0}</span>
             <span>Purchased: {balance?.lifetime_purchased ?? 0}</span>
             <span>Used: {balance?.lifetime_spent ?? 0}</span>
@@ -144,6 +144,11 @@ export default function CreditsPage() {
           </div>
         )}
       </div>
+      <style>{`
+        @media (max-width: 640px) {
+          .credits-page .credits-balance-stats { flex-wrap: wrap; gap: 8px 16px; }
+        }
+      `}</style>
     </div>
   )
 }

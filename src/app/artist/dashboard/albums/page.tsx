@@ -137,7 +137,7 @@ export default function AlbumsPage() {
       {/* ── Create album form ── */}
       {showForm && (
         <form onSubmit={(e) => { e.preventDefault(); if (albumTitle) createMut.mutate({ title: albumTitle, type: albumType, cover: albumCover || undefined }) }}
-          style={{ background: "var(--card-bg)", borderRadius: 14, padding: "20px 24px", marginBottom: 20, display: "flex", flexDirection: "column", gap: 14 }}>
+          className="albums-create-form" style={{ background: "var(--card-bg)", borderRadius: 14, padding: "20px 24px", marginBottom: 20, display: "flex", flexDirection: "column", gap: 14 }}>
           <h3 style={{ fontSize: 14, fontWeight: 700, color: "var(--foreground)", margin: 0 }}>New Album</h3>
           <input ref={coverRef} type="file" accept="image/*"
             onChange={(e) => { const f = e.target.files?.[0]; if (f) { setAlbumCover(f); setAlbumCoverPreview(URL.createObjectURL(f)) } }}
@@ -167,7 +167,7 @@ export default function AlbumsPage() {
               </div>
             )}
           </div>
-          <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
+          <div className="albums-input-row" style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
             <input value={albumTitle} onChange={(e) => setAlbumTitle(e.target.value)} placeholder="Album title" autoFocus
               style={{ padding: "8px 14px", borderRadius: 999, border: "1.5px solid var(--border)", background: "var(--background)", color: "var(--foreground)", fontSize: 13, outline: "none", flex: 1, minWidth: 150 }} />
             <select value={albumType} onChange={(e) => setAlbumType(e.target.value)} style={{ padding: "8px 14px", borderRadius: 999, border: "1.5px solid var(--border)", background: "var(--background)", color: "var(--foreground)", fontSize: 13, appearance: "none", cursor: "pointer" }}>
@@ -315,6 +315,13 @@ export default function AlbumsPage() {
           })}
         </div>
       )}
+      <style>{`
+        @media (max-width: 640px) {
+          .albums-create-form .albums-input-row { flex-direction: column; align-items: stretch; }
+          .albums-create-form .albums-input-row input,
+          .albums-create-form .albums-input-row select { min-width: 100% !important; }
+        }
+      `}</style>
     </div>
   )
 }

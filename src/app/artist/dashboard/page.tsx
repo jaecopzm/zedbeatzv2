@@ -75,7 +75,7 @@ export default function DashboardHub() {
       </div>
 
       {/* ── Stat strip ── */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))", gap: 16, marginBottom: 32 }}>
+      <div className="dash-stats-grid" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))", gap: 16, marginBottom: 32 }}>
         {stats.map((s) => (
           <div key={s.label} style={{ background: "var(--card-bg)", borderRadius: 14, padding: "18px 20px" }}>
             <p style={{ margin: 0, fontSize: 24, fontWeight: 800, color: "var(--foreground)", lineHeight: 1 }}>{s.value}</p>
@@ -85,7 +85,7 @@ export default function DashboardHub() {
       </div>
 
       {/* ── Quick actions ── */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(240px, 1fr))", gap: 14, marginBottom: 36 }}>
+      <div className="dash-quick-grid" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(240px, 1fr))", gap: 14, marginBottom: 36 }}>
         {quickLinks.map((link) => (
           <button key={link.href} onClick={() => router.push(link.href)}
             style={{
@@ -163,6 +163,12 @@ export default function DashboardHub() {
           />
         </div>
       )}
+      <style>{`
+        @media (max-width: 640px) {
+          .dash-stats-grid { grid-template-columns: repeat(2, 1fr) !important; }
+          .dash-quick-grid { grid-template-columns: 1fr !important; }
+        }
+      `}</style>
     </div>
   )
 }

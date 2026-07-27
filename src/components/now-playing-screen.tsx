@@ -5,6 +5,7 @@ import { usePlayerStore, type TrackInfo } from "@/lib/store"
 import { useUIStore } from "@/lib/ui-store"
 import { useLikesStore } from "@/lib/likes-store"
 import { useColorExtract } from "@/lib/use-color-extract"
+import { PremiumTrackMenu } from "@/components/track-menu"
 
 function fmt(sec: number) {
   const s = Math.floor(sec)
@@ -138,14 +139,20 @@ export function NowPlayingScreen() {
       {/* Top bar — always visible at the top of the screen */}
       <div style={{ position: "relative", zIndex: 5, display: "flex", alignItems: "center", justifyContent: "space-between", padding: isMobile ? "12px 16px" : "20px 32px", flexShrink: 0 }}>
         <button onClick={closeNowPlaying} aria-label="Close Now Playing" style={{ background: "rgba(255,255,255,0.18)", border: "none", borderRadius: "50%", width: isMobile ? "32px" : "36px", height: isMobile ? "32px" : "36px", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", backdropFilter: "blur(12px)", WebkitBackdropFilter: "blur(12px)" }}>
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.8)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 12H5" /><polyline points="12 19 5 12 12 5" /></svg>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.8)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 12 15 18 9" /></svg>
         </button>
         <p style={{ margin: 0, fontSize: isMobile ? "11px" : "13px", fontWeight: 600, letterSpacing: "0.06em", textTransform: "uppercase", color: "rgba(255,255,255,0.45)" }}>Now Playing</p>
-        <div style={{ width: isMobile ? "32px" : "36px" }} />
+        {track ? (
+          <PremiumTrackMenu track={{ ...track, artist_id: track.artist_id || "" }} />
+        ) : (
+          <div style={{ width: isMobile ? "32px" : "36px" }} />
+        )}
       </div>
 
       {/* Centered content */}
-      <div className="np-content" style={{ position: "relative", zIndex: 5, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", flex: 1, width: "100%", maxWidth: isMobile ? "100%" : "440px", margin: "0 auto", padding: isMobile ? "8px 16px 24px" : "16px 24px 32px", gap: "0" }}>
+      <div className="np-content" style={{ position: "relative", zIndex: 5, display: "flex", flexDirection: "column", alignItems: "center", flex: 1, width: "100%", maxWidth: isMobile ? "100%" : "440px", margin: "0 auto", padding: isMobile ? "0 24px calc(12px + env(safe-area-inset-bottom, 0px))" : "16px 24px 32px", justifyContent: isMobile ? "space-between" : "center" }}>
+        {/* Top section: artwork + info */}
+        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", width: "100%", flex: isMobile ? 1 : 0, justifyContent: isMobile ? "center" : "flex-start" }}>
         {/* Artwork */}
         <div style={{ position: "relative", marginBottom: isMobile ? "16px" : "24px" }}>
           {track?.cover_url && (
@@ -181,6 +188,7 @@ export function NowPlayingScreen() {
               <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
             </svg>
           </button>
+        </div>
         </div>
 
         {/* Scrubber */}

@@ -43,28 +43,7 @@ export function Sidebar() {
     <>
     {showLogin && <LoginModal onClose={() => setShowLogin(false)} />}
     <aside className={`app-sidebar${sidebarOpen ? " is-open" : ""}`}>
-      {/* Logo */}
-      <div className="app-sidebar-logo" style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "8px", marginBottom: "var(--sidebar-logo-margin, 12px)" }}>
-        <img
-          src={mounted ? (theme === "dark" ? "/logo-white.png" : "/logo-black.png") : "/logo-white.png"}
-          alt="ZedBeatz"
-          width="132"
-          height="32"
-          suppressHydrationWarning
-          style={{ height: 32, width: "auto", objectFit: "contain", display: "block" }}
-        />
-        <button
-          type="button"
-          className="app-sidebar-close"
-          onClick={() => setSidebarOpen(false)}
-          aria-label="Close menu"
-        >
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-            <line x1="18" y1="6" x2="6" y2="18" />
-            <line x1="6" y1="6" x2="18" y2="18" />
-          </svg>
-        </button>
-      </div>
+
 
       {/* Search */}
       <Link

@@ -586,16 +586,16 @@ function MobileMiniPlayer({
             }}
           >
             {loading ? (
-              <svg className="spinner" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#1d1d1f" strokeWidth="2.5">
+              <svg className="spinner" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={track ? "#1d1d1f" : "var(--foreground)"} strokeWidth="2.5">
                 <circle cx="12" cy="12" r="10" strokeDasharray="31.4 31.4" strokeLinecap="round" />
               </svg>
             ) : isPlaying ? (
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="#1d1d1f">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill={track ? "#1d1d1f" : "var(--foreground)"}>
                 <rect x="5" y="4" width="4.5" height="16" rx="1.5" />
                 <rect x="14.5" y="4" width="4.5" height="16" rx="1.5" />
               </svg>
             ) : (
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="#1d1d1f" style={{ marginLeft: "2px" }}>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill={track ? "#1d1d1f" : "var(--foreground)"} style={{ marginLeft: "2px" }}>
                 <polygon points="5,3 20,12 5,21" />
               </svg>
             )}

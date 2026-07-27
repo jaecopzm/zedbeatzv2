@@ -137,7 +137,7 @@ export default function ArtistProfilePage() {
   return (
     <div>
       <form onSubmit={handleSave}>
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 28, alignItems: "start" }}>
+        <div className="profile-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 28, alignItems: "start" }}>
 
           {/* ── LEFT COLUMN ── */}
           <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
@@ -171,7 +171,7 @@ export default function ArtistProfilePage() {
             {/* ── Media ── */}
             <div style={cardBox}>
               <p style={cardTitle}>Media</p>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
+              <div className="profile-media-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
                 {/* Profile photo */}
                 <div>
                   <label style={{ fontSize: 11, fontWeight: 700, color: "var(--muted-foreground)", marginBottom: 6, display: "block" }}>Profile Photo</label>
@@ -257,7 +257,7 @@ export default function ArtistProfilePage() {
               <div>
                 <label style={{ fontSize: 12, fontWeight: 700, color: "var(--muted-foreground)", marginBottom: 6, display: "block" }}>Social Links</label>
                 <p style={{ margin: "0 0 10px", fontSize: 12, color: "var(--muted-foreground)" }}>Connect your social profiles — they'll appear on your public page.</p>
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+                <div className="profile-social-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
                   <SocialField icon="instagram" label="Instagram" value={socialLinks.instagram || ""} onChange={(v) => setSocialLinks((p) => ({ ...p, instagram: v }))} placeholder="https://instagram.com/yomaps" />
                   <SocialField icon="tiktok" label="TikTok" value={socialLinks.tiktok || ""} onChange={(v) => setSocialLinks((p) => ({ ...p, tiktok: v }))} placeholder="https://tiktok.com/@yomaps" />
                   <SocialField icon="youtube" label="YouTube" value={socialLinks.youtube || ""} onChange={(v) => setSocialLinks((p) => ({ ...p, youtube: v }))} placeholder="https://youtube.com/@yomaps" />
@@ -334,6 +334,13 @@ export default function ArtistProfilePage() {
 
         </div>
       </form>
+      <style>{`
+        @media (max-width: 768px) {
+          .profile-grid { grid-template-columns: 1fr !important; }
+          .profile-media-grid { grid-template-columns: 1fr !important; }
+          .profile-social-grid { grid-template-columns: 1fr !important; }
+        }
+      `}</style>
     </div>
   )
 }
