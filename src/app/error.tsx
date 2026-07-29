@@ -1,12 +1,16 @@
 "use client"
 
-import { useEffect } from "react"
+import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 
 export default function Error({ error, reset }: { error: Error & { digest?: string }; reset: () => void }) {
   const router = useRouter()
+  const [details, setDetails] = useState("")
 
-  useEffect(() => { console.error(error) }, [error])
+  useEffect(() => {
+    console.error(error)
+    setDetails(error?.message || error?.digest || "")
+  }, [error])
 
   return (
     <div style={{
@@ -26,6 +30,11 @@ export default function Error({ error, reset }: { error: Error & { digest?: stri
       <p style={{ fontSize: 14, color: "var(--muted-foreground)", margin: 0, maxWidth: 360 }}>
         An unexpected error occurred. Please try again.
       </p>
+      {details && (
+        <p style={{ fontSize: 11, color: "var(--muted-foreground)", margin: 0, maxWidth: 360, wordBreak: "break-all", opacity: 0.5 }}>
+          {details}
+        </p>
+      )}
       <div style={{ display: "flex", gap: 10 }}>
         <button onClick={reset} style={{ padding: "10px 24px", borderRadius: 20, border: "none", background: "var(--brand)", color: "#fff", fontSize: 14, fontWeight: 600, cursor: "pointer" }}>
           Try again
