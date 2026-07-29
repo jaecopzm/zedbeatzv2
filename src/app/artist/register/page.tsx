@@ -72,18 +72,6 @@ export default function ArtistRegisterPage() {
     return () => clearTimeout(checkTimer.current)
   }, [stageName])
 
-  useEffect(() => {
-    if (!token) {
-      router.replace("/auth/login?redirect=/artist/register")
-      return
-    }
-    if (user?.role === "artist" || user?.role === "admin") {
-      router.replace("/artist/dashboard")
-      return
-    }
-    setChecking(false)
-  }, [token, user, router])
-
   if (checking) return null
 
   const handlePhoto = useCallback((file: File) => {
