@@ -55,7 +55,7 @@ export function ShareableArtistCard({ data }: Props) {
     // ── Brand watermark ──
     ctx.fillStyle = "rgba(255,255,255,0.85)"
     ctx.font = "bold 28px Inter, -apple-system, sans-serif"
-    ctx.fillText("ZEDSTREAM", 60, 80)
+    ctx.fillText("ZEDBEATZ", 60, 80)
 
     ctx.fillStyle = "rgba(255,255,255,0.6)"
     ctx.font = "500 22px Inter, sans-serif"
@@ -178,7 +178,7 @@ export function ShareableArtistCard({ data }: Props) {
     ctx.fillText("Listen now on ZedBeatz", size / 2, size - 60)
     ctx.font = "bold 22px Inter, sans-serif"
     ctx.fillStyle = "rgba(255,255,255,0.85)"
-    ctx.fillText("zedbeatz.com", size / 2, size - 30)
+    ctx.fillText("play.zedbeatz.com", size / 2, size - 30)
 
     setGenerating(false)
     setPreviewUrl(canvas.toDataURL("image/png"))

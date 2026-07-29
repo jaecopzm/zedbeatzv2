@@ -72,8 +72,6 @@ export default function ArtistRegisterPage() {
     return () => clearTimeout(checkTimer.current)
   }, [stageName])
 
-  if (checking) return null
-
   const handlePhoto = useCallback((file: File) => {
     if (!file.type.startsWith("image/")) {
       setError("Please select an image file (JPEG, PNG)")
@@ -100,6 +98,8 @@ export default function ArtistRegisterPage() {
     setPreview(null)
     if (fileRef.current) fileRef.current.value = ""
   }, [])
+
+  if (checking) return null
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
