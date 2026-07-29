@@ -65,8 +65,10 @@ export default function ArtistRegisterPage() {
         if (res.ok) {
           const data = await res.json()
           setNameAvailable(data.available !== false)
+        } else {
+          setNameAvailable(null)
         }
-      } catch { /* ignore */ }
+      } catch { setNameAvailable(null) }
       setCheckingName(false)
     }, 400)
     return () => clearTimeout(checkTimer.current)
@@ -107,6 +109,10 @@ export default function ArtistRegisterPage() {
     if (!trimmed) {
       setError("Stage name is required")
       nameRef.current?.focus()
+      return
+    }
+    if (nameAvailable === false) {
+      setError("Stage name is already taken")
       return
     }
     setLoading(true)
