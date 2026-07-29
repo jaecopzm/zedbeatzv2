@@ -19,7 +19,9 @@ function CallbackContent() {
       localStorage.setItem("refresh_token", refreshToken)
       setToken(accessToken)
       setStatus("Signed in! Redirecting...")
-      setTimeout(() => router.push("/"), 500)
+      const target = sessionStorage.getItem("post_login_redirect") || "/"
+      sessionStorage.removeItem("post_login_redirect")
+      setTimeout(() => router.push(target), 500)
     } else {
       setStatus("Authentication failed. Please try again.")
     }

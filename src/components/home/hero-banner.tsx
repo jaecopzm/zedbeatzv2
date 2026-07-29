@@ -252,8 +252,6 @@ export function HeroBanner() {
                 <path d="M9 6l6 6-6 6" />
               </svg>
             </button>
-            <div className="hp-scroller-fade-left" />
-            <div className="hp-scroller-fade-right" />
           </div>
           {items.length > 1 && (
             <div className="hp-hero-dots" role="tablist" aria-label="Featured picks">

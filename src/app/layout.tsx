@@ -1,5 +1,6 @@
 import type { Metadata } from "next"
 import { Inter } from "next/font/google"
+import Script from "next/script"
 import "./globals.css"
 import { Providers } from "@/components/providers"
 import { ToastContainer } from "@/components/toast-container"
@@ -23,7 +24,7 @@ export const metadata: Metadata = {
   description: SITE_DESCRIPTION,
   manifest: "/manifest.json",
   icons: {
-    icon: "/favicon.png",
+    icon: [{ url: "/favicon.png", sizes: "432x400", type: "image/png" }],
     apple: "/logo-white.png",
   },
   openGraph: {
@@ -112,6 +113,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(orgSchema) }}
         />
+        <Script src="https://www.googletagmanager.com/gtag/js?id=G-LD26CHY2WQ" strategy="afterInteractive" />
+        <Script id="google-analytics" strategy="afterInteractive">
+          {`window.dataLayer = window.dataLayer || []; function gtag(){dataLayer.push(arguments);} gtag('js', new Date()); gtag('config', 'G-LD26CHY2WQ');`}
+        </Script>
       </head>
       <body style={{ display: "flex", flexDirection: "column", height: "100%", margin: 0, overflow: "hidden" }}>
         <Providers>

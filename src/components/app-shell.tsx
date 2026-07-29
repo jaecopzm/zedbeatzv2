@@ -8,7 +8,7 @@ import { NowPlayingScreen } from "@/components/now-playing-screen"
 import type { ReactNode } from "react"
 
 // Pages that need a full-screen experience without sidebar/player
-const fullscreenPaths = ["/artist/register"]
+const fullscreenPaths = ["/artist/register", "/auth/login", "/login"]
 const fullscreenPrefixes = ["/artist/dashboard", "/admin"]
 
 export function AppShell({ children }: { children: ReactNode }) {

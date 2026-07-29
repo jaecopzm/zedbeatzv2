@@ -1,5 +1,6 @@
 "use client"
 
+import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { useState } from "react"
 import type { Artist } from "@/types"
@@ -10,7 +11,6 @@ export function ArtistCard({ artist }: { artist: Artist }) {
   const router = useRouter()
   const user = useAuthStore((s) => s.user)
   const [followed, setFollowed] = useState(artist.is_followed ?? false)
-  const [hovering, setHovering] = useState(false)
 
   const handleFollow = async (e: React.MouseEvent) => {
     e.stopPropagation()
@@ -30,41 +30,21 @@ export function ArtistCard({ artist }: { artist: Artist }) {
   }
 
   return (
-    <div
-      className="hp-artist-card"
-      onClick={() => router.push(`/artist/${artist.id}`)}
-      onMouseEnter={() => setHovering(true)}
-      onMouseLeave={() => setHovering(false)}
-    >
-      <div className="hp-artist-avatar-wrap">
-        {artist.photo_url ? (
-          <img src={artist.photo_url} alt={artist.stage_name} loading="lazy" />
-        ) : (
-          <div className="hp-artist-placeholder">
-            {artist.stage_name?.charAt(0).toUpperCase()}
-          </div>
-        )}
-        {hovering && (
-          <div
-            style={{
-              position: "absolute",
-              inset: 0,
-              borderRadius: "50%",
-              background: "rgba(0,0,0,0.45)",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              opacity: 1,
-              transition: "opacity 0.2s ease",
-            }}
-          >
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="white">
-              <polygon points="6,4 20,12 6,20" />
-            </svg>
-          </div>
-        )}
-      </div>
-      <p className="hp-artist-name">{artist.stage_name}</p>
+    <div className="hp-artist-card">
+      <Link href={`/artist/${artist.id}`} style={{ textDecoration: "none" }}>
+        <div className="hp-artist-avatar-wrap">
+          {artist.photo_url ? (
+            <img src={artist.photo_url} alt={artist.stage_name} loading="lazy" />
+          ) : (
+            <div className="hp-artist-placeholder">
+              {artist.stage_name?.charAt(0).toUpperCase()}
+            </div>
+          )}
+        </div>
+      </Link>
+      <Link href={`/artist/${artist.id}`} style={{ textDecoration: "none" }}>
+        <p className="hp-artist-name">{artist.stage_name}</p>
+      </Link>
       <p className="hp-artist-meta">
         {artist.follower_count ?? 0} {artist.follower_count === 1 ? "follower" : "followers"}
       </p>

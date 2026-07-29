@@ -46,7 +46,7 @@ export default function AlbumPage() {
     return () => mq.removeEventListener("change", handler)
   }, [])
 
-  const { data: album, isLoading } = useQuery({
+  const { data: album, isLoading, isError } = useQuery({
     queryKey: ["album", id],
     queryFn: () => api.getAlbum(id),
     enabled: !!id,
@@ -187,6 +187,18 @@ export default function AlbumPage() {
     )
   }
 
+  if (isError) {
+    return (
+      <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", minHeight: "60vh", gap: 16, color: "var(--muted-foreground)", textAlign: "center", padding: 24 }}>
+        <div style={{ width: 56, height: 56, borderRadius: "50%", background: "rgba(239,68,68,0.12)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#ef4444" strokeWidth="1.8" strokeLinecap="round"><circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="12" /><line x1="12" y1="16" x2="12.01" y2="16" /></svg>
+        </div>
+        <p style={{ fontSize: 16, fontWeight: 500 }}>Failed to load album</p>
+        <button onClick={() => router.refresh()} style={{ padding: "8px 20px", borderRadius: 20, border: "1.5px solid var(--border)", background: "transparent", cursor: "pointer", fontSize: 14, color: "var(--foreground)" }}>Try again</button>
+      </div>
+    )
+  }
+
   if (!album) {
     return (
       <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", minHeight: "60vh", gap: 16, color: "var(--muted-foreground)" }}>
@@ -199,6 +211,17 @@ export default function AlbumPage() {
 
   return (
     <div className="fade-in" style={{ minHeight: "100%", background: "var(--content-bg)" }}>
+      <style>{`
+        @media (max-width: 640px) {
+          .alb-tl-header { grid-template-columns: 32px 1fr 36px !important; }
+          .alb-tl-header span:nth-child(3),
+          .alb-tl-header span:nth-child(4) { display: none !important; }
+          .alb-tl-row { grid-template-columns: 32px 1fr 36px !important; }
+          .alb-tl-row .alb-tl-thumb { width: 32px !important; height: 32px !important; }
+          .alb-tl-plays,
+          .alb-tl-duration { display: none !important; }
+        }
+      `}</style>
 
       {/* ══ HERO ══ */}
       <div style={{ position: "relative", overflow: "hidden" }}>
@@ -296,7 +319,7 @@ export default function AlbumPage() {
             </p>
 
             {/* Stats row */}
-            <div style={{ display: "flex", gap: isMobile ? 8 : 20, marginBottom: isMobile ? 12 : 24, flexWrap: "wrap", justifyContent: isMobile ? "center" : "flex-start" }}>
+            <div style={{ display: "flex", gap: isMobile ? 8 : 20, marginBottom: isMobile ? 12 : 24, flexWrap: isMobile ? "nowrap" : "wrap", overflow: isMobile ? "hidden" : "visible", justifyContent: isMobile ? "center" : "flex-start" }}>
               <StatPill icon={<TrackIcon size={isMobile ? 12 : 14} />} value={`${tracks.length} track${tracks.length !== 1 ? "s" : ""}`} compact={isMobile} />
               {totalDuration > 0 && (
                 <StatPill icon={<ClockIcon size={isMobile ? 12 : 14} />} value={formatDuration(totalDuration)} compact={isMobile} />

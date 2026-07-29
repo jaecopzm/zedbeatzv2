@@ -1,5 +1,6 @@
 "use client"
 
+import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import { useAuthStore } from "@/lib/auth-store"
 import { useThemeStore } from "@/lib/theme-store"
@@ -9,6 +10,11 @@ export default function LoginPage() {
   const router = useRouter()
   const devLogin = useAuthStore((s) => s.login)
   const theme = useThemeStore((s) => s.theme)
+  const [origin, setOrigin] = useState("")
+
+  useEffect(() => {
+    setOrigin(window.location.origin)
+  }, [])
 
   return (
     <div className="fade-in" style={{
@@ -28,7 +34,7 @@ export default function LoginPage() {
           Discover and stream the best Zambian music
         </p>
 
-        <a href={`${AUTH_BASE}/auth/google`}
+        <a href={origin ? `${AUTH_BASE}/auth/google?redirect=${encodeURIComponent(origin)}` : "#"}
           style={{
             display: "flex", alignItems: "center", justifyContent: "center", gap: 10,
             padding: "12px 20px", borderRadius: 999, background: "#fff", color: "#1d1d1f",
@@ -47,7 +53,9 @@ export default function LoginPage() {
           <button
             onClick={async () => {
               await devLogin()
-              router.push("/")
+              const target = sessionStorage.getItem("post_login_redirect") || "/"
+              sessionStorage.removeItem("post_login_redirect")
+              router.push(target)
             }}
             style={{
               display: "flex", alignItems: "center", justifyContent: "center", gap: 10,

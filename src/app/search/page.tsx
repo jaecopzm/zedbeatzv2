@@ -35,7 +35,6 @@ function formatCount(n: number) {
 export default function SearchPage() {
   const [query, setQuery] = useState("")
   const [tab, setTab] = useState<Tab>("all")
-  const [hoveredAlbum, setHoveredAlbum] = useState<string | null>(null)
   const inputRef = useRef<HTMLInputElement>(null)
   const router = useRouter()
   const play = usePlayerStore((s) => s.play)
@@ -83,21 +82,40 @@ export default function SearchPage() {
   const showAlbums = tab === "all" || tab === "albums"
 
   return (
-    <div className="fade-in" style={{ padding: "32px 32px 40px", minHeight: "100%", background: "var(--content-bg)" }}>
+    <div className="fade-in search-page" style={{ padding: "32px", minHeight: "100%", background: "var(--content-bg)" }}>
       <style>{`
         .search-track-row:last-child { border-bottom: none; }
         .search-track-row:hover { background: var(--hover-bg) !important; }
-        @media (max-width: 640px) { .genre-grid { grid-template-columns: repeat(2, 1fr) !important; } }
+        .search-page { padding: 32px; }
+        @media (max-width: 1024px) { .search-page { padding: 24px; } }
+        @media (max-width: 640px) {
+          .search-page { padding: 16px 12px 24px !important; }
+          .search-page h1 { font-size: 22px !important; margin-bottom: 16px !important; }
+          .search-page input { font-size: 15px !important; height: 46px !important; padding: 0 40px 0 44px !important; }
+          .search-page .genre-grid { grid-template-columns: repeat(2, 1fr) !important; gap: 8px !important; }
+          .search-scroller { gap: 8px !important; }
+          .search-album-card { width: 140px !important; }
+          .search-album-card .search-album-art { width: 132px !important; height: 132px !important; }
+          .search-artist-card { width: 120px !important; }
+          .search-artist-card .search-artist-avatar { width: 100px !important; height: 100px !important; }
+        }
+        @media (max-width: 480px) {
+          .search-page .genre-grid { grid-template-columns: repeat(2, 1fr) !important; gap: 6px !important; }
+          .search-album-card { width: 130px !important; }
+          .search-album-card .search-album-art { width: 122px !important; height: 122px !important; }
+          .search-artist-card { width: 110px !important; }
+          .search-artist-card .search-artist-avatar { width: 90px !important; height: 90px !important; }
+        }
       `}</style>
 
-      <h1 style={{ fontSize: "30px", fontWeight: 700, color: "var(--foreground)", margin: "0 0 20px", letterSpacing: "-0.6px" }}>Search</h1>
+      <h1 style={{ fontSize: 26, fontWeight: 700, color: "var(--foreground)", margin: "0 0 20px", letterSpacing: "-0.5px" }}>Search</h1>
 
       {/* Search bar */}
       <div style={{ position: "relative", marginBottom: "24px" }}>
         <svg style={{ position: "absolute", left: "16px", top: "50%", transform: "translateY(-50%)", color: query ? "var(--foreground)" : "var(--muted-foreground)", pointerEvents: "none", transition: "color 0.15s" }} width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
           <circle cx="11" cy="11" r="8" /><path d="M21 21l-4.35-4.35" />
         </svg>
-        <input ref={inputRef} type="text" value={query} onChange={(e) => { setQuery(e.target.value); setTab("all") }} placeholder="Songs, artists, genres\u2026" style={{ width: "100%", height: "52px", padding: "0 44px 0 48px", fontSize: "16px", borderRadius: "26px", border: "2px solid transparent", background: "var(--card-bg)", color: "var(--foreground)", outline: "none", boxSizing: "border-box", boxShadow: "0 2px 12px rgba(0,0,0,0.07)", transition: "border-color 0.2s, box-shadow 0.2s" }} />
+        <input ref={inputRef} type="text" value={query} onChange={(e) => { setQuery(e.target.value); setTab("all") }} placeholder="Songs, artists, genres…" style={{ width: "100%", height: "52px", padding: "0 44px 0 48px", fontSize: "16px", borderRadius: "26px", border: "2px solid transparent", background: "var(--card-bg)", color: "var(--foreground)", outline: "none", boxSizing: "border-box", boxShadow: "0 2px 12px rgba(0,0,0,0.07)", transition: "border-color 0.2s, box-shadow 0.2s" }} />
         {query && (
           <button onClick={() => { setQuery(""); inputRef.current?.focus() }} style={{ position: "absolute", right: "12px", top: "50%", transform: "translateY(-50%)", background: "var(--muted-foreground)", border: "none", borderRadius: "50%", width: "22px", height: "22px", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", padding: 0, opacity: 0.7 }} onMouseEnter={(e) => { e.currentTarget.style.opacity = "1" }} onMouseLeave={(e) => { e.currentTarget.style.opacity = "0.7" }} aria-label="Clear search">
             <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round"><path d="M18 6L6 18M6 6l12 12" /></svg>
@@ -151,7 +169,7 @@ export default function SearchPage() {
               {showArtists && artists.length > 0 && (
                 <section>
                   <h2 style={{ fontSize: "15px", fontWeight: 700, color: "var(--foreground)", letterSpacing: "-0.2px", margin: "0 0 12px" }}>Artists</h2>
-                  <div style={{ display: "flex", gap: 4, overflowX: "auto", paddingBottom: 4 }}>
+                  <div className="search-scroller" style={{ display: "flex", gap: 4, overflowX: "auto", paddingBottom: 4 }}>
                     {artists.map((artist) => <ArtistCard key={artist.id} artist={artist} router={router} />)}
                   </div>
                 </section>
@@ -159,23 +177,9 @@ export default function SearchPage() {
               {showAlbums && albums.length > 0 && (
                 <section>
                   <h2 style={{ fontSize: "15px", fontWeight: 700, color: "var(--foreground)", letterSpacing: "-0.2px", margin: "0 0 12px" }}>Albums</h2>
-                  <div style={{ display: "flex", gap: 4, overflowX: "auto", paddingBottom: 4 }}>
+                  <div className="search-scroller" style={{ display: "flex", gap: 4, overflowX: "auto", paddingBottom: 4 }}>
                     {albums.map((album) => (
-                      <button key={album.id} onClick={() => router.push(`/album/${album.id}`)}
-                        style={{ flexShrink: 0, width: 180, background: "none", border: "none", cursor: "pointer", textAlign: "left", padding: 0 }}
-                      >
-                        <div style={{ position: "relative", marginBottom: 10, borderRadius: 8, overflow: "hidden" }}>
-                          <div style={{ width: 180, height: 180, borderRadius: 8, background: album.cover_url ? `url(${album.cover_url}) center/cover no-repeat` : "linear-gradient(135deg, #c8c8d4, #a0a0b0)", boxShadow: hoveredAlbum === album.id ? "0 8px 24px rgba(0,0,0,0.2)" : "0 4px 12px rgba(0,0,0,0.1)", transition: "box-shadow 0.18s ease, transform 0.18s ease", transform: hoveredAlbum === album.id ? "scale(1.03)" : "scale(1)" }} />
-                        </div>
-                        <p style={{ margin: 0, fontSize: 14, fontWeight: 600, color: "var(--foreground)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: 180 }}>{album.title}</p>
-                        <p style={{ margin: "3px 0 0", fontSize: 12, color: "var(--muted-foreground)" }}>
-                          <span onClick={(e) => { e.stopPropagation(); router.push(`/artist/${album.artist_id}`) }}
-                            onMouseEnter={(e) => { e.currentTarget.style.textDecoration = "underline" }}
-                            onMouseLeave={(e) => { e.currentTarget.style.textDecoration = "none" }}
-                            style={{ cursor: "pointer" }}
-                          >{album.artist_name || "Unknown Artist"}</span>
-                        </p>
-                      </button>
+                      <AlbumCard key={album.id} album={album} router={router} />
                     ))}
                   </div>
                 </section>
@@ -193,6 +197,29 @@ export default function SearchPage() {
         </div>
       )}
     </div>
+  )
+}
+
+/* ─── Album card ─── */
+
+function AlbumCard({ album, router }: { album: Album; router: any }) {
+  return (
+    <button onClick={() => router.push(`/album/${album.id}`)}
+      className="search-album-card"
+      style={{ flexShrink: 0, width: 176, background: "none", border: "none", cursor: "pointer", textAlign: "left", padding: 0 }}
+    >
+      <div className="search-album-art" style={{ marginBottom: 10, borderRadius: 4, overflow: "hidden" }}>
+        <div style={{ width: 168, height: 168, borderRadius: 4, background: album.cover_url ? `url(${album.cover_url}) center/cover no-repeat` : "linear-gradient(135deg, #c8c8d4, #a0a0b0)", transition: "box-shadow 0.18s ease, transform 0.18s ease" }} />
+      </div>
+      <p style={{ margin: 0, fontSize: 14, fontWeight: 600, color: "var(--foreground)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{album.title}</p>
+      <p style={{ margin: "3px 0 0", fontSize: 12, color: "var(--muted-foreground)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+        <span onClick={(e) => { e.stopPropagation(); router.push(`/artist/${album.artist_id}`) }}
+          onMouseEnter={(e) => { e.currentTarget.style.textDecoration = "underline" }}
+          onMouseLeave={(e) => { e.currentTarget.style.textDecoration = "none" }}
+          style={{ cursor: "pointer" }}
+        >{album.artist_name || "Unknown Artist"}</span>
+      </p>
+    </button>
   )
 }
 
@@ -222,14 +249,14 @@ function TrackRow({ track, onPlay }: { track: Track; onPlay: any }) {
       {/* Cover */}
       <div style={{ position: "relative", flexShrink: 0 }}>
         {track.cover_url ? (
-          <img src={track.cover_url} alt="" style={{ width: 44, height: 44, borderRadius: 6, objectFit: "cover", display: "block" }} />
+          <img src={track.cover_url} alt="" style={{ width: 44, height: 44, borderRadius: 4, objectFit: "cover", display: "block" }} />
         ) : (
-          <div style={{ width: 44, height: 44, borderRadius: 6, background: "linear-gradient(135deg, #e8e8ec, #d0d0d8)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+          <div style={{ width: 44, height: 44, borderRadius: 4, background: "linear-gradient(135deg, #e8e8ec, #d0d0d8)", display: "flex", alignItems: "center", justifyContent: "center" }}>
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#86868b" strokeWidth="1.5"><path d="M9 18V5l12-2v13" /><circle cx="6" cy="18" r="3" /><circle cx="18" cy="16" r="3" /></svg>
           </div>
         )}
         {hovered && (
-          <div style={{ position: "absolute", inset: 0, borderRadius: 6, background: "rgba(0,0,0,0.45)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+          <div style={{ position: "absolute", inset: 0, borderRadius: 4, background: "rgba(0,0,0,0.45)", display: "flex", alignItems: "center", justifyContent: "center" }}>
             <svg width="18" height="18" viewBox="0 0 24 24" fill="white"><polygon points="5,3 19,12 5,21" /></svg>
           </div>
         )}
@@ -277,21 +304,19 @@ function TrackRow({ track, onPlay }: { track: Track; onPlay: any }) {
 /* ─── Artist card ─── */
 
 function ArtistCard({ artist, router }: { artist: Artist; router: any }) {
-  const [hovered, setHovered] = useState(false)
   return (
     <button onClick={() => router.push(`/artist/${artist.id}`)}
-      onMouseEnter={() => setHovered(true)} onMouseLeave={() => setHovered(false)}
-      style={{ flexShrink: 0, width: 130, background: "none", border: "none", cursor: "pointer", textAlign: "center", padding: "4px 4px 8px", borderRadius: 12, transition: "transform 0.18s ease", transform: hovered ? "scale(1.03)" : "scale(1)" }}
+      className="search-artist-card"
+      style={{ flexShrink: 0, width: 148, background: "none", border: "none", cursor: "pointer", textAlign: "center", padding: 0, borderRadius: 12 }}
     >
-      <div style={{ position: "relative", display: "inline-block", marginBottom: 10 }}>
-        <div style={{ width: 120, height: 120, borderRadius: "50%", background: artist.photo_url ? `url(${artist.photo_url}) center/cover no-repeat` : "linear-gradient(135deg, #c8c8d4, #a0a0b0)", boxShadow: hovered ? "0 8px 24px rgba(0,0,0,0.2)" : "0 4px 12px rgba(0,0,0,0.1)", transition: "box-shadow 0.18s ease" }} />
+      <div className="search-artist-avatar" style={{ width: 116, height: 116, borderRadius: "50%", margin: "0 auto 10px", background: artist.photo_url ? `url(${artist.photo_url}) center/cover no-repeat` : "linear-gradient(135deg, #c8c8d4, #a0a0b0)", boxShadow: "0 4px 12px rgba(0,0,0,0.1)", position: "relative" }}>
         {artist.verified && (
           <div style={{ position: "absolute", bottom: 4, right: 4, width: 22, height: 22, borderRadius: "50%", background: "#4FACFE", border: "2px solid var(--content-bg)", display: "flex", alignItems: "center", justifyContent: "center" }}>
             <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12" /></svg>
           </div>
         )}
       </div>
-      <p style={{ margin: 0, fontSize: 13, fontWeight: 600, color: "var(--foreground)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: 120 }}>{artist.stage_name}</p>
+      <p style={{ margin: 0, fontSize: 13, fontWeight: 600, color: "var(--foreground)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{artist.stage_name}</p>
       <p style={{ margin: "3px 0 0", fontSize: 11, color: "var(--muted-foreground)" }}>Artist</p>
     </button>
   )
@@ -302,13 +327,13 @@ function ArtistCard({ artist, router }: { artist: Artist; router: any }) {
 function GenreBrowse({ genres, router }: { genres: Genre[]; router: any }) {
   return (
     <section>
-      <h2 style={{ fontSize: "22px", fontWeight: 700, color: "var(--section-header)", margin: "0 0 16px", letterSpacing: "-0.3px" }}>Browse by genre</h2>
+      <h2 style={{ fontSize: 20, fontWeight: 700, color: "var(--section-header)", margin: "0 0 16px", letterSpacing: "-0.3px" }}>Browse by genre</h2>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: "12px" }} className="genre-grid">
         {genres.map((genre, idx) => {
           const [from, to] = GENRE_GRADIENTS[idx % GENRE_GRADIENTS.length]
           return (
             <button key={genre.id} onClick={() => router.push(`/genres/${genre.id}`)}
-              style={{ background: `linear-gradient(135deg, ${from}, ${to})`, border: "none", borderRadius: 14, padding: 0, height: 100, cursor: "pointer", position: "relative", overflow: "hidden", transition: "transform 0.18s ease, box-shadow 0.18s ease", boxShadow: "0 4px 14px rgba(0,0,0,0.12)", textAlign: "left" }}
+              style={{ background: `linear-gradient(135deg, ${from}, ${to})`, border: "none", borderRadius: 8, padding: 0, height: 90, cursor: "pointer", position: "relative", overflow: "hidden", transition: "transform 0.18s ease, box-shadow 0.18s ease", boxShadow: "0 4px 14px rgba(0,0,0,0.12)", textAlign: "left" }}
               onMouseEnter={(e) => { e.currentTarget.style.transform = "scale(1.03)"; e.currentTarget.style.boxShadow = "0 8px 24px rgba(0,0,0,0.2)" }}
               onMouseLeave={(e) => { e.currentTarget.style.transform = "scale(1)"; e.currentTarget.style.boxShadow = "0 4px 14px rgba(0,0,0,0.12)" }}
             >
@@ -343,7 +368,7 @@ function SkeletonAll() {
         <div className="skeleton" style={{ width: 100, height: 16, marginBottom: 8 }} />
         {Array.from({ length: 5 }).map((_, i) => (
           <div key={i} style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 12px", borderBottom: "1px solid var(--border)" }}>
-            <div className="skeleton" style={{ width: 44, height: 44, borderRadius: 6, flexShrink: 0 }} />
+            <div className="skeleton" style={{ width: 44, height: 44, borderRadius: 4, flexShrink: 0 }} />
             <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 6 }}>
               <div className="skeleton" style={{ width: `${45 + (i % 4) * 10}%`, height: 13 }} />
               <div className="skeleton" style={{ width: `${25 + (i % 3) * 8}%`, height: 11 }} />
@@ -374,7 +399,7 @@ function GenreSkeleton() {
     <section>
       <div className="skeleton" style={{ width: 160, height: 22, marginBottom: 16 }} />
       <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: "12px" }} className="genre-grid">
-        {Array.from({ length: 8 }).map((_, i) => <div key={i} className="skeleton" style={{ height: 100, borderRadius: 14 }} />)}
+        {Array.from({ length: 8 }).map((_, i) => <div key={i} className="skeleton" style={{ height: 90, borderRadius: 8 }} />)}
       </div>
     </section>
   )

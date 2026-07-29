@@ -2165,14 +2165,14 @@ input[type="range"]::-webkit-slider-thumb:hover {
 /* ── Track Page Responsive ──────────────────────────────────────────── */
 .track-hero {
   display: flex;
-  gap: 32px;
+  gap: 24px;
   align-items: flex-end;
-  padding: 60px 40px 24px;
+  padding: 40px 40px 16px;
   flex-wrap: wrap;
 }
 .track-hero-art {
-  width: 232px;
-  height: 232px;
+  width: 200px;
+  height: 200px;
   border-radius: 8px;
   flex-shrink: 0;
   overflow: hidden;
@@ -2185,10 +2185,10 @@ input[type="range"]::-webkit-slider-thumb:hover {
   display: block;
 }
 .track-actions {
-  padding: 0 40px 32px;
+  padding: 0 40px 20px;
   display: flex;
   align-items: center;
-  gap: 24px;
+  gap: 20px;
 }
 .track-body {
   max-width: 1200px;
@@ -2202,12 +2202,12 @@ input[type="range"]::-webkit-slider-thumb:hover {
     flex-direction: column;
     align-items: center;
     text-align: center;
-    padding: 48px 20px 16px;
-    gap: 16px;
+    padding: 40px 20px 12px;
+    gap: 14px;
   }
   .track-hero-art {
-    width: 160px;
-    height: 160px;
+    width: 150px;
+    height: 150px;
   }
   .track-hero-info {
     text-align: center;
@@ -2216,14 +2216,15 @@ input[type="range"]::-webkit-slider-thumb:hover {
     justify-content: center;
   }
   .track-actions {
-    padding: 0 20px 20px;
+    padding: 0 20px 16px;
     justify-content: center;
+    gap: 14px;
   }
   .track-body {
-    padding: 24px 16px;
+    padding: 20px 16px;
   }
   .track-artist-row {
-  gap: 8px;
+    gap: 8px;
   }
   .track-artist-avatar {
     width: 56px;
@@ -2233,9 +2234,6 @@ input[type="range"]::-webkit-slider-thumb:hover {
 
 /* Mobile */
 @media (max-width: 480px) {
-  .track-back-wrap {
-    display: none;
-  }
   .track-hero {
     padding: 40px 14px 12px;
     gap: 12px;
@@ -2253,6 +2251,9 @@ input[type="range"]::-webkit-slider-thumb:hover {
   .track-hero-meta {
     font-size: 11px !important;
     gap: 4px !important;
+    flex-wrap: nowrap !important;
+    overflow: hidden;
+    max-width: 100%;
   }
   .track-actions {
     padding: 0 14px 14px;
@@ -2289,25 +2290,41 @@ input[type="range"]::-webkit-slider-thumb:hover {
 
 /* ── Track list responsive overrides ─────────────────────────────────── */
 @media (max-width: 768px) {
-  .tl-header { display: none; }
+  .tl-header {
+    grid-template-columns: 32px 1fr 36px !important;
+    padding: 6px 8px !important;
+  }
+  .tl-header span:nth-child(n+3) { display: none; }
   .tl-row { grid-template-columns: 32px 1fr 36px !important; padding: 6px 8px !important; }
   .tl-thumb { width: 36px !important; height: 36px !important; }
   .tl-album, .tl-plays, .tl-duration { display: none; }
 }
 @media (max-width: 480px) {
+  .tl-header {
+    grid-template-columns: 28px 1fr 32px !important;
+    padding: 5px 6px !important;
+  }
   .tl-row { grid-template-columns: 28px 1fr 32px !important; padding: 5px 6px !important; }
   .tl-thumb { width: 32px !important; height: 32px !important; }
 }
 
 /* ── Album Page Responsive ────────────────────────────────────────────── */
 @media (max-width: 768px) {
-  .alb-tl-header { display: none; }
+  .alb-tl-header {
+    grid-template-columns: 32px 1fr 36px !important;
+    padding: 6px 8px !important;
+  }
+  .alb-tl-header span:nth-child(n+3) { display: none; }
   .alb-tl-row { grid-template-columns: 32px 1fr 36px !important; padding: 6px 8px !important; }
   .alb-tl-thumb { width: 36px !important; height: 36px !important; }
   .alb-tl-plays, .alb-tl-duration { display: none; }
 }
 
 @media (max-width: 480px) {
+  .alb-tl-header {
+    grid-template-columns: 28px 1fr 32px !important;
+    padding: 5px 6px !important;
+  }
   .alb-tl-row { grid-template-columns: 28px 1fr 32px !important; padding: 5px 6px !important; }
   .alb-tl-thumb { width: 32px !important; height: 32px !important; }
   .album-featured-scroll, .album-more-scroll { gap: 12px !important; }
@@ -2318,7 +2335,7 @@ input[type="range"]::-webkit-slider-thumb:hover {
 }
 
 /* ── Footer Responsive ─────────────────────────────────────────────────── */
-@media (max-width: 640px) {
+@media (max-width: 768px) {
   .app-footer {
     flex-direction: column !important;
     align-items: center !important;

@@ -23,8 +23,23 @@ export function TrackList({ tracks, accentColor }: { tracks: any[]; accentColor?
   const router = useRouter()
   const [hoveredId, setHoveredId] = useState<string | null>(null)
 
+  if (!tracks || tracks.length === 0) return null
+
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+      <style>{`
+        @media (max-width: 640px) {
+          .tl-header { grid-template-columns: 32px 1fr 36px !important; }
+          .tl-header span:nth-child(3),
+          .tl-header span:nth-child(4),
+          .tl-header span:nth-child(5) { display: none !important; }
+          .tl-row { grid-template-columns: 32px 1fr 36px !important; }
+          .tl-row .tl-thumb { width: 32px !important; height: 32px !important; }
+          .tl-row .tl-album,
+          .tl-row .tl-plays,
+          .tl-row .tl-duration { display: none !important; }
+        }
+      `}</style>
       <div className="tl-header" style={{ display: "grid", gridTemplateColumns: "40px 1fr 1fr 80px 44px 40px", padding: "8px 12px", fontSize: 11, fontWeight: 700, color: "var(--muted-foreground)", textTransform: "uppercase", letterSpacing: "0.1em", borderBottom: "1px solid var(--border)", marginBottom: 8 }}>
         <span>#</span>
         <span>Title</span>

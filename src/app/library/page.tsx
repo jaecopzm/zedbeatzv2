@@ -125,6 +125,11 @@ export default function LibraryPage() {
 
   return (
     <div className="fade-in lib-page">
+      <style>{`
+        @media (max-width: 640px) {
+          .lib-page { padding: 16px 12px 24px !important; }
+        }
+      `}</style>
       <header className="lib-header">
         <p className="lib-eyebrow">Library</p>
         <h1 className="lib-title">Your Library</h1>

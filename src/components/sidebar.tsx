@@ -6,7 +6,6 @@ import { useEffect, useState } from "react"
 import { useUIStore } from "@/lib/ui-store"
 import { useAuthStore } from "@/lib/auth-store"
 import { useThemeStore } from "@/lib/theme-store"
-import { LoginModal } from "@/components/login-modal"
 
 const mainLinks = [
   {
@@ -28,7 +27,6 @@ export function Sidebar() {
   const { theme, toggle: toggleTheme } = useThemeStore()
   const sidebarOpen = useUIStore((s) => s.sidebarOpen)
   const setSidebarOpen = useUIStore((s) => s.setSidebarOpen)
-  const [showLogin, setShowLogin] = useState(false)
   const [mounted, setMounted] = useState(false)
 
   useEffect(() => {
@@ -40,8 +38,6 @@ export function Sidebar() {
   const isAdmin = mounted && user?.role === "admin"
 
   return (
-    <>
-    {showLogin && <LoginModal onClose={() => setShowLogin(false)} />}
     <aside className={`app-sidebar${sidebarOpen ? " is-open" : ""}`}>
 
 
@@ -350,8 +346,8 @@ export function Sidebar() {
             </div>
           </div>
         ) : (
-          <button
-            onClick={() => setShowLogin(true)}
+          <Link
+            href="/auth/login"
             style={{
               width: "100%",
               padding: "var(--sidebar-btn-padding, 11px)",
@@ -366,22 +362,20 @@ export function Sidebar() {
               alignItems: "center",
               justifyContent: "center",
               gap: "8px",
-              transition: "opacity 0.15s ease, transform 0.1s ease",
+              textDecoration: "none",
+              transition: "opacity 0.15s ease",
               boxShadow: "0 4px 14px var(--brand-shadow)",
               fontFamily: "inherit",
             }}
-            onMouseEnter={(e) => { e.currentTarget.style.opacity = "0.88" }}
-            onMouseLeave={(e) => { e.currentTarget.style.opacity = "1" }}
           >
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2" />
               <circle cx="12" cy="7" r="4" />
             </svg>
             Sign In
-          </button>
+          </Link>
         )}
       </div>
     </aside>
-    </>
   )
 }

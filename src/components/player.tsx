@@ -395,128 +395,126 @@ function MobileMiniPlayer({
           minHeight: "64px",
         }}
       >
-        <div
-          onClick={() => { if (track) onOpenNowPlaying() }}
-          style={{
-            flexShrink: 0,
-            position: "relative",
-            cursor: track ? "pointer" : "default",
-            borderRadius: "12px",
-            overflow: "visible",
-          }}
-        >
-          {track?.cover_url && (
-            <img
-              src={track.cover_url}
-              alt=""
-              aria-hidden
-              className="player-mobile-art-glow"
-              style={{
-                position: "absolute",
-                inset: "-8px",
-                width: "calc(100% + 16px)",
-                height: "calc(100% + 16px)",
-                borderRadius: "16px",
-                objectFit: "cover",
-                filter: "blur(14px) saturate(200%) brightness(0.85)",
-                opacity: isPlaying ? 0.55 : 0.2,
-                pointerEvents: "none",
-                zIndex: 0,
-                transition: "opacity 0.6s ease",
-              }}
-            />
-          )}
-          <div style={{ position: "relative", zIndex: 1 }}>
-            {track?.cover_url ? (
+        {track && (
+          <div
+            onClick={() => onOpenNowPlaying()}
+            style={{
+              flexShrink: 0,
+              position: "relative",
+              cursor: "pointer",
+              borderRadius: "12px",
+              overflow: "visible",
+            }}
+          >
+            {track?.cover_url && (
               <img
                 src={track.cover_url}
-                alt={track.title}
+                alt=""
+                aria-hidden
+                className="player-mobile-art-glow"
                 style={{
-                  width: "48px",
-                  height: "48px",
-                  borderRadius: "10px",
+                  position: "absolute",
+                  inset: "-8px",
+                  width: "calc(100% + 16px)",
+                  height: "calc(100% + 16px)",
+                  borderRadius: "16px",
                   objectFit: "cover",
-                  display: "block",
-                  boxShadow: "0 4px 16px rgba(0,0,0,0.3)",
-                  transform: isPlaying ? "scale(1)" : "scale(0.94)",
-                  transition: "transform 0.4s cubic-bezier(0.34,1.56,0.64,1), box-shadow 0.4s ease",
+                  filter: "blur(14px) saturate(200%) brightness(0.85)",
+                  opacity: isPlaying ? 0.55 : 0.2,
+                  pointerEvents: "none",
+                  zIndex: 0,
+                  transition: "opacity 0.6s ease",
                 }}
               />
-            ) : (
-              <div
-                style={{
-                  width: "48px",
-                  height: "48px",
-                  borderRadius: "10px",
-                  background: "linear-gradient(135deg, var(--brand) 0%, var(--brand-light) 100%)",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  boxShadow: "0 4px 16px var(--brand-shadow)",
-                }}
-              >
-                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M9 18V5l12-2v13" /><circle cx="6" cy="18" r="3" /><circle cx="18" cy="16" r="3" />
-                </svg>
-              </div>
             )}
-          </div>
-        </div>
-
-        <div
-          onClick={() => { if (track) onOpenNowPlaying() }}
-          style={{
-            flex: 1,
-            minWidth: 0,
-            cursor: track ? "pointer" : "default",
-            userSelect: "none",
-          }}
-        >
-          {track ? (
-            <>
-              <div
-                ref={titleContainerRef}
-                className="player-mobile-title"
-                style={{ position: "relative" }}
-              >
-                <span
-                  ref={titleRef}
-                  className={`player-mobile-title-inner${titleOverflows ? " marquee" : ""}`}
+            <div style={{ position: "relative", zIndex: 1 }}>
+              {track.cover_url ? (
+                <img
+                  src={track.cover_url}
+                  alt={track.title}
                   style={{
-                    fontSize: "14px",
-                    fontWeight: 700,
-                    color: track ? "rgba(255,255,255,0.97)" : "var(--foreground)",
-                    lineHeight: 1.25,
-                    letterSpacing: "-0.2px",
+                    width: "48px",
+                    height: "48px",
+                    borderRadius: "10px",
+                    objectFit: "cover",
+                    display: "block",
+                    boxShadow: "0 4px 16px rgba(0,0,0,0.3)",
+                    transform: isPlaying ? "scale(1)" : "scale(0.94)",
+                    transition: "transform 0.4s cubic-bezier(0.34,1.56,0.64,1), box-shadow 0.4s ease",
+                  }}
+                />
+              ) : (
+                <div
+                  style={{
+                    width: "48px",
+                    height: "48px",
+                    borderRadius: "10px",
+                    background: "linear-gradient(135deg, var(--brand) 0%, var(--brand-light) 100%)",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    boxShadow: "0 4px 16px var(--brand-shadow)",
                   }}
                 >
-                  {track.title}
-                </span>
-              </div>
-              <p
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M9 18V5l12-2v13" /><circle cx="6" cy="18" r="3" /><circle cx="18" cy="16" r="3" />
+                  </svg>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {track && (
+          <div
+            onClick={() => onOpenNowPlaying()}
+            style={{
+              flex: 1,
+              minWidth: 0,
+              cursor: "pointer",
+              userSelect: "none",
+            }}
+          >
+            <div
+              ref={titleContainerRef}
+              className="player-mobile-title"
+              style={{ position: "relative" }}
+            >
+              <span
+                ref={titleRef}
+                className={`player-mobile-title-inner${titleOverflows ? " marquee" : ""}`}
                 style={{
-                  margin: "2px 0 0",
-                  fontSize: "12px",
-                  fontWeight: 500,
-                  color: track ? "rgba(255,255,255,0.58)" : "var(--muted-foreground)",
-                  overflow: "hidden",
-                  textOverflow: "ellipsis",
-                  whiteSpace: "nowrap",
-                  lineHeight: 1.3,
+                  fontSize: "14px",
+                  fontWeight: 700,
+                  color: "rgba(255,255,255,0.97)",
+                  lineHeight: 1.25,
+                  letterSpacing: "-0.2px",
                 }}
               >
-                {track.artist_name}
-                {track.collaborators && track.collaborators.length > 0
-                  ? ", " + track.collaborators.map((c) => c.stage_name).join(", ")
-                  : ""}
-              </p>
-            </>
-          ) : (
-            <p style={{ margin: 0, fontSize: "13px", color: track ? "rgba(255,255,255,0.45)" : "var(--muted-foreground)" }}>Nothing playing</p>
-          )}
-        </div>
+                {track.title}
+              </span>
+            </div>
+            <p
+              style={{
+                margin: "2px 0 0",
+                fontSize: "12px",
+                fontWeight: 500,
+                color: "rgba(255,255,255,0.58)",
+                overflow: "hidden",
+                textOverflow: "ellipsis",
+                whiteSpace: "nowrap",
+                lineHeight: 1.3,
+              }}
+            >
+              {track.artist_name}
+              {track.collaborators && track.collaborators.length > 0
+                ? ", " + track.collaborators.map((c) => c.stage_name).join(", ")
+                : ""}
+            </p>
+          </div>
+        )}
 
-        <div style={{ display: "flex", alignItems: "center", gap: "2px", flexShrink: 0 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: "2px", flexShrink: 0, marginLeft: "auto" }}>
           <button
             onClick={(e) => { e.stopPropagation(); if (hasTrack) onToggleLike() }}
             disabled={!hasTrack}

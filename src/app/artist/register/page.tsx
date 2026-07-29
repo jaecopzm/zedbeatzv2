@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useRef, useCallback } from "react"
+import { useState, useRef, useCallback, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
 import { useAuthStore } from "@/lib/auth-store"
@@ -21,16 +21,70 @@ const perks = [
 
 export default function ArtistRegisterPage() {
   const router = useRouter()
+  const user = useAuthStore((s) => s.user)
+  const token = useAuthStore((s) => s.token)
   const setToken = useAuthStore((s) => s.setToken)
   const theme = useThemeStore((s) => s.theme)
+  const [checking, setChecking] = useState(true)
   const [stageName, setStageName] = useState("")
   const [photo, setPhoto] = useState<File | null>(null)
   const [preview, setPreview] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState("")
   const [dragOver, setDragOver] = useState(false)
+  const [nameAvailable, setNameAvailable] = useState<boolean | null>(null)
+  const [checkingName, setCheckingName] = useState(false)
   const fileRef = useRef<HTMLInputElement>(null)
   const nameRef = useRef<HTMLInputElement>(null)
+  const checkTimer = useRef<ReturnType<typeof setTimeout>>(undefined)
+
+  useEffect(() => {
+    if (!token) {
+      router.replace("/auth/login?redirect=/artist/register")
+      return
+    }
+    if (user?.role === "artist" || user?.role === "admin") {
+      router.replace("/artist/dashboard")
+      return
+    }
+    setChecking(false)
+  }, [token, user, router])
+
+  useEffect(() => {
+    const trimmed = stageName.trim()
+    if (!trimmed || trimmed.length > MAX_NAME_LENGTH) {
+      setNameAvailable(null)
+      return
+    }
+    setCheckingName(true)
+    setNameAvailable(null)
+    clearTimeout(checkTimer.current)
+    checkTimer.current = setTimeout(async () => {
+      try {
+        const res = await fetch(`${API_BASE}/artists/check-name?name=${encodeURIComponent(trimmed)}`)
+        if (res.ok) {
+          const data = await res.json()
+          setNameAvailable(data.available !== false)
+        }
+      } catch { /* ignore */ }
+      setCheckingName(false)
+    }, 400)
+    return () => clearTimeout(checkTimer.current)
+  }, [stageName])
+
+  useEffect(() => {
+    if (!token) {
+      router.replace("/auth/login?redirect=/artist/register")
+      return
+    }
+    if (user?.role === "artist" || user?.role === "admin") {
+      router.replace("/artist/dashboard")
+      return
+    }
+    setChecking(false)
+  }, [token, user, router])
+
+  if (checking) return null
 
   const handlePhoto = useCallback((file: File) => {
     if (!file.type.startsWith("image/")) {
@@ -264,20 +318,35 @@ export default function ArtistRegisterPage() {
                 onBlur={(e) => { e.currentTarget.style.borderColor = isOverLimit ? "#ef4444" : "var(--border)"; e.currentTarget.style.boxShadow = "none" }}
               />
               {isOverLimit && <p style={{ margin: "4px 0 0", fontSize: 11, color: "#ef4444" }}>Stage name is too long</p>}
+              {!isOverLimit && stageName.trim() && checkingName && (
+                <p style={{ margin: "4px 0 0", fontSize: 11, color: "var(--muted-foreground)" }}>Checking availability...</p>
+              )}
+              {!isOverLimit && nameAvailable === true && (
+                <p style={{ margin: "4px 0 0", fontSize: 11, color: "#10b981", display: "flex", alignItems: "center", gap: 4 }}>
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12" /></svg>
+                  Available
+                </p>
+              )}
+              {!isOverLimit && nameAvailable === false && (
+                <p style={{ margin: "4px 0 0", fontSize: 11, color: "#ef4444", display: "flex", alignItems: "center", gap: 4 }}>
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
+                  Name already taken
+                </p>
+              )}
             </div>
 
             {/* Submit */}
             <button
               type="submit"
-              disabled={loading || !stageName.trim() || isOverLimit}
+              disabled={loading || !stageName.trim() || isOverLimit || nameAvailable === false}
               style={{
                 width: "100%", padding: "14px", borderRadius: 999, border: "none",
-                background: loading || !stageName.trim() || isOverLimit ? "var(--border)" : "var(--brand)",
-                color: "#fff", fontSize: 15, fontWeight: 700, cursor: loading || !stageName.trim() || isOverLimit ? "default" : "pointer",
+                background: loading || !stageName.trim() || isOverLimit || nameAvailable === false ? "var(--border)" : "var(--brand)",
+                color: "#fff", fontSize: 15, fontWeight: 700, cursor: loading || !stageName.trim() || isOverLimit || nameAvailable === false ? "default" : "pointer",
                 transition: "transform 0.1s, box-shadow 0.2s",
                 position: "relative", overflow: "hidden",
               }}
-              onMouseEnter={(e) => { if (!loading && stageName.trim() && !isOverLimit) { e.currentTarget.style.transform = "scale(1.02)"; e.currentTarget.style.boxShadow = "0 4px 20px var(--brand-shadow)" } }}
+              onMouseEnter={(e) => { if (!loading && stageName.trim() && !isOverLimit && nameAvailable !== false) { e.currentTarget.style.transform = "scale(1.02)"; e.currentTarget.style.boxShadow = "0 4px 20px var(--brand-shadow)" } }}
               onMouseLeave={(e) => { e.currentTarget.style.transform = "scale(1)"; e.currentTarget.style.boxShadow = "none" }}
             >
               {loading ? (

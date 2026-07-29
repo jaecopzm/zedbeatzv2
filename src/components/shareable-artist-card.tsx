@@ -181,6 +181,7 @@ export function ShareableArtistCard({ data }: Props) {
     ctx.fillText("zedbeatz.com", size / 2, size - 30)
 
     setGenerating(false)
+    setPreviewUrl(canvas.toDataURL("image/png"))
   }
 
   function handleDownload() {

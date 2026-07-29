@@ -6,7 +6,7 @@ import Link from "next/link"
 import { api } from "@/lib/api"
 import { usePlayerStore } from "@/lib/store"
 import type { Track, Album, Artist } from "@/types"
-import { useState, useEffect, useCallback, useMemo } from "react"
+import { useState, useCallback, useMemo } from "react"
 import { PremiumTrackMenu } from "@/components/track-menu"
 import {
   Avatar,
@@ -229,18 +229,7 @@ export default function ArtistContent({ artistId, initialArtist }: ArtistContent
       : null,
   )
   const [followLoading, setFollowLoading] = useState(false)
-  const [isDesktop, setIsDesktop] = useState(() => {
-    if (typeof window === "undefined") return true
-    return window.matchMedia("(min-width: 768px)").matches
-  })
   const [hoveredTrackId, setHoveredTrackId] = useState<string | null>(null)
-
-  useEffect(() => {
-    const mq = window.matchMedia("(min-width: 768px)")
-    const handler = (e: MediaQueryListEvent) => setIsDesktop(e.matches)
-    mq.addEventListener("change", handler)
-    return () => mq.removeEventListener("change", handler)
-  }, [])
 
   const { data: artist } = useQuery({
     queryKey: ["artist", artistId],
@@ -344,12 +333,75 @@ export default function ArtistContent({ artistId, initialArtist }: ArtistContent
   const isFirstPlaying =
     tracks.length > 0 && currentTrack?.id === tracks[0].id && isPlaying
 
-  const photoSize = isDesktop ? 180 : 100
-  const heroPad = isDesktop ? "72px 44px 44px" : "40px 14px 16px"
-
   return (
     <>
       <style jsx global>{`
+        .artist-hero-inner {
+          display: flex;
+          gap: 36px;
+          align-items: center;
+          padding: 72px 44px 44px;
+          flex-wrap: wrap;
+          position: relative;
+          z-index: 2;
+        }
+        .artist-hero-avatar-wrap { flex-shrink: 0; }
+        .artist-hero-avatar-wrap > * { width: 180px !important; height: 180px !important; }
+        .artist-hero-info { flex: 1; min-width: 0; }
+        .artist-hero-name {
+          font-size: clamp(28px, 5vw, 52px);
+          font-weight: 800;
+          color: #fff;
+          margin: 0 0 8px;
+          line-height: 1.05;
+          letter-spacing: -0.5px;
+          text-shadow: 0 2px 20px rgba(0,0,0,0.5);
+          display: flex;
+          align-items: center;
+          gap: 10;
+        }
+        .artist-hero-stats {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          flex-wrap: wrap;
+          margin-bottom: 22px;
+        }
+        .artist-hero-pill {
+          display: inline-flex;
+          align-items: center;
+          gap: 4px;
+          padding: 4px 10px;
+          border-radius: 20px;
+          background: rgba(255,255,255,0.12);
+          backdrop-filter: blur(6px);
+          font-size: 12px;
+          font-weight: 600;
+          color: rgba(255,255,255,0.88);
+        }
+        .artist-hero-actions {
+          display: flex;
+          gap: 12px;
+          flex-wrap: wrap;
+          align-items: center;
+        }
+        .artist-hero-body { padding: 40px 40px 64px; }
+        @media (max-width: 768px) {
+          .artist-hero-inner {
+            gap: 16px;
+            padding: 48px 14px 20px;
+            justify-content: center;
+          }
+          .artist-hero-avatar-wrap > * { width: 130px !important; height: 130px !important; }
+          .artist-hero-name {
+            font-size: clamp(24px, 8vw, 36px);
+            justify-content: center;
+          }
+          .artist-hero-stats { justify-content: center; gap: 6px; margin-bottom: 12px; }
+          .artist-hero-pill { gap: 3px; padding: 3px 8px; font-size: 11px; }
+          .artist-hero-actions { justify-content: center; gap: 8px; }
+          .artist-hero-body { padding: 20px 16px 48px; }
+        }
         .artist-tracks .track-row {
           display: flex;
           align-items: center;
@@ -524,75 +576,29 @@ export default function ArtistContent({ artistId, initialArtist }: ArtistContent
               : "linear-gradient(to bottom, rgba(0,0,0,0.08) 0%, rgba(0,0,0,0.55) 100%)",
           }} />
 
-          <div style={{
-            position: "relative", zIndex: 2,
-            display: "flex",
-            gap: isDesktop ? 36 : 16,
-            alignItems: "center",
-            padding: heroPad,
-            flexWrap: "wrap",
-          }}>
+          <div className="artist-hero-inner">
 
-            <div style={{ position: "relative", flexShrink: 0 }}>
+            <div className="artist-hero-avatar-wrap" style={{ position: "relative" }}>
               <Avatar
                 src={artist.photo_url}
                 name={artist.stage_name}
-                size={photoSize}
+                size={180}
                 shape="circle"
                 ring
                 fetchPriority="high"
               />
             </div>
 
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <h1 style={{
-                fontSize: isDesktop ? "clamp(28px, 5vw, 52px)" : "clamp(20px, 7vw, 30px)",
-                fontWeight: 800,
-                color: "#fff",
-                margin: "0 0 8px",
-                lineHeight: 1.05,
-                letterSpacing: "-0.5px",
-                textShadow: "0 2px 20px rgba(0,0,0,0.5)",
-                display: "flex",
-                alignItems: "center",
-                gap: 10,
-              }}>
+            <div className="artist-hero-info">
+              <h1 className="artist-hero-name">
                 {artist.stage_name}
-                {artist.verified && (
-                  <span
-                    title="Verified"
-                    style={{
-                      display: "inline-flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      width: isDesktop ? 26 : 20,
-                      height: isDesktop ? 26 : 20,
-                      borderRadius: "50%",
-                      flexShrink: 0,
-                      backgroundImage: `
-                        linear-gradient(135deg, #facc15 25%, #eab308 25%, #eab308 50%, #facc15 50%, #facc15 75%, #eab308 75%)
-                      `,
-                      backgroundSize: isDesktop ? "7px 7px" : "5px 5px",
-                      boxShadow: "0 2px 8px rgba(0,0,0,0.25)",
-                    }}
-                  >
-                    <svg width={isDesktop ? 13 : 10} height={isDesktop ? 13 : 10} viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M20 6L9 17l-5-5" />
-                    </svg>
-                  </span>
-                )}
+                {artist.verified && <VerifiedBadge size="sm" />}
               </h1>
 
-              <div style={{ display: "flex", alignItems: "center", gap: isDesktop ? 10 : 6, flexWrap: "wrap", marginBottom: isDesktop ? 22 : 12 }}>
+              <div className="artist-hero-stats">
                 {artist.location && (
-                  <span style={{
-                    display: "inline-flex", alignItems: "center", gap: isDesktop ? 4 : 3,
-                    padding: isDesktop ? "4px 10px" : "3px 8px", borderRadius: 20,
-                    background: "rgba(255,255,255,0.12)",
-                    backdropFilter: "blur(6px)",
-                    fontSize: isDesktop ? 12 : 11, fontWeight: 600, color: "rgba(255,255,255,0.88)",
-                  }}>
-                    <svg width={isDesktop ? 11 : 10} height={isDesktop ? 11 : 10} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                  <span className="artist-hero-pill">
+                    <svg width={11} height={11} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
                       <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z" />
                       <circle cx="12" cy="10" r="3" />
                     </svg>
@@ -601,14 +607,8 @@ export default function ArtistContent({ artistId, initialArtist }: ArtistContent
                 )}
 
                 {typeof artist.follower_count === "number" && artist.follower_count > 0 && (
-                  <span style={{
-                    display: "inline-flex", alignItems: "center", gap: isDesktop ? 5 : 3,
-                    padding: isDesktop ? "4px 10px" : "3px 8px", borderRadius: 20,
-                    background: "rgba(255,255,255,0.12)",
-                    backdropFilter: "blur(6px)",
-                    fontSize: isDesktop ? 12 : 11, fontWeight: 600, color: "rgba(255,255,255,0.88)",
-                  }}>
-                    <svg width={isDesktop ? 11 : 10} height={isDesktop ? 11 : 10} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                  <span className="artist-hero-pill">
+                    <svg width={11} height={11} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
                       <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2" />
                       <circle cx="9" cy="7" r="4" />
                       <path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75" />
@@ -618,14 +618,8 @@ export default function ArtistContent({ artistId, initialArtist }: ArtistContent
                 )}
 
                 {typeof artist.track_count === "number" && (
-                  <span style={{
-                    display: "inline-flex", alignItems: "center", gap: isDesktop ? 5 : 3,
-                    padding: isDesktop ? "4px 10px" : "3px 8px", borderRadius: 20,
-                    background: "rgba(255,255,255,0.12)",
-                    backdropFilter: "blur(6px)",
-                    fontSize: isDesktop ? 12 : 11, fontWeight: 600, color: "rgba(255,255,255,0.88)",
-                  }}>
-                    <svg width={isDesktop ? 11 : 10} height={isDesktop ? 11 : 10} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                  <span className="artist-hero-pill">
+                    <svg width={11} height={11} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
                       <path d="M9 18V5l12-2v13" />
                       <circle cx="6" cy="18" r="3" />
                       <circle cx="18" cy="16" r="3" />
@@ -635,10 +629,10 @@ export default function ArtistContent({ artistId, initialArtist }: ArtistContent
                 )}
               </div>
 
-              <div style={{ display: "flex", gap: isDesktop ? 12 : 8, flexWrap: "wrap", alignItems: "center" }}>
+              <div className="artist-hero-actions">
                 {tracks.length > 0 && (
                   <PillButton
-                    size={isDesktop ? "md" : "xs"}
+                    size="xs"
                     iconLeft={
                       isFirstPlaying
                         ? <PauseIconSolid size={14} />
@@ -656,7 +650,7 @@ export default function ArtistContent({ artistId, initialArtist }: ArtistContent
 
                 <PillButton
                   variant="ghost"
-                  size={isDesktop ? "md" : "xs"}
+                  size="xs"
                   iconLeft={
                     followed
                       ? <CheckIcon size={12} />
@@ -681,7 +675,7 @@ export default function ArtistContent({ artistId, initialArtist }: ArtistContent
         </div>
 
         {/* ══ BODY ══ */}
-        <div style={{ padding: isDesktop ? "40px 40px 64px" : "20px 16px 48px" }}>
+        <div className="artist-hero-body">
 
           {artist.bio && (
             <section style={{ marginBottom: 36 }}>
