@@ -6,23 +6,8 @@ import { api } from "@/lib/api"
 import { usePlayerStore } from "@/lib/store"
 import { toast } from "@/lib/toast-store"
 import { TrackEditModal } from "@/components/track-edit-modal"
-
-function detectAudioDuration(file: File): Promise<number> {
-  return new Promise((resolve) => {
-    const url = URL.createObjectURL(file)
-    const audio = new Audio()
-    audio.addEventListener("loadedmetadata", () => {
-      resolve(Math.round(audio.duration))
-      URL.revokeObjectURL(url)
-    })
-    audio.addEventListener("error", () => {
-      resolve(0)
-      URL.revokeObjectURL(url)
-    })
-    audio.src = url
-    audio.load()
-  })
-}
+import { detectAudioDuration, formatDuration } from "@/lib/utils"
+import { ConfirmDialog } from "@/components/confirm-dialog"
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "/api/v1"
 
@@ -82,6 +67,8 @@ export default function TracksPage() {
   const [editingTitleId, setEditingTitleId] = useState<string | null>(null)
   const [editingTitleValue, setEditingTitleValue] = useState("")
   const [bulkAlbumId, setBulkAlbumId] = useState("")
+  const [confirmDelete, setConfirmDelete] = useState<{ id: string; title: string } | null>(null)
+  const [menuOpenId, setMenuOpenId] = useState<string | null>(null)
 
   const addToAlbumMut = useMutation({
     mutationFn: async ({ trackIds, albumId }: { trackIds: string[]; albumId: string }) => {
@@ -128,6 +115,14 @@ export default function TracksPage() {
     window.addEventListener("keydown", handleKey)
     return () => window.removeEventListener("keydown", handleKey)
   })
+
+  // Close mobile menu on outside click
+  useEffect(() => {
+    if (!menuOpenId) return
+    function handleClick() { setMenuOpenId(null) }
+    document.addEventListener("mousedown", handleClick)
+    return () => document.removeEventListener("mousedown", handleClick)
+  }, [menuOpenId])
 
   const { data, isLoading } = useQuery({ queryKey: ["artist-tracks"], queryFn: () => api.artistListTracks() })
   const { data: genresData } = useQuery({ queryKey: ["genres"], queryFn: () => api.listGenres(), staleTime: 5 * 60 * 1000 })
@@ -305,7 +300,7 @@ export default function TracksPage() {
             ) : (
               <button onClick={() => setBulkAlbumId("_picker")} style={{ ...pillBtn, padding: "6px 16px", fontSize: 12, background: "var(--brand)" }}>Add to Album</button>
             )}
-            <button onClick={() => { if (confirm(`Delete ${selected.size} tracks?`)) bulkDeleteMut.mutate([...selected]) }} disabled={bulkDeleteMut.isPending} style={{ ...pillBtnDanger, padding: "6px 16px" }}>Delete</button>
+            <button onClick={() => setConfirmDelete({ id: "_bulk", title: `${selected.size} tracks` })} disabled={bulkDeleteMut.isPending} className="pill-btn-danger" style={{ ...pillBtnDanger, padding: "6px 16px" }}>Delete</button>
             <button onClick={() => setSelected(new Set())} style={{ padding: "6px 12px", borderRadius: 999, border: "none", background: "transparent", color: "var(--muted-foreground)", fontSize: 12, fontWeight: 600, cursor: "pointer" }}>Clear</button>
           </div>
         </div>
@@ -319,7 +314,7 @@ export default function TracksPage() {
       )}
 
       {showForm && (
-        <form onSubmit={handleUpload} className="tracks-form" style={{ background: "var(--card-bg)", borderRadius: 16, padding: "24px 28px", marginBottom: 28, display: "flex", flexDirection: "column", gap: 18 }}>
+        <form onSubmit={handleUpload} className="tracks-form slide-down" style={{ background: "var(--card-bg)", borderRadius: 16, padding: "24px 28px", marginBottom: 28, display: "flex", flexDirection: "column", gap: 18 }}>
           <h3 style={{ fontSize: 16, fontWeight: 700, color: "var(--foreground)", margin: 0 }}>Upload New Track</h3>
 
           {/* Title */}
@@ -728,7 +723,12 @@ export default function TracksPage() {
                         background: "var(--background)", color: "var(--foreground)", fontSize: 14, fontWeight: 600,
                         outline: "none", fontFamily: "inherit",
                       }}
-                      onBlur={() => setEditingTitleId(null)}
+                      onBlur={() => {
+                        if (editingTitleValue.trim() && editingTitleValue.trim() !== t.title) {
+                          updateTrackMut.mutate({ id: t.id, title: editingTitleValue.trim() })
+                        }
+                        setEditingTitleId(null)
+                      }}
                       onKeyDown={(e) => { if (e.key === "Escape") { e.stopPropagation(); setEditingTitleId(null) } }}
                     />
                   </form>
@@ -744,7 +744,7 @@ export default function TracksPage() {
                   >{t.title}</p>
                 )}
                 <p style={{ margin: "2px 0 0", fontSize: 12, color: "var(--muted-foreground)" }}>
-                  {Math.floor((t.duration_sec || 0) / 60)}:{String((t.duration_sec || 0) % 60).padStart(2, "0")} · {t.play_count ?? 0} plays · {t.like_count ?? 0} likes
+                  {formatDuration(t.duration_sec)} · {t.play_count ?? 0} plays · {t.like_count ?? 0} likes
                   {t.genre_name ? ` · ${t.genre_name}` : ""}
                 </p>
               </div>
@@ -784,18 +784,66 @@ export default function TracksPage() {
                 </svg>
                 {copiedTrackId === t.id ? "Copied!" : "Share"}
               </button>
-              <button onClick={(e) => { e.stopPropagation(); if (confirm(`Delete "${t.title}"?`)) deleteMut.mutate(t.id) }} style={pillBtnDanger} title="Delete">Delete</button>
+              <div className="track-actions">
+                <button
+                  onClick={(e) => { e.stopPropagation(); setMenuOpenId(menuOpenId === t.id ? null : t.id) }}
+                  className="track-more-btn"
+                  style={{
+                    background: "none", border: "none", cursor: "pointer", padding: "4px 6px",
+                    borderRadius: 6, color: "var(--muted-foreground)", lineHeight: 0, display: "none",
+                  }}
+                  title="More"
+                >
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="5" r="1.5" /><circle cx="12" cy="12" r="1.5" /><circle cx="12" cy="19" r="1.5" /></svg>
+                </button>
+                {menuOpenId === t.id && (
+                  <div className="track-more-dropdown" style={{
+                    position: "absolute", right: 0, top: "100%", zIndex: 50,
+                    background: "var(--card-bg)", border: "1px solid var(--border)",
+                    borderRadius: 10, boxShadow: "0 8px 32px rgba(0,0,0,0.15)",
+                    padding: 4, minWidth: 160,
+                  }}
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <button onClick={() => { setMenuOpenId(null); deleteMut.mutate(t.id) }}
+                      style={{ display: "flex", alignItems: "center", gap: 8, width: "100%", padding: "8px 12px", borderRadius: 6, border: "none", background: "transparent", color: "#ef4444", fontSize: 13, fontWeight: 500, cursor: "pointer", fontFamily: "inherit" }}>
+                      Delete
+                    </button>
+                  </div>
+                )}
+              </div>
+              <button onClick={(e) => { e.stopPropagation(); setConfirmDelete({ id: t.id, title: t.title }) }} className="track-delete-btn pill-btn-danger" style={pillBtnDanger} title="Delete">Delete</button>
             </div>
           ))}
         </div>
         </div>
       )}
+      <ConfirmDialog
+        open={!!confirmDelete}
+        title={confirmDelete?.id === "_bulk" ? `Delete ${confirmDelete?.title}?` : "Delete track"}
+        message={confirmDelete?.id === "_bulk" ? `Are you sure you want to delete ${confirmDelete?.title}? This action cannot be undone.` : `Delete "${confirmDelete?.title || ""}" permanently?`}
+        confirmLabel="Delete"
+        destructive
+        onConfirm={() => {
+          if (!confirmDelete) return
+          if (confirmDelete.id === "_bulk") bulkDeleteMut.mutate([...selected])
+          else deleteMut.mutate(confirmDelete.id)
+          setConfirmDelete(null)
+        }}
+        onCancel={() => setConfirmDelete(null)}
+      />
       <style>{`
+        .pill-btn-danger:hover { background: rgba(239,68,68,0.1) !important; }
+        .slide-down { animation: slideDown 0.2s ease; }
+        @keyframes slideDown { from { opacity: 0; transform: translateY(-8px); max-height: 0; } to { opacity: 1; transform: translateY(0); max-height: 2000px; } }
         @media (max-width: 640px) {
           .tracks-page .tracks-header { flex-direction: column; align-items: flex-start; gap: 10px; }
           .tracks-page .bulk-bar { flex-wrap: wrap; gap: 8px; }
           .tracks-page .tracks-form { padding: 16px !important; }
           .tracks-page .genre-album-grid { grid-template-columns: 1fr !important; }
+          .track-delete-btn { display: none !important; }
+          .track-more-btn { display: inline-flex !important; }
+          .track-actions { position: relative; }
         }
       `}</style>
     </div>

@@ -5,25 +5,10 @@ import { useState, useRef } from "react"
 import { api } from "@/lib/api"
 import { useAuthStore } from "@/lib/auth-store"
 import { toast } from "@/lib/toast-store"
+import { detectAudioDuration, formatDuration } from "@/lib/utils"
+import { ConfirmDialog } from "@/components/confirm-dialog"
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "/api/v1"
-
-function detectAudioDuration(file: File): Promise<number> {
-  return new Promise((resolve) => {
-    const url = URL.createObjectURL(file)
-    const audio = new Audio()
-    audio.addEventListener("loadedmetadata", () => {
-      resolve(Math.round(audio.duration))
-      URL.revokeObjectURL(url)
-    })
-    audio.addEventListener("error", () => {
-      resolve(0)
-      URL.revokeObjectURL(url)
-    })
-    audio.src = url
-    audio.load()
-  })
-}
 
 function formatCount(n: number) {
   if (n >= 1_000_000) return (n / 1_000_000).toFixed(1) + "M"
@@ -55,6 +40,8 @@ export default function AlbumsPage() {
   const [uploadCover, setUploadCover] = useState<File | null>(null)
   const [uploadCoverPreview, setUploadCoverPreview] = useState<string | null>(null)
   const [uploading, setUploading] = useState(false)
+  const [uploadProgress, setUploadProgress] = useState(0)
+  const [confirmRemove, setConfirmRemove] = useState<{ albumId: string; trackId: string; title: string } | null>(null)
 
   const { data, isLoading } = useQuery({
     queryKey: ["artist-albums", artistId],
@@ -92,6 +79,7 @@ export default function AlbumsPage() {
   async function handleUploadToAlbum(albumId: string) {
     if (!uploadTitle.trim() || !uploadAudio) return
     setUploading(true)
+    setUploadProgress(0)
     try {
       const fd = new FormData()
       fd.append("title", uploadTitle.trim())
@@ -101,17 +89,22 @@ export default function AlbumsPage() {
       if (uploadFeaturedArtists.trim()) fd.append("featured_artists", uploadFeaturedArtists.trim())
       if (uploadCover) fd.append("cover", uploadCover)
       const token = localStorage.getItem("access_token")
-      await fetch(`${API_BASE}/artists/me/tracks`, {
-        method: "POST",
-        headers: token ? { Authorization: `Bearer ${token}` } : {},
-        body: fd,
-      }).then(async (res) => {
-        if (!res.ok) {
-          const body = await res.json().catch(() => ({ error: "Upload failed" }))
-          if (res.status === 402) throw new Error("Insufficient credits. Buy more on the Credits page.")
-          throw new Error(body.error || "Upload failed")
+      await new Promise<void>((resolve, reject) => {
+        const xhr = new XMLHttpRequest()
+        xhr.open("POST", `${API_BASE}/artists/me/tracks`)
+        if (token) xhr.setRequestHeader("Authorization", `Bearer ${token}`)
+        xhr.upload.onprogress = (e) => {
+          if (e.lengthComputable) setUploadProgress(Math.round((e.loaded / e.total) * 100))
         }
-        return res.json()
+        xhr.onload = () => {
+          if (xhr.status >= 200 && xhr.status < 300) resolve()
+          else {
+            try { reject(new Error(JSON.parse(xhr.responseText).error || "Upload failed")) }
+            catch { reject(new Error("Upload failed")) }
+          }
+        }
+        xhr.onerror = () => reject(new Error("Network error"))
+        xhr.send(fd)
       })
       qc.invalidateQueries({ queryKey: ["artist-albums"] })
       qc.invalidateQueries({ queryKey: ["artist-tracks"] })
@@ -119,6 +112,7 @@ export default function AlbumsPage() {
       resetUpload()
     } catch (e: any) { toast(e?.message || "Upload failed", "error") }
     setUploading(false)
+    setUploadProgress(0)
   }
 
   return (
@@ -137,7 +131,7 @@ export default function AlbumsPage() {
       {/* ── Create album form ── */}
       {showForm && (
         <form onSubmit={(e) => { e.preventDefault(); if (albumTitle) createMut.mutate({ title: albumTitle, type: albumType, cover: albumCover || undefined }) }}
-          className="albums-create-form" style={{ background: "var(--card-bg)", borderRadius: 14, padding: "20px 24px", marginBottom: 20, display: "flex", flexDirection: "column", gap: 14 }}>
+          className="albums-create-form slide-down" style={{ background: "var(--card-bg)", borderRadius: 14, padding: "20px 24px", marginBottom: 20, display: "flex", flexDirection: "column", gap: 14 }}>
           <h3 style={{ fontSize: 14, fontWeight: 700, color: "var(--foreground)", margin: 0 }}>New Album</h3>
           <input ref={coverRef} type="file" accept="image/*"
             onChange={(e) => { const f = e.target.files?.[0]; if (f) { setAlbumCover(f); setAlbumCoverPreview(URL.createObjectURL(f)) } }}
@@ -236,7 +230,7 @@ export default function AlbumsPage() {
 
                 {/* ── Expanded content: tracks + upload ── */}
                 {isExpanded && (
-                  <div style={{ borderTop: "1px solid var(--border)" }}>
+                  <div className="album-expand" style={{ borderTop: "1px solid var(--border)" }}>
                     {/* Track list */}
                     {albumTracks.length > 0 && (
                       <div style={{ padding: "8px 12px" }}>
@@ -249,8 +243,8 @@ export default function AlbumsPage() {
                               <p style={{ margin: 0, fontSize: 13, fontWeight: 600, color: "var(--foreground)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{t.title}</p>
                             </div>
                             <span style={{ fontSize: 11, color: "var(--muted-foreground)", fontVariantNumeric: "tabular-nums" }}>{formatCount(t.play_count)} plays</span>
-                            <span style={{ fontSize: 11, color: "var(--muted-foreground)" }}>{Math.floor((t.duration_sec || 0) / 60)}:{String((t.duration_sec || 0) % 60).padStart(2, "0")}</span>
-                            <button onClick={() => { if (confirm("Remove track from album?")) removeTrackMut.mutate({ albumId: a.id, trackId: t.id }) }}
+                            <span style={{ fontSize: 11, color: "var(--muted-foreground)" }}>{formatDuration(t.duration_sec)}</span>
+                            <button onClick={() => setConfirmRemove({ albumId: a.id, trackId: t.id, title: t.title })}
                               style={{ background: "none", border: "none", color: "var(--muted-foreground)", cursor: "pointer", padding: 2, borderRadius: 4, lineHeight: 0, opacity: 0.5, transition: "opacity 0.1s" }}
                               onMouseEnter={(e) => e.currentTarget.style.opacity = "1"}
                               onMouseLeave={(e) => e.currentTarget.style.opacity = "0.5"}
@@ -284,6 +278,19 @@ export default function AlbumsPage() {
                               Click to select audio file
                             </label>
                           )}
+                          {uploading && (
+                            <div>
+                              <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
+                                <span style={{ fontSize: 11, fontWeight: 600, color: "var(--foreground)" }}>
+                                  {uploadProgress < 100 ? "Uploading..." : "Processing..."}
+                                </span>
+                                <span style={{ fontSize: 11, fontWeight: 600, color: "var(--brand)", fontVariantNumeric: "tabular-nums" }}>{uploadProgress}%</span>
+                              </div>
+                              <div style={{ height: 4, background: "var(--border)", borderRadius: 999, overflow: "hidden" }}>
+                                <div style={{ width: `${uploadProgress}%`, height: "100%", background: "linear-gradient(90deg, var(--brand), var(--brand-light))", borderRadius: 999, transition: "width 0.2s ease" }} />
+                              </div>
+                            </div>
+                          )}
                           <div style={{ display: "flex", gap: 8, justifyContent: "flex-end", alignItems: "center" }}>
                             <span style={{ fontSize: 11, color: "var(--muted-foreground)", marginRight: "auto" }}>
                               <strong style={{ color: (creditData?.balance?.balance ?? 0) > 0 ? "var(--brand)" : "#ef4444" }}>{creditData?.balance?.balance ?? "..."}</strong> credits left
@@ -315,7 +322,23 @@ export default function AlbumsPage() {
           })}
         </div>
       )}
+      <ConfirmDialog
+        open={!!confirmRemove}
+        title="Remove track"
+        message={`Remove "${confirmRemove?.title || ""}" from this album?`}
+        confirmLabel="Remove"
+        destructive
+        onConfirm={() => {
+          if (confirmRemove) removeTrackMut.mutate({ albumId: confirmRemove.albumId, trackId: confirmRemove.trackId })
+          setConfirmRemove(null)
+        }}
+        onCancel={() => setConfirmRemove(null)}
+      />
       <style>{`
+        .album-expand { animation: expandIn 0.2s ease; overflow: hidden; }
+        @keyframes expandIn { from { opacity: 0; max-height: 0; } to { opacity: 1; max-height: 2000px; } }
+        .slide-down { animation: slideDown 0.2s ease; }
+        @keyframes slideDown { from { opacity: 0; transform: translateY(-8px); max-height: 0; } to { opacity: 1; transform: translateY(0); max-height: 2000px; } }
         @media (max-width: 640px) {
           .albums-create-form .albums-input-row { flex-direction: column; align-items: stretch; }
           .albums-create-form .albums-input-row input,

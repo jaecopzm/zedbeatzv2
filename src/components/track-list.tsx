@@ -5,12 +5,7 @@ import { useRouter } from "next/navigation"
 import { usePlayerStore } from "@/lib/store"
 import { ArtistLinks } from "@/components/artist-links"
 import { PremiumTrackMenu } from "@/components/track-menu"
-
-function formatDuration(sec: number) {
-  const m = Math.floor(sec / 60)
-  const s = Math.floor(sec % 60)
-  return `${m}:${s.toString().padStart(2, "0")}`
-}
+import { formatDuration } from "@/lib/utils"
 
 function formatCount(n: number) {
   if (n >= 1_000_000) return (n / 1_000_000).toFixed(1) + "M"
@@ -29,12 +24,12 @@ export function TrackList({ tracks, accentColor }: { tracks: any[]; accentColor?
     <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
       <style>{`
         @media (max-width: 640px) {
-          .tl-header { grid-template-columns: 32px 1fr 36px !important; }
+          .tl-header { grid-template-columns: 28px 1fr 40px !important; padding: 6px 8px !important; }
           .tl-header span:nth-child(3),
           .tl-header span:nth-child(4),
           .tl-header span:nth-child(5) { display: none !important; }
-          .tl-row { grid-template-columns: 32px 1fr 36px !important; }
-          .tl-row .tl-thumb { width: 32px !important; height: 32px !important; }
+          .tl-row { grid-template-columns: 28px 1fr 40px !important; padding: 10px 8px !important; gap: 10px !important; }
+          .tl-row .tl-thumb { width: 36px !important; height: 36px !important; }
           .tl-row .tl-album,
           .tl-row .tl-plays,
           .tl-row .tl-duration { display: none !important; }

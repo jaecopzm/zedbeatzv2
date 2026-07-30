@@ -3,8 +3,10 @@
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
 import { useEffect, useState, type ReactNode } from "react"
+import { useQuery } from "@tanstack/react-query"
 import { useAuthStore } from "@/lib/auth-store"
 import { useThemeStore } from "@/lib/theme-store"
+import { api } from "@/lib/api"
 
 const navLinks = [
   { href: "/artist/dashboard", label: "Overview", icon: "grid" },
@@ -24,6 +26,12 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
   const user = useAuthStore((s) => s.user)
   const logout = useAuthStore((s) => s.logout)
   const { theme, toggle: toggleTheme } = useThemeStore()
+
+  const { data: creditData } = useQuery({
+    queryKey: ["artist-credits"],
+    queryFn: () => api.artistGetCredits(),
+    enabled: !!user,
+  })
 
   useEffect(() => {
     setMounted(true)
@@ -131,22 +139,32 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
           </Link>
 
           {mounted && user && (
-            <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "6px 10px", borderRadius: 10, background: "var(--hover-bg)" }}>
-              <div style={{ width: 26, height: 26, borderRadius: "50%", background: "linear-gradient(135deg, var(--brand), var(--brand-light))", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontSize: 11, fontWeight: 700, flexShrink: 0 }}>
-                {user.email?.charAt(0).toUpperCase()}
+            <div>
+              <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "6px 10px", borderRadius: 10, background: "var(--hover-bg)" }}>
+                <div style={{ width: 26, height: 26, borderRadius: "50%", background: "linear-gradient(135deg, var(--brand), var(--brand-light))", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontSize: 11, fontWeight: 700, flexShrink: 0 }}>
+                  {user.email?.charAt(0).toUpperCase()}
+                </div>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <p style={{ margin: 0, fontSize: 12, fontWeight: 600, color: "var(--foreground)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{user.email}</p>
+                  <p style={{ margin: 0, fontSize: 10, color: "var(--muted-foreground)" }}>Artist</p>
+                </div>
+                <button onClick={logout} title="Sign out"
+                  style={{ background: "none", border: "none", cursor: "pointer", color: "var(--muted-foreground)", padding: 2, borderRadius: 4, lineHeight: 0 }}
+                  onMouseEnter={(e) => (e.currentTarget.style.color = "var(--foreground)")}
+                  onMouseLeave={(e) => (e.currentTarget.style.color = "var(--muted-foreground)")}>
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                    <path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4" /><path d="M16 17l5-5-5-5" /><path d="M21 12H9" />
+                  </svg>
+                </button>
               </div>
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <p style={{ margin: 0, fontSize: 12, fontWeight: 600, color: "var(--foreground)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{user.email}</p>
-                <p style={{ margin: 0, fontSize: 10, color: "var(--muted-foreground)" }}>Artist</p>
-              </div>
-              <button onClick={logout} title="Sign out"
-                style={{ background: "none", border: "none", cursor: "pointer", color: "var(--muted-foreground)", padding: 2, borderRadius: 4, lineHeight: 0 }}
-                onMouseEnter={(e) => (e.currentTarget.style.color = "var(--foreground)")}
-                onMouseLeave={(e) => (e.currentTarget.style.color = "var(--muted-foreground)")}>
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-                  <path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4" /><path d="M16 17l5-5-5-5" /><path d="M21 12H9" />
-                </svg>
-              </button>
+              <Link href="/artist/dashboard/credits"
+                style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 6, padding: "5px 10px", borderRadius: 8, textDecoration: "none", fontSize: 11, fontWeight: 600, color: (creditData?.balance?.balance ?? 0) > 0 ? "var(--brand)" : "#ef4444", transition: "background 0.12s" }}
+                onMouseEnter={(e) => e.currentTarget.style.background = "var(--hover-bg)"}
+                onMouseLeave={(e) => e.currentTarget.style.background = "transparent"}
+              >
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><circle cx="12" cy="12" r="10" /><path d="M12 6v12M9 9l3-3 3 3M9 15l3 3 3-3" /></svg>
+                <span>{(creditData?.balance?.balance ?? "...") + " credits"}</span>
+              </Link>
             </div>
           )}
         </div>

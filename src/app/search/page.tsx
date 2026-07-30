@@ -8,6 +8,7 @@ import { usePlayerStore } from "@/lib/store"
 import type { Track, Artist, Album, Genre } from "@/types"
 import { PremiumTrackMenu } from "@/components/track-menu"
 import { ArtistLinks } from "@/components/artist-links"
+import { formatDuration } from "@/lib/utils"
 
 const GENRE_GRADIENTS: [string, string][] = [
   ["#FF6B6B", "#FF8E53"], ["#4E54C8", "#8F94FB"], ["#11998E", "#38EF7D"],
@@ -19,12 +20,6 @@ const GENRE_GRADIENTS: [string, string][] = [
 ]
 
 type Tab = "all" | "songs" | "artists" | "albums"
-
-function formatDuration(sec: number) {
-  const m = Math.floor(sec / 60)
-  const s = String(sec % 60).padStart(2, "0")
-  return `${m}:${s}`
-}
 
 function formatCount(n: number) {
   if (n >= 1_000_000) return (n / 1_000_000).toFixed(1) + "M"
@@ -98,6 +93,11 @@ export default function SearchPage() {
           .search-album-card .search-album-art { width: 132px !important; height: 132px !important; }
           .search-artist-card { width: 120px !important; }
           .search-artist-card .search-artist-avatar { width: 100px !important; height: 100px !important; }
+          .search-track-row { gap: 10px !important; padding: 10px 8px !important; }
+          .search-track-row .sr-thumb { width: 36px !important; height: 36px !important; }
+          .search-track-row .sr-album,
+          .search-track-row .sr-plays,
+          .search-track-row .sr-duration { display: none !important; }
         }
         @media (max-width: 480px) {
           .search-page .genre-grid { grid-template-columns: repeat(2, 1fr) !important; gap: 6px !important; }
@@ -249,9 +249,9 @@ function TrackRow({ track, onPlay }: { track: Track; onPlay: any }) {
       {/* Cover */}
       <div style={{ position: "relative", flexShrink: 0 }}>
         {track.cover_url ? (
-          <img src={track.cover_url} alt="" style={{ width: 44, height: 44, borderRadius: 4, objectFit: "cover", display: "block" }} />
+          <img src={track.cover_url} alt="" className="sr-thumb" style={{ width: 44, height: 44, borderRadius: 4, objectFit: "cover", display: "block" }} />
         ) : (
-          <div style={{ width: 44, height: 44, borderRadius: 4, background: "linear-gradient(135deg, #e8e8ec, #d0d0d8)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+          <div className="sr-thumb" style={{ width: 44, height: 44, borderRadius: 4, background: "linear-gradient(135deg, #e8e8ec, #d0d0d8)", display: "flex", alignItems: "center", justifyContent: "center" }}>
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#86868b" strokeWidth="1.5"><path d="M9 18V5l12-2v13" /><circle cx="6" cy="18" r="3" /><circle cx="18" cy="16" r="3" /></svg>
           </div>
         )}
@@ -274,9 +274,9 @@ function TrackRow({ track, onPlay }: { track: Track; onPlay: any }) {
          </p>
        </div>
 
-       {/* Album */}
-       {track.album_name ? (
-         <div style={{ flex: 1, minWidth: 0, display: "flex", alignItems: "center" }}>
+        {/* Album */}
+        {track.album_name ? (
+          <div className="sr-album" style={{ flex: 1, minWidth: 0, display: "flex", alignItems: "center" }}>
            <span onClick={(e) => { e.stopPropagation(); router.push(`/album/${track.album_id}`) }}
              onMouseEnter={(e) => { e.currentTarget.style.textDecoration = "underline" }}
              onMouseLeave={(e) => { e.currentTarget.style.textDecoration = "none" }}
@@ -286,12 +286,12 @@ function TrackRow({ track, onPlay }: { track: Track; onPlay: any }) {
        ) : null}
 
       {/* Play count */}
-      <span style={{ fontSize: 11, color: "var(--muted-foreground)", flexShrink: 0, width: 36, textAlign: "center", fontVariantNumeric: "tabular-nums" }}>
+      <span className="sr-plays" style={{ fontSize: 11, color: "var(--muted-foreground)", flexShrink: 0, width: 36, textAlign: "center", fontVariantNumeric: "tabular-nums" }}>
         {formatCount(track.play_count)}
       </span>
 
       {/* Duration */}
-      <span style={{ fontSize: 12, color: "var(--muted-foreground)", flexShrink: 0, width: 40, textAlign: "right" }}>
+      <span className="sr-duration" style={{ fontSize: 12, color: "var(--muted-foreground)", flexShrink: 0, width: 40, textAlign: "right" }}>
         {formatDuration(track.duration_sec)}
       </span>
 

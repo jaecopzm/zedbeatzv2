@@ -7,6 +7,7 @@ import { useQuery } from "@tanstack/react-query"
 import { api } from "@/lib/api"
 import { usePlayerStore } from "@/lib/store"
 import { useLikesStore } from "@/lib/likes-store"
+import { toast } from "@/lib/toast-store"
 
 interface Props {
   track: {
@@ -98,7 +99,8 @@ export function PremiumTrackMenu({ track, liked, onLikeToggle }: Props) {
     setAddingTo(playlistId)
     try {
       await api.addTrackToPlaylist(playlistId, track.id)
-    } catch { /* ignore */ }
+      toast("Added to playlist", "success")
+    } catch { toast("Failed to add", "error") }
     setAddingTo(null)
     close()
   }, [track.id, close])
@@ -111,6 +113,15 @@ export function PremiumTrackMenu({ track, liked, onLikeToggle }: Props) {
     }
   }, [close])
 
+  const triggerActionWithToast = useCallback((fn: () => void, msg: string) => {
+    return (e: React.MouseEvent) => {
+      e.stopPropagation()
+      fn()
+      toast(msg, "success")
+      close()
+    }
+  }, [close])
+
   return (
     <div style={{ position: "relative", flexShrink: 0 }}>
       <button
@@ -118,7 +129,7 @@ export function PremiumTrackMenu({ track, liked, onLikeToggle }: Props) {
         onClick={(e) => { e.stopPropagation(); setOpen(true) }}
         style={{
           display: "flex", alignItems: "center", justifyContent: "center",
-          width: 30, height: 30, borderRadius: 6,
+          width: 30, minWidth: 44, minHeight: 44, height: 30, borderRadius: 6,
           border: "none",
           background: "transparent",
           color: isActiveTrack ? "var(--brand)" : open ? "var(--foreground)" : "var(--muted-foreground)",
@@ -189,12 +200,12 @@ export function PremiumTrackMenu({ track, liked, onLikeToggle }: Props) {
               <SheetItem
                 icon={<PlayNextIcon />}
                 label="Play Next"
-                onClick={triggerAction(() => playNext(toTrackInfo(track)))}
+                onClick={triggerActionWithToast(() => playNext(toTrackInfo(track)), "Playing next")}
               />
               <SheetItem
                 icon={<QueueIcon />}
                 label="Add to Queue"
-                onClick={triggerAction(() => addToQueue(toTrackInfo(track)))}
+                onClick={triggerActionWithToast(() => addToQueue(toTrackInfo(track)), "Added to queue")}
               />
 
               <SheetDivider />
@@ -249,9 +260,9 @@ export function PremiumTrackMenu({ track, liked, onLikeToggle }: Props) {
                 <div style={{ paddingLeft: 12 }}>
                   <SheetItem
                     label="Copy Link"
-                    onClick={triggerAction(() => {
+                    onClick={triggerActionWithToast(() => {
                       navigator.clipboard.writeText(`${window.location.origin}/track/${track.id}`)
-                    })}
+                    }, "Link copied")}
                     compact
                     icon={<LinkIcon />}
                   />

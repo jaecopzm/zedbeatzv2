@@ -6,6 +6,7 @@ import Link from "next/link"
 import { api } from "@/lib/api"
 import { usePlayerStore } from "@/lib/store"
 import { ArtistLinks } from "@/components/artist-links"
+import { formatDuration } from "@/lib/utils"
 
 function SkeletonRow() {
   return (
@@ -117,7 +118,7 @@ export default function GenrePage() {
                 </p>
               </div>
               <span style={{ fontSize: 12, color: "var(--muted-foreground)", flexShrink: 0, fontVariantNumeric: "tabular-nums" }}>
-                {Math.floor((track.duration_sec || 0) / 60)}:{String(Math.floor((track.duration_sec || 0) % 60)).padStart(2, "0")}
+                {formatDuration(track.duration_sec)}
               </span>
             </div>
           ))}

@@ -7,6 +7,7 @@ import { api } from "@/lib/api"
 import { usePlayerStore } from "@/lib/store"
 import { HorizontalScroller } from "@/components/home/horizontal-scroller"
 import type { Track, Album, Artist } from "@/types"
+import { formatDuration } from "@/lib/utils"
 import "./library.css"
 
 export default function LibraryPage() {
@@ -692,9 +693,7 @@ function TrackList({ items, onPlay, showCtx, addToQueue, playNext }: {
           </div>
           <span className="lib-tracks-album lib-card-meta">{t.album_name ?? "—"}</span>
           <span className="lib-tracks-plays lib-card-meta">{(t.play_count ?? 0).toLocaleString()}</span>
-          <span className="lib-tracks-time lib-card-meta">
-            {Math.floor(t.duration_sec / 60)}:{String(t.duration_sec % 60).padStart(2, "0")}
-          </span>
+          <span className="lib-tracks-time lib-card-meta">{formatDuration(t.duration_sec)}</span>
         </button>
       ))}
     </div>

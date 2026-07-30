@@ -8,6 +8,8 @@ import { usePlayerStore } from "@/lib/store"
 import type { Track, Album, Artist } from "@/types"
 import { useState, useCallback, useMemo } from "react"
 import { PremiumTrackMenu } from "@/components/track-menu"
+import { formatDuration } from "@/lib/utils"
+import { toast } from "@/lib/toast-store"
 import {
   Avatar,
   VerifiedBadge,
@@ -17,13 +19,6 @@ import {
 } from "@/components/artist/ui"
 
 /* ─── helpers ─── */
-
-function formatDuration(sec: number) {
-  if (!sec || sec <= 0) return "--:--"
-  const m = Math.floor(sec / 60)
-  const s = Math.floor(sec % 60)
-  return `${m}:${s.toString().padStart(2, "0")}`
-}
 
 function formatCount(n: number) {
   if (n >= 1_000_000) return (n / 1_000_000).toFixed(1) + "M"
@@ -222,6 +217,7 @@ export default function ArtistContent({ artistId, initialArtist }: ArtistContent
   const currentTrack = usePlayerStore((s) => s.currentTrack)
   const isPlaying = usePlayerStore((s) => s.isPlaying)
   const togglePlay = usePlayerStore((s) => s.togglePlay)
+  const playLoading = usePlayerStore((s) => s._loading)
 
   const [followed, setFollowed] = useState<boolean | null>(
     initialArtist && typeof initialArtist.is_followed === "boolean"
@@ -292,11 +288,15 @@ export default function ArtistContent({ artistId, initialArtist }: ArtistContent
       if (followed) {
         await api.unfollowArtist(artist.id)
         setFollowed(false)
+        toast("Unfollowed", "success")
       } else {
         await api.followArtist(artist.id)
         setFollowed(true)
+        toast("Followed", "success")
       }
-    } catch { /* ignore */ }
+    } catch {
+      toast("Failed to update", "error")
+    }
     setFollowLoading(false)
   }, [followed, followLoading, artist])
 
@@ -633,6 +633,7 @@ export default function ArtistContent({ artistId, initialArtist }: ArtistContent
                 {tracks.length > 0 && (
                   <PillButton
                     size="xs"
+                    loading={!!playLoading}
                     iconLeft={
                       isFirstPlaying
                         ? <PauseIconSolid size={14} />
@@ -651,13 +652,13 @@ export default function ArtistContent({ artistId, initialArtist }: ArtistContent
                 <PillButton
                   variant="ghost"
                   size="xs"
+                  loading={followLoading}
                   iconLeft={
                     followed
                       ? <CheckIcon size={12} />
                       : <PlusIcon size={12} />
                   }
                   onClick={handleFollowToggle}
-                  disabled={followLoading}
                   style={{
                     border: "1.5px solid rgba(255,255,255,0.55)",
                     background: "rgba(255,255,255,0.1)",

@@ -2,6 +2,7 @@
 
 import type { Track, RecommendedTrack } from "@/types"
 import { usePlayerStore } from "@/lib/store"
+import { formatDuration } from "@/lib/utils"
 
 type TrackLike = Track | RecommendedTrack
 
@@ -30,8 +31,7 @@ export function TrackCard({ track, onLike, liked }: TrackCardProps) {
         </p>
       </div>
       <span className="text-xs text-muted-foreground">
-        {Math.floor(track.duration_sec / 60)}:
-        {(track.duration_sec % 60).toString().padStart(2, "0")}
+        {formatDuration(track.duration_sec)}
       </span>
       <div className="flex gap-1 opacity-0 transition-opacity group-hover:opacity-100">
         <button

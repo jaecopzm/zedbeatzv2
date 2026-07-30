@@ -8,14 +8,7 @@ import { ArtistLinks } from "@/components/artist-links"
 import { PremiumTrackMenu } from "@/components/track-menu"
 import type { RadioStationTrack } from "@/types"
 import { useState, useEffect } from "react"
-
-function formatDuration(sec: number) {
-  const h = Math.floor(sec / 3600)
-  const m = Math.floor((sec % 3600) / 60)
-  const s = Math.floor(sec % 60)
-  if (h > 0) return `${h}:${m.toString().padStart(2, "0")}:${s.toString().padStart(2, "0")}`
-  return `${m}:${s.toString().padStart(2, "0")}`
-}
+import { formatDuration } from "@/lib/utils"
 
 function formatCount(n: number) {
   if (n >= 1_000_000) return (n / 1_000_000).toFixed(1) + "M"

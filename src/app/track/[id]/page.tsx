@@ -10,12 +10,7 @@ import { ArtistLinks } from "@/components/artist-links"
 import { TrackList, PlayIconSolid, PauseIcon } from "@/components/track-list"
 import { PremiumTrackMenu } from "@/components/track-menu"
 import { useColorExtract } from "@/lib/use-color-extract"
-
-function formatDuration(sec: number) {
-  const m = Math.floor(sec / 60)
-  const s = Math.floor(sec % 60)
-  return `${m}:${s.toString().padStart(2, "0")}`
-}
+import { formatDuration } from "@/lib/utils"
 
 function formatCount(n: number) {
   if (n >= 1_000_000) return (n / 1_000_000).toFixed(1) + "M"

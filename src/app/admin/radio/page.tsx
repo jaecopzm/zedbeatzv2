@@ -5,6 +5,7 @@ import { useState, useMemo, useEffect, useRef } from "react"
 import { api } from "@/lib/api"
 import { toast } from "@/lib/toast-store"
 import type { RadioStation, RadioStationTrack } from "@/types"
+import { formatDuration } from "@/lib/utils"
 
 const ADMIN_RADIO_QS_KEY = ["admin-radio"]
 
@@ -554,7 +555,7 @@ function TrackManagementModal({
                     <p style={{ margin: 0, fontSize: 13, fontWeight: 600, color: "var(--foreground)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{tx.title}</p>
                     <p style={{ margin: "1px 0 0", fontSize: 11, color: "var(--muted-foreground)" }}>{tx.artist_name}</p>
                   </div>
-                  <span style={{ fontSize: 11, color: "var(--muted-foreground)", flexShrink: 0 }}>{Math.floor(tx.duration_sec / 60)}:{String(tx.duration_sec % 60).padStart(2, "0")}</span>
+                  <span style={{ fontSize: 11, color: "var(--muted-foreground)", flexShrink: 0 }}>{formatDuration(tx.duration_sec)}</span>
                   <button
                     onClick={() => handleQuickRemove(tx.id)}
                     disabled={removeTrackLoading}
