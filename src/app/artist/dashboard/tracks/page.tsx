@@ -6,7 +6,7 @@ import { api } from "@/lib/api"
 import { usePlayerStore } from "@/lib/store"
 import { toast } from "@/lib/toast-store"
 import { TrackEditModal } from "@/components/track-edit-modal"
-import { detectAudioDuration, formatDuration } from "@/lib/utils"
+import { detectAudioDuration, formatDuration, formatCount } from "@/lib/utils"
 import { ConfirmDialog } from "@/components/confirm-dialog"
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "/api/v1"
@@ -69,6 +69,10 @@ export default function TracksPage() {
   const [bulkAlbumId, setBulkAlbumId] = useState("")
   const [confirmDelete, setConfirmDelete] = useState<{ id: string; title: string } | null>(null)
   const [menuOpenId, setMenuOpenId] = useState<string | null>(null)
+  const [filterStatus, setFilterStatus] = useState<"all" | "published" | "draft">("all")
+  const [searchQuery, setSearchQuery] = useState("")
+  const [selectMode, setSelectMode] = useState(false)
+  const [bulkGenreId, setBulkGenreId] = useState("")
 
   const addToAlbumMut = useMutation({
     mutationFn: async ({ trackIds, albumId }: { trackIds: string[]; albumId: string }) => {
@@ -132,6 +136,14 @@ export default function TracksPage() {
   const tracks = data?.tracks ?? []
   const genres = genresData?.genres ?? []
   const albums = albumsData?.albums ?? []
+  const filteredTracks = tracks.filter((t: any) => {
+    if (filterStatus !== "all" && t.status !== filterStatus) return false
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase()
+      if (!t.title.toLowerCase().includes(q) && !(t.genre_name || "").toLowerCase().includes(q)) return false
+    }
+    return true
+  })
 
   const deleteMut = useMutation({
     mutationFn: (id: string) => api.artistDeleteTrack(id),
@@ -168,6 +180,19 @@ export default function TracksPage() {
       setSelected(new Set())
     },
     onError: () => toast("Some tracks couldn't be published", "error"),
+  })
+
+  const bulkGenreMut = useMutation({
+    mutationFn: async ({ ids, genreId }: { ids: string[]; genreId: string }) => {
+      for (const id of ids) await api.artistUpdateTrack(id, { genre_id: genreId })
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["artist-tracks"] })
+      toast(`${selected.size} track genres updated`, "success")
+      setSelected(new Set())
+      setBulkGenreId("")
+    },
+    onError: () => toast("Some tracks couldn't be updated", "error"),
   })
 
   const toggleSelect = (id: string) => {
@@ -265,34 +290,59 @@ export default function TracksPage() {
       <div className="tracks-header" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 24 }}>
         <div>
           <h2 style={{ fontSize: 20, fontWeight: 800, color: "var(--foreground)", margin: 0 }}>Your Tracks</h2>
-          <p style={{ margin: "2px 0 0", fontSize: 13, color: "var(--muted-foreground)" }}>{tracks.length} tracks</p>
+          <p style={{ margin: "2px 0 0", fontSize: 13, color: "var(--muted-foreground)" }}>{filteredTracks.length} {filterStatus !== "all" ? filterStatus : ""} track{filteredTracks.length !== 1 ? "s" : ""}{filterStatus !== "all" ? ` (${tracks.length} total)` : ""}</p>
         </div>
         <button onClick={() => { setShowForm(!showForm); resetForm() }} style={showForm ? pillBtnGhost : pillBtn}>
           {showForm ? "Cancel" : "Upload Track"}
         </button>
       </div>
 
+      {/* Filter + Search + Select toggle */}
+      <div className="tracks-toolbar" style={{ display: "flex", gap: 8, marginBottom: 12, alignItems: "center", flexWrap: "wrap" }}>
+        <div className="filter-tabs" style={{ display: "flex", gap: 4, background: "var(--hover-bg)", borderRadius: 10, padding: 3 }}>
+          {(["all", "published", "draft"] as const).map((s) => (
+            <button key={s} onClick={() => { setFilterStatus(s); setSelected(new Set()); setSelectMode(false) }}
+              style={{
+                padding: "5px 14px", borderRadius: 8, border: "none",
+                background: filterStatus === s ? "var(--card-bg)" : "transparent",
+                color: filterStatus === s ? "var(--foreground)" : "var(--muted-foreground)",
+                fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit",
+                boxShadow: filterStatus === s ? "0 1px 3px rgba(0,0,0,0.08)" : "none",
+              }}
+            >{s === "all" ? "All" : s.charAt(0).toUpperCase() + s.slice(1)}</button>
+          ))}
+        </div>
+        <div className="search-wrap" style={{ flex: 1, minWidth: 160, position: "relative" }}>
+          <svg style={{ position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)", pointerEvents: "none" }} width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--muted-foreground)" strokeWidth="2" strokeLinecap="round"><circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" /></svg>
+          <input value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} placeholder="Search tracks..."
+            style={{ width: "100%", padding: "7px 10px 7px 30px", borderRadius: 8, border: "1.5px solid var(--border)", background: "var(--background)", color: "var(--foreground)", fontSize: 12, outline: "none", fontFamily: "inherit", boxSizing: "border-box" }} />
+        </div>
+        <button onClick={() => { setSelectMode(!selectMode); if (selectMode) setSelected(new Set()) }}
+          style={{
+            padding: "6px 14px", borderRadius: 8, border: "1.5px solid var(--border)",
+            background: selectMode ? "var(--brand)" : "transparent",
+            color: selectMode ? "#fff" : "var(--foreground)",
+            fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", whiteSpace: "nowrap",
+          }}
+        >{selectMode ? "Done" : "Select"}</button>
+      </div>
+
       {/* Bulk action bar */}
-      {selected.size > 0 && (
+      {selectMode && selected.size > 0 && (
         <div className="bulk-bar" style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "12px 18px", borderRadius: 12, background: "var(--brand-bg)", border: "1px solid var(--brand)", marginBottom: 12 }}>
           <p style={{ margin: 0, fontSize: 13, fontWeight: 600, color: "var(--brand)" }}>{selected.size} selected</p>
-          <div style={{ display: "flex", gap: 8 }}>
+          <div className="bulk-actions" style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
             <button onClick={() => bulkPublishMut.mutate([...selected])} disabled={bulkPublishMut.isPending} style={{ ...pillBtn, padding: "6px 16px", fontSize: 12, background: "var(--brand)" }}>Publish</button>
+
             {bulkAlbumId ? (
               <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
-                <select
-                  value={bulkAlbumId}
-                  onChange={(e) => setBulkAlbumId(e.target.value)}
-                  style={{ padding: "4px 10px", borderRadius: 8, border: "1.5px solid var(--brand)", background: "var(--background)", color: "var(--foreground)", fontSize: 12, outline: "none", fontFamily: "inherit" }}
-                >
+                <select value={bulkAlbumId} onChange={(e) => setBulkAlbumId(e.target.value)}
+                  style={{ padding: "4px 10px", borderRadius: 8, border: "1.5px solid var(--brand)", background: "var(--background)", color: "var(--foreground)", fontSize: 12, outline: "none", fontFamily: "inherit" }}>
                   <option value="">Select album...</option>
                   {albums.map((a: any) => <option key={a.id} value={a.id}>{a.title}</option>)}
                 </select>
-                <button
-                  onClick={() => { if (bulkAlbumId) addToAlbumMut.mutate({ trackIds: [...selected], albumId: bulkAlbumId }) }}
-                  disabled={!bulkAlbumId || addToAlbumMut.isPending}
-                  style={{ ...pillBtn, padding: "5px 12px", fontSize: 11, background: "var(--brand)" }}
-                >
+                <button onClick={() => { if (bulkAlbumId) addToAlbumMut.mutate({ trackIds: [...selected], albumId: bulkAlbumId }) }}
+                  disabled={!bulkAlbumId || addToAlbumMut.isPending} style={{ ...pillBtn, padding: "5px 12px", fontSize: 11, background: "var(--brand)" }}>
                   {addToAlbumMut.isPending ? "..." : "Add"}
                 </button>
                 <button onClick={() => setBulkAlbumId("")} style={pillBtnGhost}>Cancel</button>
@@ -300,6 +350,24 @@ export default function TracksPage() {
             ) : (
               <button onClick={() => setBulkAlbumId("_picker")} style={{ ...pillBtn, padding: "6px 16px", fontSize: 12, background: "var(--brand)" }}>Add to Album</button>
             )}
+
+            {bulkGenreId ? (
+              <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
+                <select value={bulkGenreId} onChange={(e) => setBulkGenreId(e.target.value)}
+                  style={{ padding: "4px 10px", borderRadius: 8, border: "1.5px solid var(--brand)", background: "var(--background)", color: "var(--foreground)", fontSize: 12, outline: "none", fontFamily: "inherit" }}>
+                  <option value="">Select genre...</option>
+                  {genres.map((g: any) => <option key={g.id} value={g.id}>{g.name}</option>)}
+                </select>
+                <button onClick={() => { if (bulkGenreId) bulkGenreMut.mutate({ ids: [...selected], genreId: bulkGenreId }) }}
+                  disabled={!bulkGenreId || bulkGenreMut.isPending} style={{ ...pillBtn, padding: "5px 12px", fontSize: 11, background: "var(--brand)" }}>
+                  {bulkGenreMut.isPending ? "..." : "Set"}
+                </button>
+                <button onClick={() => setBulkGenreId("")} style={pillBtnGhost}>Cancel</button>
+              </div>
+            ) : (
+              <button onClick={() => setBulkGenreId("_picker")} style={{ ...pillBtn, padding: "6px 16px", fontSize: 12, background: "var(--brand)" }}>Set Genre</button>
+            )}
+
             <button onClick={() => setConfirmDelete({ id: "_bulk", title: `${selected.size} tracks` })} disabled={bulkDeleteMut.isPending} className="pill-btn-danger" style={{ ...pillBtnDanger, padding: "6px 16px" }}>Delete</button>
             <button onClick={() => setSelected(new Set())} style={{ padding: "6px 12px", borderRadius: 999, border: "none", background: "transparent", color: "var(--muted-foreground)", fontSize: 12, fontWeight: 600, cursor: "pointer" }}>Clear</button>
           </div>
@@ -622,6 +690,17 @@ export default function TracksPage() {
         <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
           {Array.from({ length: 5 }).map((_, i) => <div key={i} className="skeleton" style={{ height: 56, borderRadius: 12 }} />)}
         </div>
+      ) : filteredTracks.length === 0 ? (
+        <div style={{ textAlign: "center", padding: "40px 0", color: "var(--muted-foreground)" }}>
+          <p style={{ fontSize: 14, fontWeight: 600, margin: "0 0 4px", color: "var(--foreground)" }}>No tracks match</p>
+          <p style={{ fontSize: 13, margin: 0 }}>Try adjusting your filters or search.</p>
+          {(filterStatus !== "all" || searchQuery) && (
+            <button onClick={() => { setFilterStatus("all"); setSearchQuery("") }}
+              style={{ marginTop: 12, ...pillBtnGhost, padding: "6px 18px", fontSize: 12 }}>
+              Clear filters
+            </button>
+          )}
+        </div>
       ) : tracks.length === 0 ? (
         <div style={{ textAlign: "center", padding: "60px 0", color: "var(--muted-foreground)" }}>
           <div style={{ width: 64, height: 64, borderRadius: "50%", background: "var(--hover-bg)", display: "inline-flex", alignItems: "center", justifyContent: "center", marginBottom: 16 }}>
@@ -649,39 +728,45 @@ export default function TracksPage() {
       ) : (
         <div>
           {/* Select-all header */}
-          <div style={{ display: "flex", alignItems: "center", padding: "8px 16px", marginBottom: 4 }}>
-            <button onClick={toggleSelectAll}
-              style={{ width: 18, height: 18, borderRadius: 4, border: isAllSelected ? "none" : "1.5px solid var(--border)", background: isAllSelected ? "var(--brand)" : "transparent", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, marginRight: 12 }}
-            >
-              {isAllSelected && <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12" /></svg>}
-            </button>
-            <p style={{ margin: 0, fontSize: 12, color: "var(--muted-foreground)", fontWeight: 500 }}>{selected.size > 0 ? `${selected.size} of ${tracks.length} selected` : "Select all"}</p>
-          </div>
+          {selectMode && (
+            <div className="select-all-header" style={{ display: "flex", alignItems: "center", padding: "8px 16px", marginBottom: 4 }}>
+              <button onClick={toggleSelectAll}
+                style={{ width: 18, height: 18, borderRadius: 4, border: isAllSelected ? "none" : "1.5px solid var(--border)", background: isAllSelected ? "var(--brand)" : "transparent", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, marginRight: 12 }}
+              >
+                {isAllSelected && <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12" /></svg>}
+              </button>
+              <p style={{ margin: 0, fontSize: 12, color: "var(--muted-foreground)", fontWeight: 500 }}>{selected.size > 0 ? `${selected.size} of ${tracks.length} selected` : "Select all"}</p>
+            </div>
+          )}
 
           <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-          {tracks.map((t: any) => (
+          {filteredTracks.map((t: any) => (
             <div
               key={t.id}
-              onClick={() => setEditingTrack(t)}
+              onClick={() => { if (selectMode) { toggleSelect(t.id); return }; setEditingTrack(t) }}
+              className="track-row"
               style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 16px", background: selected.has(t.id) ? "var(--brand-bg)" : "var(--card-bg)", borderRadius: 12, transition: "background 0.1s", cursor: "pointer" }}
               onMouseEnter={(e) => { if (!selected.has(t.id)) e.currentTarget.style.background = "var(--hover-bg)" }}
               onMouseLeave={(e) => { if (!selected.has(t.id)) e.currentTarget.style.background = "var(--card-bg)" }}
             >
-              {/* Checkbox */}
-              <button
-                onClick={(e) => { e.stopPropagation(); toggleSelect(t.id) }}
-                style={{ width: 18, height: 18, borderRadius: 4, border: selected.has(t.id) ? "none" : "1.5px solid var(--border)", background: selected.has(t.id) ? "var(--brand)" : "transparent", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}
-              >
-                {selected.has(t.id) && <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12" /></svg>}
-              </button>
+              {/* Checkbox (select mode only) */}
+              {selectMode && (
+                <button
+                  onClick={(e) => { e.stopPropagation(); toggleSelect(t.id) }}
+                  className="track-checkbox"
+                  style={{ width: 18, height: 18, borderRadius: 4, border: selected.has(t.id) ? "none" : "1.5px solid var(--border)", background: selected.has(t.id) ? "var(--brand)" : "transparent", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}
+                >
+                  {selected.has(t.id) && <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12" /></svg>}
+                </button>
+              )}
               <div
                 onClick={(e) => { e.stopPropagation(); handlePlayTrack(t) }}
                 onMouseEnter={() => setHoveredPlayId(t.id)}
                 onMouseLeave={() => setHoveredPlayId(null)}
                 style={{ position: "relative", flexShrink: 0, cursor: "pointer" }}
               >
-                {t.cover_url ? <img src={t.cover_url} alt="" style={{ width: 40, height: 40, borderRadius: 8, objectFit: "cover", boxShadow: "0 2px 6px rgba(0,0,0,0.08)", display: "block" }} />
-                  : <div style={{ width: 40, height: 40, borderRadius: 8, background: "linear-gradient(135deg, var(--brand), var(--brand-light))", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2"><path d="M9 18V5l12-2v13" /></svg></div>}
+                {t.cover_url ? <img src={t.cover_url} alt="" className="track-cover" style={{ width: 40, height: 40, borderRadius: 8, objectFit: "cover", boxShadow: "0 2px 6px rgba(0,0,0,0.08)", display: "block" }} />
+                  : <div className="track-cover" style={{ width: 40, height: 40, borderRadius: 8, background: "linear-gradient(135deg, var(--brand), var(--brand-light))", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2"><path d="M9 18V5l12-2v13" /></svg></div>}
                 {(hoveredPlayId === t.id || currentTrack?.id === t.id) && (
                   <div style={{
                     position: "absolute", inset: 0, borderRadius: 8,
@@ -743,76 +828,108 @@ export default function TracksPage() {
                     title="Click to rename"
                   >{t.title}</p>
                 )}
-                <p style={{ margin: "2px 0 0", fontSize: 12, color: "var(--muted-foreground)" }}>
-                  {formatDuration(t.duration_sec)} · {t.play_count ?? 0} plays · {t.like_count ?? 0} likes
-                  {t.genre_name ? ` · ${t.genre_name}` : ""}
+                <p className="track-meta" style={{ margin: "2px 0 0", fontSize: 12, color: "var(--muted-foreground)" }}>
+                  {formatDuration(t.duration_sec)}
+                  {t.play_count > 0 ? ` · ${formatCount(t.play_count)} plays` : ""}
+                  {t.like_count > 0 ? ` · ${formatCount(t.like_count)} likes` : ""}
+                  <span className="desktop-only">{t.genre_name ? ` · ${t.genre_name}` : ""}</span>
                 </p>
               </div>
-              <span style={{ fontSize: 11, fontWeight: 700, padding: "3px 10px", borderRadius: 999, background: t.status === "published" ? "rgba(16,185,129,0.12)" : "rgba(0,0,0,0.05)", color: t.status === "published" ? "#10b981" : "var(--muted-foreground)", textTransform: "uppercase", letterSpacing: "0.04em" }}>
+              <div className="track-status-dot" style={{ width: 8, height: 8, borderRadius: "50%", flexShrink: 0, background: t.status === "published" ? "#10b981" : "var(--border)" }} />
+              <span className="desktop-only" style={{ fontSize: 11, fontWeight: 700, padding: "3px 10px", borderRadius: 999, background: t.status === "published" ? "rgba(16,185,129,0.12)" : "rgba(0,0,0,0.05)", color: t.status === "published" ? "#10b981" : "var(--muted-foreground)", textTransform: "uppercase", letterSpacing: "0.04em" }}>
                 {t.status}
               </span>
-              {t.status === "draft" ? (
-                <button onClick={(e) => { e.stopPropagation(); publishMut.mutate(t.id) }} disabled={publishMut.isPending}
-                  style={{ ...pillBtn, padding: "5px 14px", fontSize: 11, background: "var(--brand)" }}>
-                  {publishMut.isPending ? "..." : "Publish"}
+              <div className="desktop-track-actions desktop-only" style={{ display: "flex", gap: 6, alignItems: "center" }}>
+                {t.status === "published" && (
+                  <a href={`/track/${t.id}`} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()}
+                    style={{ background: "none", border: "none", cursor: "pointer", padding: "6px", borderRadius: 8, color: "var(--muted-foreground)", lineHeight: 0, display: "inline-flex", textDecoration: "none" }}
+                    title="View track">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" /><circle cx="12" cy="12" r="3" /></svg>
+                  </a>
+                )}
+                {t.status === "draft" ? (
+                  <button onClick={(e) => { e.stopPropagation(); publishMut.mutate(t.id) }} disabled={publishMut.isPending}
+                    style={{ ...pillBtn, padding: "5px 14px", fontSize: 11, background: "var(--brand)" }}>
+                    {publishMut.isPending ? "..." : "Publish"}
+                  </button>
+                ) : (
+                  <button onClick={(e) => { e.stopPropagation(); unpublishMut.mutate(t.id) }} disabled={unpublishMut.isPending}
+                    style={{ ...pillBtnGhost, padding: "5px 14px", fontSize: 11 }}>
+                    Unpublish
+                  </button>
+                )}
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    navigator.clipboard.writeText(`${window.location.origin}/track/${t.id}`)
+                    setCopiedTrackId(t.id)
+                    setTimeout(() => setCopiedTrackId(null), 2000)
+                  }}
+                  style={{
+                    background: "none", border: "none", cursor: "pointer", padding: "6px 8px",
+                    borderRadius: 8, color: copiedTrackId === t.id ? "var(--brand)" : "var(--muted-foreground)",
+                    fontSize: 12, fontWeight: 500, fontFamily: "inherit",
+                    transition: "color 0.15s",
+                    display: "inline-flex", alignItems: "center", gap: 4,
+                  }}
+                  title="Copy share link"
+                >
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71" />
+                    <path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71" />
+                  </svg>
+                  {copiedTrackId === t.id ? "Copied!" : "Share"}
                 </button>
-              ) : (
-                <button onClick={(e) => { e.stopPropagation(); unpublishMut.mutate(t.id) }} disabled={unpublishMut.isPending}
-                  style={{ ...pillBtnGhost, padding: "5px 14px", fontSize: 11 }}>
-                  Unpublish
-                </button>
-              )}
-              <button
-                onClick={(e) => {
-                  e.stopPropagation()
-                  navigator.clipboard.writeText(`${window.location.origin}/track/${t.id}`)
-                  setCopiedTrackId(t.id)
-                  setTimeout(() => setCopiedTrackId(null), 2000)
-                }}
-                style={{
-                  background: "none", border: "none", cursor: "pointer", padding: "6px 8px",
-                  borderRadius: 8, color: copiedTrackId === t.id ? "var(--brand)" : "var(--muted-foreground)",
-                  fontSize: 12, fontWeight: 500, fontFamily: "inherit",
-                  transition: "color 0.15s",
-                  display: "inline-flex", alignItems: "center", gap: 4,
-                }}
-                title="Copy share link"
-              >
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71" />
-                  <path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71" />
-                </svg>
-                {copiedTrackId === t.id ? "Copied!" : "Share"}
-              </button>
-              <div className="track-actions">
+                <button onClick={(e) => { e.stopPropagation(); setConfirmDelete({ id: t.id, title: t.title }) }} className="pill-btn-danger" style={pillBtnDanger} title="Delete">Delete</button>
+              </div>
+              <div className="track-actions mobile-only">
                 <button
                   onClick={(e) => { e.stopPropagation(); setMenuOpenId(menuOpenId === t.id ? null : t.id) }}
                   className="track-more-btn"
                   style={{
-                    background: "none", border: "none", cursor: "pointer", padding: "4px 6px",
-                    borderRadius: 6, color: "var(--muted-foreground)", lineHeight: 0, display: "none",
+                    background: "none", border: "none", cursor: "pointer", padding: "6px",
+                    borderRadius: 6, color: "var(--muted-foreground)", lineHeight: 0,
                   }}
                   title="More"
                 >
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="5" r="1.5" /><circle cx="12" cy="12" r="1.5" /><circle cx="12" cy="19" r="1.5" /></svg>
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="5" r="1.5" /><circle cx="12" cy="12" r="1.5" /><circle cx="12" cy="19" r="1.5" /></svg>
                 </button>
                 {menuOpenId === t.id && (
                   <div className="track-more-dropdown" style={{
                     position: "absolute", right: 0, top: "100%", zIndex: 50,
                     background: "var(--card-bg)", border: "1px solid var(--border)",
                     borderRadius: 10, boxShadow: "0 8px 32px rgba(0,0,0,0.15)",
-                    padding: 4, minWidth: 160,
+                    padding: 4, minWidth: 170,
                   }}
                     onClick={(e) => e.stopPropagation()}
                   >
-                    <button onClick={() => { setMenuOpenId(null); deleteMut.mutate(t.id) }}
-                      style={{ display: "flex", alignItems: "center", gap: 8, width: "100%", padding: "8px 12px", borderRadius: 6, border: "none", background: "transparent", color: "#ef4444", fontSize: 13, fontWeight: 500, cursor: "pointer", fontFamily: "inherit" }}>
+                    {t.status === "draft" ? (
+                      <button onClick={(e) => { e.stopPropagation(); setMenuOpenId(null); publishMut.mutate(t.id) }}
+                        style={{ display: "flex", alignItems: "center", gap: 8, width: "100%", padding: "9px 12px", borderRadius: 6, border: "none", background: "transparent", color: "var(--foreground)", fontSize: 13, fontWeight: 500, cursor: "pointer", fontFamily: "inherit" }}>
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polygon points="5,3 19,12 5,21" /></svg>
+                        Publish
+                      </button>
+                    ) : (
+                      <button onClick={(e) => { e.stopPropagation(); setMenuOpenId(null); unpublishMut.mutate(t.id) }}
+                        style={{ display: "flex", alignItems: "center", gap: 8, width: "100%", padding: "9px 12px", borderRadius: 6, border: "none", background: "transparent", color: "var(--foreground)", fontSize: 13, fontWeight: 500, cursor: "pointer", fontFamily: "inherit" }}>
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="1" y1="12" x2="23" y2="12" /></svg>
+                        Unpublish
+                      </button>
+                    )}
+                    <button onClick={(e) => { e.stopPropagation(); navigator.clipboard.writeText(`${window.location.origin}/track/${t.id}`); setMenuOpenId(null); toast("Link copied", "info") }}
+                      style={{ display: "flex", alignItems: "center", gap: 8, width: "100%", padding: "9px 12px", borderRadius: 6, border: "none", background: "transparent", color: "var(--foreground)", fontSize: 13, fontWeight: 500, cursor: "pointer", fontFamily: "inherit" }}>
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71" /><path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71" /></svg>
+                      Share
+                    </button>
+                    <div style={{ height: 1, background: "var(--border)", margin: "4px 8px" }} />
+                    <button onClick={() => { setMenuOpenId(null); setConfirmDelete({ id: t.id, title: t.title }) }}
+                      style={{ display: "flex", alignItems: "center", gap: 8, width: "100%", padding: "9px 12px", borderRadius: 6, border: "none", background: "transparent", color: "#ef4444", fontSize: 13, fontWeight: 500, cursor: "pointer", fontFamily: "inherit" }}>
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="3 6 5 6 21 6" /><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2" /></svg>
                       Delete
                     </button>
                   </div>
                 )}
               </div>
-              <button onClick={(e) => { e.stopPropagation(); setConfirmDelete({ id: t.id, title: t.title }) }} className="track-delete-btn pill-btn-danger" style={pillBtnDanger} title="Delete">Delete</button>
             </div>
           ))}
         </div>
@@ -836,14 +953,27 @@ export default function TracksPage() {
         .pill-btn-danger:hover { background: rgba(239,68,68,0.1) !important; }
         .slide-down { animation: slideDown 0.2s ease; }
         @keyframes slideDown { from { opacity: 0; transform: translateY(-8px); max-height: 0; } to { opacity: 1; transform: translateY(0); max-height: 2000px; } }
-        @media (max-width: 640px) {
+        .track-status-dot { display: none; }
+        .track-actions { position: relative; }
+        @media (max-width: 768px) {
           .tracks-page .tracks-header { flex-direction: column; align-items: flex-start; gap: 10px; }
           .tracks-page .bulk-bar { flex-wrap: wrap; gap: 8px; }
           .tracks-page .tracks-form { padding: 16px !important; }
           .tracks-page .genre-album-grid { grid-template-columns: 1fr !important; }
-          .track-delete-btn { display: none !important; }
-          .track-more-btn { display: inline-flex !important; }
-          .track-actions { position: relative; }
+          .desktop-only { display: none !important; }
+          .mobile-only { display: flex !important; }
+          .track-status-dot { display: block; flex-shrink: 0; }
+          .track-actions { display: flex; }
+          .track-row { padding: 8px 10px !important; gap: 8px !important; }
+          .track-row .track-cover { width: 36px !important; height: 36px !important; }
+          .track-row .track-checkbox { width: 16px !important; height: 16px !important; }
+          .track-meta { font-size: 11px !important; white-space: nowrap !important; overflow: hidden !important; text-overflow: ellipsis !important; }
+          .track-row .desktop-only { display: none !important; }
+          .select-all-header { padding: 6px 10px !important; }
+          .bulk-bar { padding: 10px 12px !important; font-size: 12px !important; }
+        }
+        @media (min-width: 769px) {
+          .mobile-only { display: none !important; }
         }
       `}</style>
     </div>
