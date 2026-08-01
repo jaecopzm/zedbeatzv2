@@ -14,22 +14,6 @@ async function fetchJSON<T>(url: string): Promise<T | null> {
   }
 }
 
-/** Paginate through a list endpoint until a short page is returned. */
-async function fetchAllPaginated<T>(
-  base: string,
-  pageSize: number,
-  key: string
-): Promise<T[]> {
-  const all: T[] = []
-  for (let offset = 0; offset < 100000; offset += pageSize) {
-    const data = await fetchJSON<Record<string, T[]>>(`${base}?limit=${pageSize}&offset=${offset}`)
-    const items = data?.[key] ?? []
-    all.push(...items)
-    if (items.length < pageSize) break
-  }
-  return all
-}
-
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const sectionSlugs = [
     "best_new_songs", "new_this_week", "zed_hip_hop", "zed_afrobeats",
@@ -51,10 +35,13 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: `${SITE_URL}/search`, lastModified: new Date(), changeFrequency: "weekly", priority: 0.4 },
   ]
 
-  const albums = await fetchAllPaginated<{ id: string; updated_at: string }>(
-    `${SERVER_API_BASE}/albums`, 500, "albums"
-  )
-  const albumPages: MetadataRoute.Sitemap = albums.map((a) => ({
+  const sitemapData = await fetchJSON<{
+    tracks: { id: string; updated_at: string }[]
+    albums: { id: string; updated_at: string }[]
+    artists: { id: string; updated_at: string }[]
+  }>(`${SERVER_API_BASE}/sitemap`)
+
+  const albumPages: MetadataRoute.Sitemap = (sitemapData?.albums ?? []).map((a) => ({
     url: `${SITE_URL}/album/${a.id}`,
     lastModified: new Date(a.updated_at),
     changeFrequency: "weekly" as const,
@@ -91,20 +78,14 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     priority: 0.6,
   }))
 
-  const trackPagesData = await fetchAllPaginated<{ id: string; updated_at: string }>(
-    `${SERVER_API_BASE}/tracks`, 500, "tracks"
-  )
-  const trackPages: MetadataRoute.Sitemap = trackPagesData.map((t) => ({
+  const trackPages: MetadataRoute.Sitemap = (sitemapData?.tracks ?? []).map((t) => ({
     url: `${SITE_URL}/track/${t.id}`,
     lastModified: new Date(t.updated_at),
     changeFrequency: "weekly" as const,
     priority: 0.6,
   }))
 
-  const artistData = await fetchJSON<{ artists: { id: string; updated_at: string }[] }>(
-    `${SERVER_API_BASE}/artists/featured?limit=1000`
-  )
-  const artistPages: MetadataRoute.Sitemap = (artistData?.artists ?? []).map((a) => ({
+  const artistPages: MetadataRoute.Sitemap = (sitemapData?.artists ?? []).map((a) => ({
     url: `${SITE_URL}/artist/${a.id}`,
     lastModified: new Date(a.updated_at),
     changeFrequency: "weekly" as const,
