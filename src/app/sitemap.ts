@@ -2,16 +2,23 @@ import type { MetadataRoute } from "next"
 import { SITE_URL, SERVER_API_BASE } from "@/lib/seo"
 
 async function fetchJSON<T>(url: string): Promise<T | null> {
-  try {
-    const controller = new AbortController()
-    const timeout = setTimeout(() => controller.abort(), 8000)
-    const res = await fetch(url, { signal: controller.signal, next: { revalidate: 300 } })
-    clearTimeout(timeout)
-    if (!res.ok) return null
-    return res.json()
-  } catch {
-    return null
+  // Retry a few times: the backend is occasionally slow/flaky under
+  // intermittent network loss, and a single dropped fetch would otherwise
+  // silently truncate the sitemap.
+  for (let attempt = 0; attempt < 3; attempt++) {
+    try {
+      const controller = new AbortController()
+      const timeout = setTimeout(() => controller.abort(), 15000)
+      const res = await fetch(url, { signal: controller.signal, next: { revalidate: 300 } })
+      clearTimeout(timeout)
+      if (!res.ok) return null
+      return await res.json()
+    } catch {
+      // back off briefly before the next attempt
+      await new Promise((r) => setTimeout(r, 1000 * (attempt + 1)))
+    }
   }
+  return null
 }
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
