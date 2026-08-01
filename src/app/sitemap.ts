@@ -4,7 +4,7 @@ import { SITE_URL, SERVER_API_BASE } from "@/lib/seo"
 async function fetchJSON<T>(url: string): Promise<T | null> {
   try {
     const controller = new AbortController()
-    const timeout = setTimeout(() => controller.abort(), 5000)
+    const timeout = setTimeout(() => controller.abort(), 8000)
     const res = await fetch(url, { signal: controller.signal, next: { revalidate: 300 } })
     clearTimeout(timeout)
     if (!res.ok) return null
@@ -12,6 +12,22 @@ async function fetchJSON<T>(url: string): Promise<T | null> {
   } catch {
     return null
   }
+}
+
+/** Paginate through a list endpoint until a short page is returned. */
+async function fetchAllPaginated<T>(
+  base: string,
+  pageSize: number,
+  key: string
+): Promise<T[]> {
+  const all: T[] = []
+  for (let offset = 0; offset < 100000; offset += pageSize) {
+    const data = await fetchJSON<Record<string, T[]>>(`${base}?limit=${pageSize}&offset=${offset}`)
+    const items = data?.[key] ?? []
+    all.push(...items)
+    if (items.length < pageSize) break
+  }
+  return all
 }
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
@@ -35,10 +51,10 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: `${SITE_URL}/search`, lastModified: new Date(), changeFrequency: "weekly", priority: 0.4 },
   ]
 
-  const albumData = await fetchJSON<{ albums: { id: string; updated_at: string }[] }>(
-    `${SERVER_API_BASE}/albums?limit=1000&offset=0`
+  const albums = await fetchAllPaginated<{ id: string; updated_at: string }>(
+    `${SERVER_API_BASE}/albums`, 500, "albums"
   )
-  const albumPages: MetadataRoute.Sitemap = (albumData?.albums ?? []).map((a) => ({
+  const albumPages: MetadataRoute.Sitemap = albums.map((a) => ({
     url: `${SITE_URL}/album/${a.id}`,
     lastModified: new Date(a.updated_at),
     changeFrequency: "weekly" as const,
@@ -75,10 +91,10 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     priority: 0.6,
   }))
 
-  const trackData = await fetchJSON<{ tracks: { id: string; updated_at: string }[] }>(
-    `${SERVER_API_BASE}/tracks?limit=5000&offset=0`
+  const trackPagesData = await fetchAllPaginated<{ id: string; updated_at: string }>(
+    `${SERVER_API_BASE}/tracks`, 500, "tracks"
   )
-  const trackPages: MetadataRoute.Sitemap = (trackData?.tracks ?? []).map((t) => ({
+  const trackPages: MetadataRoute.Sitemap = trackPagesData.map((t) => ({
     url: `${SITE_URL}/track/${t.id}`,
     lastModified: new Date(t.updated_at),
     changeFrequency: "weekly" as const,
@@ -86,7 +102,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   }))
 
   const artistData = await fetchJSON<{ artists: { id: string; updated_at: string }[] }>(
-    `${SERVER_API_BASE}/artists/featured`
+    `${SERVER_API_BASE}/artists/featured?limit=1000`
   )
   const artistPages: MetadataRoute.Sitemap = (artistData?.artists ?? []).map((a) => ({
     url: `${SITE_URL}/artist/${a.id}`,
