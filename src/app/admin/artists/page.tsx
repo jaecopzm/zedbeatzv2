@@ -5,6 +5,12 @@ import { useState, useMemo, useRef } from "react"
 import { api } from "@/lib/api"
 import { toast } from "@/lib/toast-store"
 import type { Artist } from "@/types"
+import { ConfirmDialog } from "@/components/confirm-dialog"
+import { KebabMenu } from "@/components/admin/kebab-menu"
+import { AdminModal } from "@/components/admin/admin-modal"
+import { Pagination } from "@/components/admin/pagination"
+
+const PAGE_SIZE = 24
 
 function formatDate(iso: string) {
   const d = new Date(iso)
@@ -14,12 +20,13 @@ function formatDate(iso: string) {
 export default function AdminArtistsPage() {
   const queryClient = useQueryClient()
   const [search, setSearch] = useState("")
+  const [page, setPage] = useState(1)
   const [editingArtist, setEditingArtist] = useState<Artist | null>(null)
   const [deletingArtist, setDeletingArtist] = useState<Artist | null>(null)
 
   const { data, isLoading } = useQuery({
     queryKey: ["admin-artists"],
-    queryFn: () => api.adminListArtists(),
+    queryFn: () => api.adminListArtists(1000, 0),
   })
 
   const artists: Artist[] = data?.artists ?? []
@@ -33,6 +40,18 @@ export default function AdminArtistsPage() {
       (a.bio && a.bio.toLowerCase().includes(q)),
     )
   }, [artists, search])
+
+  const pageArtists = useMemo(() => {
+    const start = (page - 1) * PAGE_SIZE
+    return filteredArtists.slice(start, start + PAGE_SIZE)
+  }, [filteredArtists, page])
+
+  // Reset to page 1 when search changes
+  const [prevSearch, setPrevSearch] = useState(search)
+  if (search !== prevSearch) {
+    setPrevSearch(search)
+    setPage(1)
+  }
 
   const updateMutation = useMutation({
     mutationFn: (formData: FormData) =>
@@ -75,12 +94,7 @@ export default function AdminArtistsPage() {
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           placeholder="Search by name, email, or bio..."
-          style={{
-            width: "100%", maxWidth: 480, padding: "12px 16px", borderRadius: 12,
-            border: "1.5px solid var(--border)", background: "var(--background)",
-            color: "var(--foreground)", fontSize: 14, outline: "none",
-            transition: "border-color 0.15s ease",
-          }}
+          className="admin-search"
         />
       </div>
 
@@ -89,17 +103,14 @@ export default function AdminArtistsPage() {
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: 20 }}>
           {Array.from({ length: 6 }).map((_, i) => (
             <div key={i} style={{ display: "flex", flexDirection: "column", gap: 12, padding: 16 }}>
-              <div className="skeleton" style={{ width: "100%", aspectRatio: "1", borderRadius: 12 }} />
+              <div className="skeleton" style={{ width: "100%", aspectRatio: "1.2", borderRadius: 12 }} />
               <div className="skeleton" style={{ width: "70%", height: 16 }} />
               <div className="skeleton" style={{ width: "50%", height: 12 }} />
             </div>
           ))}
         </div>
       ) : filteredArtists.length === 0 ? (
-        <div style={{
-          background: "var(--card-bg)", border: "1px solid var(--border)", borderRadius: 16,
-          padding: "64px 24px", textAlign: "center", color: "var(--muted-foreground)",
-        }}>
+        <div className="admin-empty">
           <p style={{ fontSize: 15, fontWeight: 600, margin: "0 0 8px" }}>
             {search.trim() ? "No matching artists" : "No artists registered yet"}
           </p>
@@ -108,69 +119,42 @@ export default function AdminArtistsPage() {
           </p>
         </div>
       ) : (
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: 20 }}>
-          {filteredArtists.map((artist) => (
-            <ArtistCard
-              key={artist.id}
-              artist={artist}
-              onEdit={() => setEditingArtist(artist)}
-              onDelete={() => setDeletingArtist(artist)}
-            />
-          ))}
-        </div>
+        <>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: 20 }}>
+            {pageArtists.map((artist) => (
+              <ArtistCard
+                key={artist.id}
+                artist={artist}
+                onEdit={() => setEditingArtist(artist)}
+                onDelete={() => setDeletingArtist(artist)}
+              />
+            ))}
+          </div>
+          <Pagination page={page} pageSize={PAGE_SIZE} total={filteredArtists.length} onPageChange={setPage} />
+        </>
       )}
 
       {/* Edit Modal */}
-      {editingArtist && (
-        <EditArtistModal
-          artist={editingArtist}
-          onClose={() => setEditingArtist(null)}
-          onSubmit={(formData) => updateMutation.mutate(formData)}
-          isLoading={updateMutation.isPending}
-        />
-      )}
+      <AdminModal open={!!editingArtist} title="Edit Artist" onClose={() => setEditingArtist(null)} maxWidth={520}>
+        {editingArtist && (
+          <EditArtistModal
+            artist={editingArtist}
+            onClose={() => setEditingArtist(null)}
+            onSubmit={(formData) => updateMutation.mutate(formData)}
+            isLoading={updateMutation.isPending}
+          />
+        )}
+      </AdminModal>
 
       {/* Delete Confirmation */}
-      {deletingArtist && (
-        <div style={{
-          position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)", backdropFilter: "blur(4px)",
-          display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000, padding: 24,
-        }}
-          onClick={(e) => { if (e.target === e.currentTarget) setDeletingArtist(null) }}
-        >
-          <div style={{
-            background: "var(--background)", border: "1px solid var(--border)", borderRadius: 16,
-            padding: "28px 32px", maxWidth: 420, width: "100%",
-            boxShadow: "0 24px 48px rgba(0,0,0,0.2)",
-          }}>
-            <h3 style={{ margin: "0 0 8px", fontSize: 18, fontWeight: 700, color: "var(--foreground)" }}>
-              Delete Artist
-            </h3>
-            <p style={{ margin: "0 0 20px", fontSize: 14, color: "var(--muted-foreground)", lineHeight: 1.5 }}>
-              Are you sure you want to delete <strong>{deletingArtist.stage_name}</strong>? This action cannot be undone.
-            </p>
-            <div style={{ display: "flex", gap: 10, justifyContent: "flex-end" }}>
-              <button
-                onClick={() => setDeletingArtist(null)}
-                style={{ padding: "9px 18px", borderRadius: 10, border: "1.5px solid var(--border)", background: "transparent", color: "var(--foreground)", fontSize: 14, fontWeight: 500, cursor: "pointer", fontFamily: "inherit" }}
-              >
-                Cancel
-              </button>
-              <button
-                onClick={() => deleteMutation.mutate(deletingArtist.id)}
-                disabled={deleteMutation.isPending}
-                style={{
-                  padding: "9px 18px", borderRadius: 10, border: "none",
-                  background: deleteMutation.isPending ? "var(--border)" : "rgb(239,68,68)", color: "#fff",
-                  fontSize: 14, fontWeight: 600, cursor: deleteMutation.isPending ? "default" : "pointer", fontFamily: "inherit",
-                }}
-              >
-                {deleteMutation.isPending ? "Deleting..." : "Delete Artist"}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <ConfirmDialog
+        open={!!deletingArtist}
+        title="Delete Artist"
+        message={`Are you sure you want to delete ${deletingArtist?.stage_name}? This action cannot be undone.`}
+        confirmLabel="Delete Artist"
+        onConfirm={() => { if (deletingArtist) deleteMutation.mutate(deletingArtist.id) }}
+        onCancel={() => setDeletingArtist(null)}
+      />
     </div>
   )
 }
@@ -178,16 +162,11 @@ export default function AdminArtistsPage() {
 function ArtistCard({ artist, onEdit, onDelete }: {
   artist: Artist; onEdit: () => void; onDelete: () => void
 }) {
-  const [showMenu, setShowMenu] = useState(false)
-
   return (
-    <div style={{
+    <div className="admin-card-lift" style={{
       background: "var(--card-bg)", border: "1px solid var(--border)", borderRadius: 16,
-      overflow: "hidden", transition: "transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.2s ease",
-    }}
-      onMouseEnter={(e) => { e.currentTarget.style.transform = "translateY(-3px)"; e.currentTarget.style.boxShadow = "0 12px 28px rgba(0,0,0,0.05)" }}
-      onMouseLeave={(e) => { e.currentTarget.style.transform = "translateY(0)"; e.currentTarget.style.boxShadow = "none" }}
-    >
+      overflow: "hidden",
+    }}>
       <div style={{ position: "relative", aspectRatio: "1.2", overflow: "hidden", background: "linear-gradient(135deg, var(--brand-bg), var(--hover-bg))" }}>
         {artist.cover_url ? (
           <img src={artist.cover_url} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
@@ -200,10 +179,8 @@ function ArtistCard({ artist, onEdit, onDelete }: {
         )}
         <div style={{ position: "absolute", top: 10, right: 10, display: "flex", gap: 6 }}>
           {artist.verified && (
-            <span style={{
-              padding: "4px 10px", borderRadius: 999, fontSize: 11, fontWeight: 600,
+            <span className="admin-pill" style={{
               background: "rgba(59,130,246,0.15)", color: "rgb(59,130,246)",
-              display: "inline-flex", alignItems: "center", gap: 4,
             }}>
               <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
                 <polyline points="20 6 9 17 4 12" />
@@ -224,44 +201,19 @@ function ArtistCard({ artist, onEdit, onDelete }: {
               {artist.email}
             </p>
           </div>
-          <div style={{ position: "relative", flexShrink: 0 }}>
-            <button
-              onClick={() => setShowMenu(!showMenu)}
-              style={{
-                width: 30, height: 30, borderRadius: 8, border: "1px solid var(--border)",
-                background: "transparent", color: "var(--muted-foreground)", cursor: "pointer",
-                display: "flex", alignItems: "center", justifyContent: "center",
-              }}
-              onMouseEnter={(e) => { e.currentTarget.style.background = "var(--hover-bg)"; e.currentTarget.style.color = "var(--foreground)" }}
-              onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; e.currentTarget.style.color = "var(--muted-foreground)" }}
-            >
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
-                <circle cx="12" cy="5" r="1.5" /><circle cx="12" cy="12" r="1.5" /><circle cx="12" cy="19" r="1.5" />
-              </svg>
-            </button>
-            {showMenu && (
-              <div style={{
-                position: "absolute", top: "100%", right: 0, marginTop: 4,
-                background: "var(--background)", border: "1px solid var(--border)", borderRadius: 10,
-                boxShadow: "0 8px 24px rgba(0,0,0,0.1)", zIndex: 20, minWidth: 150, overflow: "hidden",
-              }}>
-                <button onClick={() => { onEdit(); setShowMenu(false) }} style={{ width: "100%", padding: "9px 14px", border: "none", background: "transparent", color: "var(--foreground)", fontSize: 13, cursor: "pointer", textAlign: "left", fontFamily: "inherit", display: "flex", alignItems: "center", gap: 8 }}
-                  onMouseEnter={(e) => (e.currentTarget.style.background = "var(--hover-bg)")}
-                  onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
-                >
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M17 3a2.83 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z" /></svg>
-                  Edit Profile
-                </button>
-                <button onClick={() => { onDelete(); setShowMenu(false) }} style={{ width: "100%", padding: "9px 14px", border: "none", background: "transparent", color: "rgb(239,68,68)", fontSize: 13, cursor: "pointer", textAlign: "left", fontFamily: "inherit", display: "flex", alignItems: "center", gap: 8 }}
-                  onMouseEnter={(e) => (e.currentTarget.style.background = "var(--hover-bg)")}
-                  onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
-                >
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M3 6h18" /><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6" /></svg>
-                  Delete Artist
-                </button>
-              </div>
-            )}
-          </div>
+          <KebabMenu label={`Actions for ${artist.stage_name}`} items={[
+            {
+              label: "Edit Profile",
+              onClick: onEdit,
+              icon: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M17 3a2.83 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z" /></svg>,
+            },
+            {
+              label: "Delete Artist",
+              onClick: onDelete,
+              danger: true,
+              icon: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M3 6h18" /><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6" /></svg>,
+            },
+          ]} />
         </div>
 
         <p style={{
@@ -294,7 +246,6 @@ function EditArtistModal({
   const [location, setLocation] = useState(artist.location || "")
   const [verified, setVerified] = useState(artist.verified)
   const [photoPreview, setPhotoPreview] = useState<string | null>(artist.photo_url)
-  const [coverPreview, setCoverPreview] = useState<string | null>(artist.cover_url)
   const photoRef = useRef<HTMLInputElement | null>(null)
   const coverRef = useRef<HTMLInputElement | null>(null)
 
@@ -311,138 +262,101 @@ function EditArtistModal({
   }
 
   return (
-    <div style={{
-      position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)", backdropFilter: "blur(4px)",
-      display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000, padding: 24,
-    }}
-      onClick={(e) => { if (e.target === e.currentTarget) onClose() }}
-    >
-      <form onSubmit={handleSubmit} style={{
-        background: "var(--background)", border: "1px solid var(--border)", borderRadius: 20,
-        width: "100%", maxWidth: 520, maxHeight: "90vh", overflowY: "auto",
-        boxShadow: "0 24px 48px rgba(0,0,0,0.2)",
-      }}>
-        <div style={{ padding: "24px 28px", borderBottom: "1px solid var(--border)", display: "flex", alignItems: "center", justifyContent: "space-between", flexShrink: 0 }}>
-          <h2 style={{ margin: 0, fontSize: 18, fontWeight: 700, color: "var(--foreground)" }}>Edit Artist</h2>
-          <button type="button" onClick={onClose} style={{
-            width: 32, height: 32, borderRadius: 8, border: "1px solid var(--border)", background: "transparent",
-            color: "var(--muted-foreground)", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center",
-          }}
-            onMouseEnter={(e) => { e.currentTarget.style.background = "var(--hover-bg)"; e.currentTarget.style.color = "var(--foreground)" }}
-            onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; e.currentTarget.style.color = "var(--muted-foreground)" }}
-          >
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
-          </button>
+    <form onSubmit={handleSubmit} style={{ maxHeight: "90vh", overflowY: "auto" }}>
+      <div style={{ padding: "24px 28px", borderBottom: "1px solid var(--border)", display: "flex", alignItems: "center", justifyContent: "space-between", flexShrink: 0 }}>
+        <h2 style={{ margin: 0, fontSize: 18, fontWeight: 700, color: "var(--foreground)" }}>Edit Artist</h2>
+        <button type="button" onClick={onClose} aria-label="Close" className="admin-icon-btn">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
+        </button>
+      </div>
+
+      <div style={{ padding: "24px 28px", display: "flex", flexDirection: "column", gap: 18 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+          {photoPreview ? (
+            <img src={photoPreview} alt="" style={{ width: 56, height: 56, borderRadius: "50%", objectFit: "cover", border: "2px solid var(--border)", flexShrink: 0 }} />
+          ) : (
+            <div style={{
+              width: 56, height: 56, borderRadius: "50%", flexShrink: 0,
+              background: "linear-gradient(135deg, var(--brand), var(--brand-light))",
+              display: "flex", alignItems: "center", justifyContent: "center",
+              color: "#fff", fontSize: 20, fontWeight: 700, border: "2px solid var(--border)",
+            }}>
+              {artist.stage_name?.charAt(0).toUpperCase() ?? "?"}
+            </div>
+          )}
+          <div>
+            <p style={{ margin: 0, fontSize: 13, fontWeight: 600, color: "var(--foreground)" }}>{artist.email}</p>
+            <p style={{ margin: "2px 0 0", fontSize: 12, color: "var(--muted-foreground)" }}>
+              ID: {artist.id.slice(0, 8)}...
+            </p>
+          </div>
         </div>
 
-        <div style={{ padding: "24px 28px", display: "flex", flexDirection: "column", gap: 18 }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
-            {photoPreview ? (
-              <img src={photoPreview} alt="" style={{ width: 56, height: 56, borderRadius: "50%", objectFit: "cover", border: "2px solid var(--border)", flexShrink: 0 }} />
-            ) : (
-              <div style={{
-                width: 56, height: 56, borderRadius: "50%", flexShrink: 0,
-                background: "linear-gradient(135deg, var(--brand), var(--brand-light))",
-                display: "flex", alignItems: "center", justifyContent: "center",
-                color: "#fff", fontSize: 20, fontWeight: 700, border: "2px solid var(--border)",
-              }}>
-                {artist.stage_name?.charAt(0).toUpperCase() ?? "?"}
-              </div>
-            )}
-            <div>
-              <p style={{ margin: 0, fontSize: 13, fontWeight: 600, color: "var(--foreground)" }}>{artist.email}</p>
-              <p style={{ margin: "2px 0 0", fontSize: 12, color: "var(--muted-foreground)" }}>
-                ID: {artist.id.slice(0, 8)}...
-              </p>
-            </div>
-          </div>
+        <div>
+          <label className="admin-label">Stage Name *</label>
+          <input value={stageName} onChange={(e) => setStageName(e.target.value)} required className="admin-input" />
+        </div>
 
-          <div>
-            <label style={{ display: "block", fontSize: 12, fontWeight: 600, color: "var(--muted-foreground)", marginBottom: 6, textTransform: "uppercase", letterSpacing: "0.05em" }}>Stage Name *</label>
-            <input value={stageName} onChange={(e) => setStageName(e.target.value)} required style={{
-              width: "100%", padding: "10px 14px", borderRadius: 10, border: "1.5px solid var(--border)",
-              background: "var(--background)", color: "var(--foreground)", fontSize: 14, outline: "none", fontFamily: "inherit",
-            }} />
-          </div>
+        <div>
+          <label className="admin-label">Bio</label>
+          <textarea value={bio} onChange={(e) => setBio(e.target.value)} rows={3} placeholder="Artist biography..." className="admin-input" style={{ resize: "vertical" }} />
+        </div>
 
-          <div>
-            <label style={{ display: "block", fontSize: 12, fontWeight: 600, color: "var(--muted-foreground)", marginBottom: 6, textTransform: "uppercase", letterSpacing: "0.05em" }}>Bio</label>
-            <textarea value={bio} onChange={(e) => setBio(e.target.value)} rows={3} placeholder="Artist biography..." style={{
-              width: "100%", padding: "10px 14px", borderRadius: 10, border: "1.5px solid var(--border)",
-              background: "var(--background)", color: "var(--foreground)", fontSize: 14, outline: "none", fontFamily: "inherit", resize: "vertical",
-            }} />
-          </div>
+        <div>
+          <label className="admin-label">Location</label>
+          <input value={location} onChange={(e) => setLocation(e.target.value)} placeholder="City, Country" className="admin-input" />
+        </div>
 
-          <div>
-            <label style={{ display: "block", fontSize: 12, fontWeight: 600, color: "var(--muted-foreground)", marginBottom: 6, textTransform: "uppercase", letterSpacing: "0.05em" }}>Location</label>
-            <input value={location} onChange={(e) => setLocation(e.target.value)} placeholder="City, Country" style={{
-              width: "100%", padding: "10px 14px", borderRadius: 10, border: "1.5px solid var(--border)",
-              background: "var(--background)", color: "var(--foreground)", fontSize: 14, outline: "none", fontFamily: "inherit",
-            }} />
-          </div>
-
-          <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
-            <div style={{ flex: "1 1 200px", minWidth: 180 }}>
-              <label style={{ display: "block", fontSize: 12, fontWeight: 600, color: "var(--muted-foreground)", marginBottom: 6, textTransform: "uppercase", letterSpacing: "0.05em" }}>Photo</label>
-              <input
-                ref={photoRef}
-                type="file"
-                accept="image/*"
-                onChange={(e) => {
-                  const f = e.target.files?.[0]
-                  if (f) setPhotoPreview(URL.createObjectURL(f))
-                }}
-                style={{ fontSize: 13, color: "var(--foreground)" }}
-              />
-            </div>
-            <div style={{ flex: "1 1 200px", minWidth: 180 }}>
-              <label style={{ display: "block", fontSize: 12, fontWeight: 600, color: "var(--muted-foreground)", marginBottom: 6, textTransform: "uppercase", letterSpacing: "0.05em" }}>Cover Image</label>
-              <input
-                ref={coverRef}
-                type="file"
-                accept="image/*"
-                onChange={(e) => {
-                  const f = e.target.files?.[0]
-                  if (f) setCoverPreview(URL.createObjectURL(f))
-                }}
-                style={{ fontSize: 13, color: "var(--foreground)" }}
-              />
-            </div>
-          </div>
-
-          <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "12px 16px", borderRadius: 12, background: "var(--card-bg)", border: "1px solid var(--border)" }}>
+        <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
+          <div style={{ flex: "1 1 200px", minWidth: 180 }}>
+            <label className="admin-label">Photo</label>
             <input
-              type="checkbox"
-              id="verified"
-              checked={verified}
-              onChange={(e) => setVerified(e.target.checked)}
-              style={{ width: 18, height: 18, accentColor: "var(--brand)", cursor: "pointer" }}
+              ref={photoRef}
+              type="file"
+              accept="image/*"
+              onChange={(e) => {
+                const f = e.target.files?.[0]
+                if (f) setPhotoPreview(URL.createObjectURL(f))
+              }}
+              style={{ fontSize: 13, color: "var(--foreground)" }}
             />
-            <label htmlFor="verified" style={{ fontSize: 14, fontWeight: 600, color: "var(--foreground)", cursor: "pointer", flex: 1 }}>
-              Verified Artist
-            </label>
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={verified ? "rgb(59,130,246)" : "var(--muted-foreground)"} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" /><polyline points="22 4 12 14.01 9 11.01" />
-            </svg>
+          </div>
+          <div style={{ flex: "1 1 200px", minWidth: 180 }}>
+            <label className="admin-label">Cover Image</label>
+            <input
+              ref={coverRef}
+              type="file"
+              accept="image/*"
+              style={{ fontSize: 13, color: "var(--foreground)" }}
+            />
           </div>
         </div>
 
-        <div style={{ padding: "16px 28px", borderTop: "1px solid var(--border)", display: "flex", gap: 10, justifyContent: "flex-end", flexShrink: 0 }}>
-          <button type="button" onClick={onClose} style={{
-            padding: "10px 20px", borderRadius: 10, border: "1.5px solid var(--border)", background: "transparent",
-            color: "var(--foreground)", fontSize: 14, fontWeight: 500, cursor: "pointer", fontFamily: "inherit",
-          }}>
-            Cancel
-          </button>
-          <button type="submit" disabled={isLoading || !stageName.trim()} style={{
-            padding: "10px 24px", borderRadius: 10, border: "none",
-            background: isLoading ? "var(--border)" : "var(--brand)", color: "#fff",
-            fontSize: 14, fontWeight: 600, cursor: isLoading ? "default" : "pointer", fontFamily: "inherit", transition: "opacity 0.15s",
-          }}>
-            {isLoading ? "Saving..." : "Save Changes"}
-          </button>
+        <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "12px 16px", borderRadius: 12, background: "var(--card-bg)", border: "1px solid var(--border)" }}>
+          <input
+            type="checkbox"
+            id="verified"
+            checked={verified}
+            onChange={(e) => setVerified(e.target.checked)}
+            style={{ width: 18, height: 18, accentColor: "var(--brand)", cursor: "pointer" }}
+          />
+          <label htmlFor="verified" style={{ fontSize: 14, fontWeight: 600, color: "var(--foreground)", cursor: "pointer", flex: 1 }}>
+            Verified Artist
+          </label>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={verified ? "rgb(59,130,246)" : "var(--muted-foreground)"} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" /><polyline points="22 4 12 14.01 9 11.01" />
+          </svg>
         </div>
-      </form>
-    </div>
+      </div>
+
+      <div style={{ padding: "16px 28px", borderTop: "1px solid var(--border)", display: "flex", gap: 10, justifyContent: "flex-end", flexShrink: 0 }}>
+        <button type="button" onClick={onClose} className="admin-btn-secondary">
+          Cancel
+        </button>
+        <button type="submit" disabled={isLoading || !stageName.trim()} className="admin-btn-primary">
+          {isLoading ? "Saving..." : "Save Changes"}
+        </button>
+      </div>
+    </form>
   )
 }

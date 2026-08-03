@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from "react"
 import { useMutation, useQuery } from "@tanstack/react-query"
 import { api } from "@/lib/api"
 import type { SearchResultTrack, BulkImportItem } from "@/types"
-import Link from "next/link"
+import { SECTIONS } from "@/lib/sections"
 
 // ── Styles ───────────────────────────────────────────────────────────────────
 
@@ -313,20 +313,7 @@ export default function AdminImportPage() {
                     </Field>
                     <Field title="Section">
                       <select value={item.section ?? ""} onChange={(e) => updateTrack(item.spotify_id!, "section", e.target.value)} style={{ ...inputBase, cursor: "pointer" }}>
-                        <option value="">None</option>
-                        <option value="best_new_songs">Best New Songs</option>
-                        <option value="new_this_week">New This Week</option>
-                        <option value="zed_hip_hop">Zambian Hip Hop</option>
-                        <option value="zed_oldies">Zed Oldies</option>
-                        <option value="zed_afrobeats">Zambian Afrobeats</option>
-                        <option value="zed_gospel">Zambian Gospel</option>
-                        <option value="zed_rnb">Zambian R&B</option>
-                        <option value="zed_dancehall">Zambian Dancehall</option>
-                        <option value="zed_kalindula">Kalindula</option>
-                        <option value="zed_bangers">Zed Bangers</option>
-                        <option value="zed_collabos">Big Collabos</option>
-                        <option value="fresh_voices">Fresh Voices</option>
-                        <option value="throwback_thursday">Throwback Thursday</option>
+                        {SECTIONS.map((s) => <option key={s.key} value={s.key}>{s.label}</option>)}
                       </select>
                     </Field>
                     <div style={{ display: "flex", alignItems: "flex-end", paddingBottom: "2px" }}>

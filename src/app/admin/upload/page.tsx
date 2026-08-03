@@ -3,7 +3,7 @@
 import { useState } from "react"
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
 import { api } from "@/lib/api"
-import Link from "next/link"
+import { SectionSelect } from "@/lib/sections"
 
 export default function AdminUploadPage() {
   const queryClient = useQueryClient()
@@ -24,7 +24,7 @@ export default function AdminUploadPage() {
 
   const { data: artists } = useQuery({
     queryKey: ["admin-artists"],
-    queryFn: () => api.adminListArtists(),
+    queryFn: () => api.adminListArtists(1000, 0),
   })
 
   const { data: genres } = useQuery({
@@ -77,6 +77,11 @@ export default function AdminUploadPage() {
   const canSubmit = artistId && title.trim() && audioFile
   const creatingNewAlbum = !albumId && albumTitle.trim()
 
+  function handleSubmit(e: React.FormEvent) {
+    e.preventDefault()
+    uploadMutation.mutate()
+  }
+
   return (
     <div className="fade-in">
       <div style={{ marginBottom: "24px", maxWidth: "680px", margin: "0 auto 24px" }}>
@@ -88,7 +93,7 @@ export default function AdminUploadPage() {
         </p>
       </div>
 
-      <div style={{
+      <form onSubmit={handleSubmit} style={{
         background: "var(--card-bg)",
         border: "1px solid var(--border)",
         borderRadius: "14px",
@@ -100,23 +105,13 @@ export default function AdminUploadPage() {
         <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
           {/* Artist selector */}
           <div>
-            <label style={{ display: "block", fontSize: "12px", fontWeight: 600, color: "var(--muted-foreground)", marginBottom: "6px" }}>
-              Artist Owner *
-            </label>
+            <label className="admin-label">Artist Owner *</label>
             <select
               value={artistId}
               onChange={(e) => { setArtistId(e.target.value); setAlbumId(""); setAlbumTitle("") }}
-              style={{
-                width: "100%",
-                padding: "10px 12px",
-                borderRadius: "8px",
-                border: "1px solid var(--border)",
-                background: "var(--background)",
-                color: "var(--foreground)",
-                fontSize: "14px",
-                outline: "none",
-                cursor: "pointer",
-              }}
+              required
+              className="admin-input"
+              style={{ cursor: "pointer" }}
             >
               <option value="">Select artist owner</option>
               {artists?.artists.map((a) => (
@@ -129,25 +124,13 @@ export default function AdminUploadPage() {
 
           {/* Album Selector */}
           <div>
-            <label style={{ display: "block", fontSize: "12px", fontWeight: 600, color: "var(--muted-foreground)", marginBottom: "6px" }}>
-              Album Collection
-            </label>
+            <label className="admin-label">Album Collection</label>
             <select
               value={albumId}
               onChange={(e) => { setAlbumId(e.target.value); if (e.target.value) setAlbumTitle("") }}
               disabled={!artistId}
-              style={{
-                width: "100%",
-                padding: "10px 12px",
-                borderRadius: "8px",
-                border: "1px solid var(--border)",
-                background: "var(--background)",
-                color: "var(--foreground)",
-                fontSize: "14px",
-                outline: "none",
-                cursor: "pointer",
-                opacity: artistId ? 1 : 0.5,
-              }}
+              className="admin-input"
+              style={{ cursor: artistId ? "pointer" : "not-allowed", opacity: artistId ? 1 : 0.5 }}
             >
               <option value="">No album collection (Single Release)</option>
               {albums?.albums.map((a) => (
@@ -162,17 +145,8 @@ export default function AdminUploadPage() {
                 value={albumTitle}
                 onChange={(e) => setAlbumTitle(e.target.value)}
                 placeholder="Or enter title to create a new album..."
-                style={{
-                  width: "100%",
-                  padding: "10px 12px",
-                  borderRadius: "8px",
-                  border: "1px solid var(--border)",
-                  background: "var(--background)",
-                  color: "var(--foreground)",
-                  fontSize: "14px",
-                  outline: "none",
-                  marginTop: "8px",
-                }}
+                className="admin-input"
+                style={{ marginTop: "8px" }}
               />
             )}
             {creatingNewAlbum && (
@@ -184,73 +158,39 @@ export default function AdminUploadPage() {
 
           {/* Title */}
           <div>
-            <label style={{ display: "block", fontSize: "12px", fontWeight: 600, color: "var(--muted-foreground)", marginBottom: "6px" }}>
-              Song Title *
-            </label>
+            <label className="admin-label">Song Title *</label>
             <input
               type="text"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               placeholder="e.g. Copperbelt Anthem"
-              style={{
-                width: "100%",
-                padding: "10px 12px",
-                borderRadius: "8px",
-                border: "1px solid var(--border)",
-                background: "var(--background)",
-                color: "var(--foreground)",
-                fontSize: "14px",
-                outline: "none",
-              }}
+              required
+              className="admin-input"
             />
           </div>
 
           {/* Description */}
           <div>
-            <label style={{ display: "block", fontSize: "12px", fontWeight: 600, color: "var(--muted-foreground)", marginBottom: "6px" }}>
-              Description <span style={{ fontWeight: 400, color: "var(--muted-foreground)" }}>— helps SEO, tell the story behind the track</span>
-            </label>
+            <label className="admin-label">Description <span style={{ fontWeight: 400, color: "var(--muted-foreground)", textTransform: "none", letterSpacing: "normal" }}>— helps SEO, tell the story behind the track</span></label>
             <textarea
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               placeholder="e.g. credits, inspiration, featured artists, or anything listeners should know..."
               rows={3}
-              style={{
-                width: "100%",
-                padding: "10px 12px",
-                borderRadius: "8px",
-                border: "1px solid var(--border)",
-                background: "var(--background)",
-                color: "var(--foreground)",
-                fontSize: "14px",
-                outline: "none",
-                lineHeight: 1.5,
-                resize: "vertical",
-                fontFamily: "inherit",
-              }}
+              className="admin-input"
+              style={{ lineHeight: 1.5, resize: "vertical" }}
             />
           </div>
 
           {/* Genre and Duration Grid */}
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px" }}>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "16px" }}>
             <div>
-              <label style={{ display: "block", fontSize: "12px", fontWeight: 600, color: "var(--muted-foreground)", marginBottom: "6px" }}>
-                Genre
-              </label>
+              <label className="admin-label">Genre</label>
               <select
                 value={genreId}
                 onChange={(e) => setGenreId(e.target.value)}
-                style={{
-                  width: "100%",
-                  padding: "10px 12px",
-                  borderRadius: "8px",
-                  border: "1px solid var(--border)",
-                  background: "var(--background)",
-                  color: "var(--foreground)",
-                  fontSize: "14px",
-                  outline: "none",
-                  cursor: "pointer",
-                }}
+                className="admin-input"
+                style={{ cursor: "pointer" }}
               >
                 <option value="">Select genre</option>
                 {genres?.genres.map((g) => (
@@ -261,109 +201,45 @@ export default function AdminUploadPage() {
               </select>
             </div>
             <div>
-              <label style={{ display: "block", fontSize: "12px", fontWeight: 600, color: "var(--muted-foreground)", marginBottom: "6px" }}>
-                Duration (Seconds)
-              </label>
+              <label className="admin-label">Duration (Seconds)</label>
               <input
                 type="number"
                 value={durationSec}
                 onChange={(e) => setDurationSec(e.target.value)}
                 placeholder="Auto-detected if left empty"
-                style={{
-                  width: "100%",
-                  padding: "10px 12px",
-                  borderRadius: "8px",
-                  border: "1px solid var(--border)",
-                  background: "var(--background)",
-                  color: "var(--foreground)",
-                  fontSize: "14px",
-                  outline: "none",
-                }}
+                className="admin-input"
               />
             </div>
           </div>
 
           {/* Section */}
           <div>
-            <label style={{ display: "block", fontSize: "12px", fontWeight: 600, color: "var(--muted-foreground)", marginBottom: "6px" }}>
-              Home Page Section
-            </label>
-            <select
-              value={section}
-              onChange={(e) => setSection(e.target.value)}
-              style={{
-                width: "100%",
-                padding: "10px 12px",
-                borderRadius: "8px",
-                border: "1px solid var(--border)",
-                background: "var(--background)",
-                color: "var(--foreground)",
-                fontSize: "14px",
-                outline: "none",
-                cursor: "pointer",
-              }}
-            >
-              <option value="">None</option>
-              <option value="best_new_songs">Best New Songs</option>
-              <option value="new_this_week">New This Week</option>
-              <option value="zed_hip_hop">Zambian Hip Hop</option>
-              <option value="zed_oldies">Zed Oldies</option>
-              <option value="zed_afrobeats">Zambian Afrobeats</option>
-              <option value="zed_gospel">Zambian Gospel</option>
-              <option value="zed_rnb">Zambian R&B</option>
-              <option value="zed_dancehall">Zambian Dancehall</option>
-              <option value="zed_kalindula">Kalindula</option>
-              <option value="zed_bangers">Zed Bangers</option>
-              <option value="zed_collabos">Big Collabos</option>
-              <option value="fresh_voices">Fresh Voices</option>
-              <option value="throwback_thursday">Throwback Thursday</option>
-            </select>
+            <label className="admin-label">Home Page Section</label>
+            <SectionSelect value={section} onChange={setSection} />
           </div>
 
           {/* Featured Artists */}
           <div>
-            <label style={{ display: "block", fontSize: "12px", fontWeight: 600, color: "var(--muted-foreground)", marginBottom: "6px" }}>
-              Collaborators / Featured Artists
-            </label>
+            <label className="admin-label">Collaborators / Featured Artists</label>
             <input
               type="text"
               value={featuredArtists}
               onChange={(e) => setFeaturedArtists(e.target.value)}
               placeholder="Comma-separated list (e.g. Slapdee, Macky2)"
-              style={{
-                width: "100%",
-                padding: "10px 12px",
-                borderRadius: "8px",
-                border: "1px solid var(--border)",
-                background: "var(--background)",
-                color: "var(--foreground)",
-                fontSize: "14px",
-                outline: "none",
-              }}
+              className="admin-input"
             />
           </div>
 
           {/* Track Order & Publish */}
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px" }}>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "16px" }}>
             <div>
-              <label style={{ display: "block", fontSize: "12px", fontWeight: 600, color: "var(--muted-foreground)", marginBottom: "6px" }}>
-                Track Catalog Number (Order)
-              </label>
+              <label className="admin-label">Track Catalog Number (Order)</label>
               <input
                 type="number"
                 value={trackOrder}
                 onChange={(e) => setTrackOrder(e.target.value)}
                 placeholder="e.g. 1"
-                style={{
-                  width: "100%",
-                  padding: "10px 12px",
-                  borderRadius: "8px",
-                  border: "1px solid var(--border)",
-                  background: "var(--background)",
-                  color: "var(--foreground)",
-                  fontSize: "14px",
-                  outline: "none",
-                }}
+                className="admin-input"
               />
             </div>
             <div style={{ display: "flex", alignItems: "end", paddingBottom: "10px" }}>
@@ -381,88 +257,56 @@ export default function AdminUploadPage() {
 
           {/* File Upload Fields */}
           <div>
-            <label style={{ display: "block", fontSize: "12px", fontWeight: 600, color: "var(--muted-foreground)", marginBottom: "6px" }}>
-              Audio Track File *
-            </label>
+            <label className="admin-label">Audio Track File *</label>
             <input
               type="file"
               accept="audio/*"
+              required
               onChange={(e) => setAudioFile(e.target.files?.[0] || null)}
-              style={{
-                fontSize: "13px",
-                color: "var(--muted-foreground)",
-              }}
+              style={{ fontSize: "13px", color: "var(--muted-foreground)" }}
             />
           </div>
 
           <div>
-            <label style={{ display: "block", fontSize: "12px", fontWeight: 600, color: "var(--muted-foreground)", marginBottom: "6px" }}>
-              Cover Image Artwork
-            </label>
+            <label className="admin-label">Cover Image Artwork</label>
             <input
               type="file"
               accept="image/*"
               onChange={(e) => setCoverFile(e.target.files?.[0] || null)}
-              style={{
-                fontSize: "13px",
-                color: "var(--muted-foreground)",
-              }}
+              style={{ fontSize: "13px", color: "var(--muted-foreground)" }}
             />
           </div>
 
           {error && (
             <div style={{
-              padding: "10px",
-              borderRadius: "6px",
-              background: "var(--brand-bg)",
-              color: "#c53030",
-              fontSize: "13px",
-              fontWeight: 500,
-              border: "1px solid var(--brand-bg)",
+              padding: "10px", borderRadius: "6px",
+              background: "var(--brand-error-bg)", color: "#c53030", fontSize: "13px", fontWeight: 500,
+              border: "1px solid var(--brand-error-bg)",
             }}>
               {error}
             </div>
           )}
 
           <button
-            onClick={() => uploadMutation.mutate()}
+            type="submit"
             disabled={!canSubmit || uploadMutation.isPending}
-            style={{
-              width: "100%",
-              background: "var(--brand)",
-              color: "white",
-              border: "none",
-              borderRadius: "10px",
-              padding: "14px",
-              fontSize: "14px",
-              fontWeight: 600,
-              cursor: "pointer",
-              transition: "opacity 0.15s ease",
-              opacity: (!canSubmit || uploadMutation.isPending) ? 0.5 : 1,
-              boxShadow: "0 4px 14px var(--brand-shadow)",
-              marginTop: "10px"
-            }}
+            className="admin-btn-primary"
+            style={{ width: "100%", padding: "14px", marginTop: "10px" }}
           >
             {uploadMutation.isPending ? "Uploading Track..." : "Upload Track Metadata"}
           </button>
 
           {uploadMutation.data && (
             <div style={{
-              padding: "12px",
-              borderRadius: "8px",
-              background: "#f4fbf7",
-              color: "#22543d",
-              fontSize: "14px",
-              fontWeight: 500,
-              border: "1px solid #e6f4ea",
-              textAlign: "center",
-              marginTop: "8px",
+              padding: "12px", borderRadius: "8px",
+              background: "#f4fbf7", color: "#22543d", fontSize: "14px", fontWeight: 500,
+              border: "1px solid #e6f4ea", textAlign: "center", marginTop: "8px",
             }}>
               ✓ Track uploaded successfully!
             </div>
           )}
         </div>
-      </div>
+      </form>
     </div>
   )
 }

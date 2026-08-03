@@ -346,6 +346,12 @@ export const api = {
     return request<{ tracks: import("@/types").Track[] }>(`/admin/tracks${qs}`)
   },
 
+  adminUpdateTrackSection: (id: string, section: string) =>
+    request<void>(`/admin/tracks/${id}`, {
+      method: "PATCH",
+      body: JSON.stringify({ section }),
+    }),
+
   adminUploadTrack: (formData: FormData) => {
     const token = localStorage.getItem("access_token")
     return fetch(`${API_BASE}/admin/tracks`, {
