@@ -29,6 +29,43 @@ function catalogKey(artist: string, title: string): string {
   return `${artist.toLowerCase().trim()} - ${title.toLowerCase().trim()}`
 }
 
+// Normalize a genre string for loose matching: lowercase, strip punctuation, single-space collapse.
+function normalizeGenre(s: string): string {
+  return s.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim().replace(/\s+/g, " ")
+}
+
+// Find the closest DB genre slug for a Spotify/AI genre label.
+// Matches on exact, contains, or significant-token overlap (e.g. "Zambian Afrobeats" → "Afrobeats").
+function matchGenreLabel(label: string, genres: { slug: string; name: string }[] | undefined): string | null {
+  if (!genres?.length || !label) return null
+  const n = normalizeGenre(label)
+  if (!n) return null
+
+  let best: { slug: string; score: number } | null = null
+  for (const g of genres) {
+    const gn = normalizeGenre(g.name)
+    if (gn === n) return g.slug
+    let score = 0
+    if (gn.includes(n) || n.includes(gn)) score = 2
+    else {
+      const tokens = n.split(" ")
+      const overlap = tokens.filter((t) => t.length > 2 && gn.includes(t)).length
+      if (overlap > 0) score = overlap
+    }
+    if (score > 0 && (!best || score > best.score)) best = { slug: g.slug, score }
+  }
+  return best ? best.slug : null
+}
+
+// Pick the first of a track's Spotify artist genres that maps to a DB genre.
+function autoGenreId(t: SearchResultTrack, genres: { slug: string; name: string }[] | undefined): string | null {
+  for (const g of t.artist_genres || []) {
+    const id = matchGenreLabel(g, genres)
+    if (id) return id
+  }
+  return null
+}
+
 // ── Micro components ─────────────────────────────────────────────────────────
 
 function Field({ title, children }: { title: string; children: React.ReactNode }) {
@@ -90,6 +127,17 @@ export default function AdminImportPage() {
 
   const { data: genres } = useQuery({ queryKey: ["genres"], queryFn: () => api.listGenres() })
 
+  // slug → display name lookup
+  const genreName = useMemo(() => {
+    const m = new Map<string, string>()
+    genres?.genres.forEach((g) => m.set(g.slug, g.name))
+    return (slug: string | null | undefined) => (slug && m.get(slug)) || "Auto"
+  }, [genres])
+
+  // Single expanded track (null = all collapsed). The default is a compact row
+  // with inline genre/section/publish controls; full metadata is on demand.
+  const [expandedId, setExpandedId] = useState<string | null>(null)
+
   const searchResults: SearchResultTrack[] = search.data?.tracks ?? []
   const selected = Array.from(selectedTracks.values())
 
@@ -109,7 +157,16 @@ export default function AdminImportPage() {
     if (next.has(t.spotify_id)) {
       next.delete(t.spotify_id)
     } else {
-      next.set(t.spotify_id, { spotify_id: t.spotify_id, override_title: t.title, override_artist: t.artists[0], featured_artists: t.artists.slice(1).join(", "), album_title: t.album_name, publish: true, description: "" })
+      next.set(t.spotify_id, {
+        spotify_id: t.spotify_id,
+        override_title: t.title,
+        override_artist: t.artists[0],
+        featured_artists: t.artists.slice(1).join(", "),
+        album_title: t.album_name,
+        genre_id: autoGenreId(t, genres?.genres),
+        publish: true,
+        description: "",
+      })
     }
     setSelectedTracks(next)
   }
@@ -119,7 +176,16 @@ export default function AdminImportPage() {
     const allSelected = searchResults.every((t) => next.has(t.spotify_id))
     searchResults.forEach((t) => {
       if (allSelected) next.delete(t.spotify_id)
-      else if (!next.has(t.spotify_id)) next.set(t.spotify_id, { spotify_id: t.spotify_id, override_title: t.title, override_artist: t.artists[0], featured_artists: t.artists.slice(1).join(", "), album_title: t.album_name, publish: true, description: "" })
+      else if (!next.has(t.spotify_id)) next.set(t.spotify_id, {
+        spotify_id: t.spotify_id,
+        override_title: t.title,
+        override_artist: t.artists[0],
+        featured_artists: t.artists.slice(1).join(", "),
+        album_title: t.album_name,
+        genre_id: autoGenreId(t, genres?.genres),
+        publish: true,
+        description: "",
+      })
     })
     setSelectedTracks(next)
   }
@@ -143,7 +209,7 @@ export default function AdminImportPage() {
     try {
       const payload = tracks.map((t) => {
         const orig = searchResults.find((r) => r.spotify_id === t.spotify_id)
-        return { title: t.override_title || orig?.title || "", artist: t.override_artist || orig?.artists[0] || "", album: t.album_title || orig?.album_name || "" }
+        return { title: t.override_title || orig?.title || "", artist: t.override_artist || orig?.artists[0] || "", album: t.album_title || orig?.album_name || "", genres: orig?.artist_genres }
       })
       const res = await api.adminImportAIEnrich(payload)
       if (res?.results) {
@@ -154,8 +220,9 @@ export default function AdminImportPage() {
             const updated = { ...next.get(item.spotify_id)! }
             if (r.description) updated.description = r.description
             if (r.genre) {
-              const match = genres?.genres.find((g) => g.name.toLowerCase() === r.genre.toLowerCase() || g.slug.toLowerCase() === r.genre.toLowerCase())
-              if (match) updated.genre_id = match.slug
+              // Fuzzy-match the AI genre label against the real DB genres
+              const slug = matchGenreLabel(r.genre, genres?.genres)
+              if (slug) updated.genre_id = slug
             }
             next.set(item.spotify_id, updated)
           }
@@ -168,6 +235,20 @@ export default function AdminImportPage() {
     } finally {
       setAiEnriching(false)
     }
+  }
+
+  // Re-apply Spotify artist genres to selected tracks that have no genre yet.
+  function autoFillGenres() {
+    const next = new Map(selectedTracks)
+    for (const [id, item] of next) {
+      if (item.genre_id) continue
+      const orig = searchResults.find((r) => r.spotify_id === id)
+      if (orig) {
+        const g = autoGenreId(orig, genres?.genres)
+        if (g) next.set(id, { ...item, genre_id: g })
+      }
+    }
+    setSelectedTracks(next)
   }
 
   async function startImport() {
@@ -400,64 +481,86 @@ export default function AdminImportPage() {
               </select>
               <button onClick={() => applyToAll("publish", true)} className="admin-btn-secondary" style={{ padding: "6px 12px", fontSize: "12px" }}>Publish all</button>
               <button onClick={() => applyToAll("publish", false)} className="admin-btn-secondary" style={{ padding: "6px 12px", fontSize: "12px" }}>Draft all</button>
+              <button onClick={autoFillGenres} className="admin-btn-secondary" style={{ padding: "6px 12px", fontSize: "12px" }} title="Use each track's Spotify artist genres where no genre is set">Auto-fill genres</button>
             </div>
           )}
 
-          <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
             {selected.map((item) => {
               const orig = searchResults.find((r) => r.spotify_id === item.spotify_id)
+              const expanded = expandedId === item.spotify_id
+              const isDup = catalogKeys.has(catalogKey(orig?.artists[0] || item.override_artist || "", orig?.title || item.override_title || ""))
               return (
-                <div key={item.spotify_id} style={{ border: "1px solid var(--border)", borderRadius: "8px", padding: "12px", background: "var(--background)", position: "relative" }}>
-                  {/* Remove button */}
-                  <button onClick={() => { const n = new Map(selectedTracks); n.delete(item.spotify_id!); setSelectedTracks(n) }} aria-label={`Remove ${item.override_title || item.spotify_id}`}
-                    className="admin-icon-btn" style={{ position: "absolute", right: 8, top: 8, width: 26, height: 26, color: "var(--muted-foreground)" }}>
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-                  </button>
-
-                  {/* Identity row */}
-                  <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "10px", paddingRight: "20px" }}>
-                    {orig?.cover_url && <img src={orig.cover_url} alt="" style={{ width: 28, height: 28, borderRadius: "3px", objectFit: "cover", flexShrink: 0 }} />}
-                    <span style={{ fontSize: "12px", fontWeight: 600, color: "var(--foreground)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{orig?.title ?? item.spotify_id}</span>
-                    {catalogKeys.has(catalogKey(orig?.artists[0] || item.override_artist || "", orig?.title || item.override_title || "")) && (
-                      <span className="admin-pill" style={{ background: "rgba(234,179,8,0.15)", color: "rgb(180,130,10)", flexShrink: 0 }}>In catalog</span>
-                    )}
-                  </div>
-
-                  {/* Fields */}
-                  <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: "8px" }}>
-                    <Field title="Title">
-                      <input type="text" value={item.override_title ?? ""} onChange={(e) => updateTrack(item.spotify_id!, "override_title", e.target.value)} className="admin-input" style={{ padding: "7px 10px", fontSize: "13px" }} />
-                    </Field>
-                    <Field title="Description">
-                      <textarea rows={2} value={item.description ?? ""} onChange={(e) => updateTrack(item.spotify_id!, "description", e.target.value)} placeholder="SEO description — tell the story behind the track" className="admin-input" style={{ padding: "7px 10px", fontSize: "13px", resize: "vertical" }} />
-                    </Field>
-                    <Field title="Primary Artist">
-                      <input type="text" value={item.override_artist ?? ""} onChange={(e) => updateTrack(item.spotify_id!, "override_artist", e.target.value)} className="admin-input" style={{ padding: "7px 10px", fontSize: "13px" }} />
-                    </Field>
-                    <Field title="Genre">
-                      <select value={item.genre_id ?? ""} onChange={(e) => updateTrack(item.spotify_id!, "genre_id", e.target.value || null)} className="admin-input" style={{ padding: "7px 10px", fontSize: "13px", cursor: "pointer" }}>
-                        <option value="">Auto</option>
-                        {genres?.genres.map((g) => <option key={g.id} value={g.slug}>{g.name}</option>)}
-                      </select>
-                    </Field>
-                    <Field title="Collaborators">
-                      <input type="text" value={item.featured_artists ?? ""} onChange={(e) => updateTrack(item.spotify_id!, "featured_artists", e.target.value)} placeholder="e.g. Slapdee, Chef 187" className="admin-input" style={{ padding: "7px 10px", fontSize: "13px" }} />
-                    </Field>
-                    <Field title="Album">
-                      <input type="text" value={item.album_title ?? ""} onChange={(e) => updateTrack(item.spotify_id!, "album_title", e.target.value)} placeholder="Single / Album" className="admin-input" style={{ padding: "7px 10px", fontSize: "13px" }} />
-                    </Field>
-                    <Field title="Section">
-                      <select value={item.section ?? ""} onChange={(e) => updateTrack(item.spotify_id!, "section", e.target.value)} className="admin-input" style={{ padding: "7px 10px", fontSize: "13px", cursor: "pointer" }}>
-                        {SECTIONS.map((s) => <option key={s.key} value={s.key}>{s.label}</option>)}
-                      </select>
-                    </Field>
-                    <div style={{ display: "flex", alignItems: "flex-end", paddingBottom: "2px" }}>
-                      <label style={{ display: "inline-flex", alignItems: "center", gap: "6px", cursor: "pointer", fontSize: "12px", fontWeight: 600, color: "var(--foreground)" }}>
-                        <input type="checkbox" checked={item.publish ?? true} onChange={(e) => updateTrack(item.spotify_id!, "publish", e.target.checked)} style={{ width: 14, height: 14, accentColor: "var(--active-fg)" }} />
-                        Publish
-                      </label>
+                <div key={item.spotify_id} style={{ border: "1px solid var(--border)", borderRadius: "8px", padding: expanded ? "12px" : "8px 12px", background: "var(--background)" }}>
+                  {/* Compact row */}
+                  <div style={{ display: "flex", alignItems: "center", gap: "10px", flexWrap: "wrap" }}>
+                    {orig?.cover_url && <img src={orig.cover_url} alt="" style={{ width: 36, height: 36, borderRadius: "5px", objectFit: "cover", flexShrink: 0 }} />}
+                    <div style={{ flex: "1 1 140px", minWidth: 0 }}>
+                      <div style={{ fontSize: "12px", fontWeight: 600, color: "var(--foreground)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{orig?.title ?? item.override_title ?? item.spotify_id}</div>
+                      <div style={{ fontSize: "11px", color: "var(--muted-foreground)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{orig?.artists.join(", ") || item.override_artist}{isDup ? "  ·  already in catalog" : ""}</div>
                     </div>
+                    {/* Inline quick controls */}
+                    <select
+                      value={item.genre_id ?? ""}
+                      onChange={(e) => updateTrack(item.spotify_id!, "genre_id", e.target.value || null)}
+                      className="admin-input"
+                      aria-label={`Genre for ${orig?.title ?? item.spotify_id}`}
+                      title={genreName(item.genre_id)}
+                      style={{ width: "auto", maxWidth: 150, padding: "5px 8px", fontSize: "12px", cursor: "pointer" }}
+                    >
+                      <option value="">Auto</option>
+                      {genres?.genres.map((g) => <option key={g.id} value={g.slug}>{g.name}</option>)}
+                    </select>
+                    <select
+                      value={item.section ?? ""}
+                      onChange={(e) => updateTrack(item.spotify_id!, "section", e.target.value)}
+                      className="admin-input"
+                      aria-label={`Section for ${orig?.title ?? item.spotify_id}`}
+                      style={{ width: "auto", maxWidth: 160, padding: "5px 8px", fontSize: "12px", cursor: "pointer" }}
+                    >
+                      <option value="">Section…</option>
+                      {SECTIONS.map((s) => <option key={s.key} value={s.key}>{s.label}</option>)}
+                    </select>
+                    <label style={{ display: "inline-flex", alignItems: "center", gap: "4px", cursor: "pointer", fontSize: "12px", fontWeight: 600, color: "var(--foreground)", whiteSpace: "nowrap" }}>
+                      <input type="checkbox" checked={item.publish ?? true} onChange={(e) => updateTrack(item.spotify_id!, "publish", e.target.checked)} style={{ width: 13, height: 13, accentColor: "var(--active-fg)" }} />
+                      Publish
+                    </label>
+                    {/* Expand toggle */}
+                    <button
+                      onClick={() => setExpandedId(expanded ? null : item.spotify_id!)}
+                      aria-expanded={expanded}
+                      aria-label={expanded ? `Collapse ${orig?.title ?? item.spotify_id}` : `Edit details for ${orig?.title ?? item.spotify_id}`}
+                      className="admin-icon-btn"
+                      style={{ width: 26, height: 26, color: "var(--muted-foreground)", transition: "transform 0.15s", transform: expanded ? "rotate(180deg)" : "none" }}
+                    >
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+                    </button>
+                    <button onClick={() => { const n = new Map(selectedTracks); n.delete(item.spotify_id!); setSelectedTracks(n) }} aria-label={`Remove ${orig?.title ?? item.spotify_id}`}
+                      className="admin-icon-btn" style={{ width: 26, height: 26, color: "var(--muted-foreground)" }}>
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                    </button>
                   </div>
+
+                  {/* Expanded full metadata */}
+                  {expanded && (
+                    <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: "8px", marginTop: "12px", paddingTop: "12px", borderTop: "1px dashed var(--border)" }}>
+                      <Field title="Title">
+                        <input type="text" value={item.override_title ?? ""} onChange={(e) => updateTrack(item.spotify_id!, "override_title", e.target.value)} className="admin-input" style={{ padding: "7px 10px", fontSize: "13px" }} />
+                      </Field>
+                      <Field title="Primary Artist">
+                        <input type="text" value={item.override_artist ?? ""} onChange={(e) => updateTrack(item.spotify_id!, "override_artist", e.target.value)} className="admin-input" style={{ padding: "7px 10px", fontSize: "13px" }} />
+                      </Field>
+                      <Field title="Collaborators">
+                        <input type="text" value={item.featured_artists ?? ""} onChange={(e) => updateTrack(item.spotify_id!, "featured_artists", e.target.value)} placeholder="e.g. Slapdee, Chef 187" className="admin-input" style={{ padding: "7px 10px", fontSize: "13px" }} />
+                      </Field>
+                      <Field title="Album">
+                        <input type="text" value={item.album_title ?? ""} onChange={(e) => updateTrack(item.spotify_id!, "album_title", e.target.value)} placeholder="Single / Album" className="admin-input" style={{ padding: "7px 10px", fontSize: "13px" }} />
+                      </Field>
+                      <Field title="Description">
+                        <textarea rows={3} value={item.description ?? ""} onChange={(e) => updateTrack(item.spotify_id!, "description", e.target.value)} placeholder="SEO description — tell the story behind the track" className="admin-input" style={{ padding: "7px 10px", fontSize: "13px", resize: "vertical", gridColumn: "1 / -1" }} />
+                      </Field>
+                    </div>
+                  )}
                 </div>
               )
             })}
