@@ -372,6 +372,11 @@ export const api = {
       `/admin/import/search?q=${encodeURIComponent(query)}`
     ),
 
+  adminImportLookup: (id: string) =>
+    request<{ tracks: import("@/types").SearchResultTrack[] }>(
+      `/admin/import/lookup?id=${encodeURIComponent(id)}`
+    ),
+
   adminImportBulk: (tracks: import("@/types").BulkImportItem[]) =>
     request<{ results: import("@/types").BulkImportResult[] }>("/admin/import/bulk", {
       method: "POST",
