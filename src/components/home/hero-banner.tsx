@@ -132,10 +132,11 @@ function HeroPanel({
   )
 }
 
-export function HeroBanner() {
+export function HeroBanner({ initialData }: { initialData?: any }) {
   const { data, isLoading } = useQuery({
     queryKey: ["tracks", "hero"],
     queryFn: () => api.listTracks(5, 0, "best_new_songs"),
+    ...(initialData ? { initialData, staleTime: 5 * 60 * 1000 } : {}),
   })
   const items = (data?.tracks ?? []).slice(0, 5)
   const scrollerRef = useRef<HTMLDivElement>(null)
