@@ -12,7 +12,6 @@ export default function Loading() {
           animation: "spin 0.7s linear infinite",
         }} />
       </div>
-      <p style={{ fontSize: 14, fontWeight: 500 }}>Loading...</p>
     </div>
   )
 }
