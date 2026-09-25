@@ -309,11 +309,11 @@ function GenreRail() {
                   flexShrink: 0, width: 148, height: 76, borderRadius: 14, border: "none",
                   background: `linear-gradient(135deg, ${from}, ${to})`,
                   cursor: "pointer", position: "relative", overflow: "hidden", textAlign: "left",
-                  transition: "transform 0.18s ease",
-                  boxShadow: "0 4px 14px rgba(0,0,0,0.12)",
+                  transition: "transform 0.18s ease, box-shadow 0.18s ease",
+                  boxShadow: "0 6px 18px -6px rgba(8,10,25,0.45)",
                 }}
-                onMouseEnter={(e) => { e.currentTarget.style.transform = "translateY(-2px)" }}
-                onMouseLeave={(e) => { e.currentTarget.style.transform = "translateY(0)" }}
+                onMouseEnter={(e) => { e.currentTarget.style.transform = "translateY(-2px)"; e.currentTarget.style.boxShadow = "0 14px 30px -8px rgba(8,10,25,0.55)" }}
+                onMouseLeave={(e) => { e.currentTarget.style.transform = "translateY(0)"; e.currentTarget.style.boxShadow = "0 6px 18px -6px rgba(8,10,25,0.45)" }}
               >
                 <span style={{ position: "absolute", right: -18, bottom: -18, width: 72, height: 72, borderRadius: "50%", background: "rgba(255,255,255,0.14)" }} />
                 <span style={{ position: "absolute", left: 14, bottom: 12, right: 12, fontSize: 14, fontWeight: 700, color: "#fff", letterSpacing: "-0.2px", lineHeight: 1.25, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
@@ -415,10 +415,11 @@ function JumpBackInSection() {
                   flexShrink: 0, width: 300, display: "flex", alignItems: "center", gap: 12,
                   padding: 10, borderRadius: 12, background: "var(--card-bg)",
                   border: "1px solid var(--border)", cursor: "pointer",
+                  boxShadow: "0 1px 2px rgba(18,18,28,0.06), 0 10px 28px -12px rgba(18,18,28,0.18)",
                   transition: "transform 0.18s ease, box-shadow 0.18s ease",
                 }}
-                onMouseEnter={(e) => { e.currentTarget.style.transform = "translateY(-2px)" }}
-                onMouseLeave={(e) => { e.currentTarget.style.transform = "translateY(0)" }}
+                onMouseEnter={(e) => { e.currentTarget.style.transform = "translateY(-2px)"; e.currentTarget.style.boxShadow = "0 2px 4px rgba(18,18,28,0.07), 0 16px 36px -12px rgba(18,18,28,0.25)" }}
+                onMouseLeave={(e) => { e.currentTarget.style.transform = "translateY(0)"; e.currentTarget.style.boxShadow = "0 1px 2px rgba(18,18,28,0.06), 0 10px 28px -12px rgba(18,18,28,0.18)" }}
               >
                 {track.cover_url ? (
                   <span style={{ position: "relative", width: 52, height: 52, borderRadius: 8, overflow: "hidden", flexShrink: 0, display: "block" }}>
