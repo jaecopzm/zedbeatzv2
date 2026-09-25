@@ -193,6 +193,25 @@ export function HeroBanner() {
     scrollTo(Math.max(0, Math.min(items.length - 1, active + dir)))
   }
 
+  // Ambient autoplay: advance the spotlight, pause on interaction.
+  const activeRef = useRef(active)
+  activeRef.current = active
+  const pausedRef = useRef(false)
+  useEffect(() => {
+    if (items.length < 2) return
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return
+    const t = setInterval(() => {
+      if (pausedRef.current || document.hidden) return
+      const next = (activeRef.current + 1) % items.length
+      const el = scrollerRef.current
+      if (!el) return
+      const child = el.children[next] as HTMLElement | undefined
+      if (!child) return
+      el.scrollTo({ left: child.offsetLeft - 8, behavior: "smooth" })
+    }, 7000)
+    return () => clearInterval(t)
+  }, [items.length])
+
   if (!isLoading && items.length === 0) return null
 
   const wrapClass = [
@@ -231,7 +250,14 @@ export function HeroBanner() {
                 <path d="M15 6l-6 6 6 6" />
               </svg>
             </button>
-            <div className="hp-hero-scroller" ref={scrollerRef}>
+            <div
+              className="hp-hero-scroller"
+              ref={scrollerRef}
+              onPointerEnter={() => { pausedRef.current = true }}
+              onPointerLeave={() => { pausedRef.current = false }}
+              onTouchStart={() => { pausedRef.current = true }}
+              onTouchEnd={() => { pausedRef.current = false }}
+            >
               {items.map((track: any, i: number) => (
                 <HeroPanel
                   key={track.id}

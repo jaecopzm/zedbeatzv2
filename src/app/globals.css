@@ -2474,3 +2474,15 @@ input[type="range"]::-webkit-slider-thumb:hover {
   font-family: var(--font-display, "Inter", sans-serif);
   letter-spacing: -0.02em;
 }
+
+/* ── Sidebar Solar icon activation pop ── */
+.sb-icon { display: inline-flex; flex-shrink: 0; }
+@keyframes sb-pop {
+  0% { transform: scale(0.65); }
+  55% { transform: scale(1.18); }
+  100% { transform: scale(1); }
+}
+.sb-icon-active { animation: sb-pop 0.32s cubic-bezier(0.22, 1, 0.36, 1); transform-origin: center; }
+@media (prefers-reduced-motion: reduce) {
+  .sb-icon-active { animation: none; }
+}

@@ -387,6 +387,19 @@ export const api = {
   getHistory: (limit = 20, offset = 0) =>
     request<any>(`/me/history?limit=${limit}&offset=${offset}`),
 
+  // Resume points (Jump Back In)
+  getResume: (limit = 10) =>
+    request<{ resume: import("@/types").ResumePoint[] }>(`/me/resume?limit=${limit}`),
+
+  saveResume: (track_id: string, position_sec: number, duration_sec: number) =>
+    request<{ ok: boolean }>(`/me/resume`, {
+      method: "PUT",
+      body: JSON.stringify({ track_id, position_sec, duration_sec }),
+    }),
+
+  deleteResume: (track_id: string) =>
+    request<{ ok: boolean }>(`/me/resume/${track_id}`, { method: "DELETE" }),
+
   getMyLikes: (limit = 20, offset = 0) =>
     request<any>(`/me/likes?limit=${limit}&offset=${offset}`),
 

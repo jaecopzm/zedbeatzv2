@@ -205,3 +205,14 @@ export interface StationDetailResponse {
   station: RadioStation
   tracks: RadioStationTrack[]
 }
+
+export interface ResumePoint {
+  track_id: string
+  position_sec: number
+  duration_sec: number
+  updated_at: string
+  title?: string
+  artist_id?: string
+  artist_name?: string
+  cover_url?: string | null
+}

@@ -46,6 +46,12 @@ function startProgressInterval(
       const pos = h.seek() as number
       if (typeof pos === "number" && !isNaN(pos)) {
         set({ progress: pos })
+        // Checkpoint the resume point a few times per track, not every tick.
+        const now = Date.now()
+        if (now - _lastResumePersistAt > 30_000) {
+          _lastResumePersistAt = now
+          persistResumePoint()
+        }
         try {
           navigator.mediaSession.setPositionState({
             duration: get().currentTrack?.duration_sec || 0,
@@ -98,6 +104,71 @@ function formatArtist(track: TrackInfo): string {
   if (!featured.length) return track.artist_name
   return `${track.artist_name} ft. ${featured.join(", ")}`
 }
+
+// ─── resume points (Jump Back In) ───────────────────────────────────────────
+export interface LocalResumePoint {
+  track: TrackInfo
+  position: number
+  duration: number
+  updatedAt: number
+}
+
+const RESUME_LS_KEY = "zedbeatz_resume_v1"
+const RESUME_MAX = 10
+
+export function loadLocalResumePoints(): LocalResumePoint[] {
+  if (typeof window === "undefined") return []
+  try {
+    const raw = localStorage.getItem(RESUME_LS_KEY)
+    if (!raw) return []
+    const arr = JSON.parse(raw) as LocalResumePoint[]
+    if (!Array.isArray(arr)) return []
+    return arr
+      .filter((p) => p?.track?.id && typeof p.position === "number")
+      .sort((a, b) => b.updatedAt - a.updatedAt)
+      .slice(0, RESUME_MAX)
+  } catch {
+    return []
+  }
+}
+
+export function saveLocalResumePoint(track: TrackInfo, position: number, duration: number) {
+  if (typeof window === "undefined") return
+  // Not really started, or basically finished → clear instead of saving.
+  if (position < 5 || (duration > 0 && position / duration > 0.95)) {
+    removeLocalResumePoint(track.id)
+    return
+  }
+  try {
+    const rest = loadLocalResumePoints().filter((p) => p.track.id !== track.id)
+    rest.unshift({ track, position: Math.floor(position), duration, updatedAt: Date.now() })
+    localStorage.setItem(RESUME_LS_KEY, JSON.stringify(rest.slice(0, RESUME_MAX)))
+  } catch {}
+}
+
+export function removeLocalResumePoint(trackId: string) {
+  if (typeof window === "undefined") return
+  try {
+    const rest = loadLocalResumePoints().filter((p) => p.track.id !== trackId)
+    localStorage.setItem(RESUME_LS_KEY, JSON.stringify(rest))
+  } catch {}
+}
+
+/** Persist the current point locally + to the server when signed in. */
+function persistResumePoint() {
+  const { currentTrack, progress } = usePlayerStore.getState()
+  if (!currentTrack) return
+  const pos = Math.floor(progress)
+  const dur = currentTrack.duration_sec || 0
+  saveLocalResumePoint(currentTrack, pos, dur)
+  try {
+    if (typeof window !== "undefined" && localStorage.getItem("access_token")) {
+      api.saveResume(currentTrack.id, pos, dur).catch(() => {})
+    }
+  } catch {}
+}
+
+let _lastResumePersistAt = 0
 
 function updateMediaSession(track: TrackInfo) {
   if (!("mediaSession" in navigator)) return
@@ -166,8 +237,10 @@ interface PlayerState {
   howl: Howl | null
   _progressInterval: ReturnType<typeof setInterval> | null
   _loading: string | null
+  _pendingSeek: { trackId: string; pos: number } | null
 
   play: (track: TrackInfo, queueOpts?: { tracks: TrackInfo[]; index: number }) => Promise<void>
+  playAt: (track: TrackInfo, position: number, queueOpts?: { tracks: TrackInfo[]; index: number }) => Promise<void>
   playQueue: (tracks: TrackInfo[], startIndex?: number) => Promise<void>
   togglePlay: () => void
   seek: (time: number) => void
@@ -207,11 +280,14 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
   howl: null,
   _progressInterval: null,
   _loading: null,
+  _pendingSeek: null,
 
   play: async (track, queueOpts) => {
     if (get()._loading) return
     set({ _loading: track.id })
 
+    // Persist where we left the previous track before switching away.
+    persistResumePoint()
     recordPreviousPlay()
     stopProgressInterval(get)
     get().howl?.unload()
@@ -227,11 +303,21 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
           set({ isPlaying: true })
           if ("mediaSession" in navigator) navigator.mediaSession.playbackState = "playing"
           startProgressInterval(get, set)
+          // Resume playback: jump to the saved position once audio starts.
+          const pending = get()._pendingSeek
+          if (pending && pending.trackId === track.id && pending.pos > 0) {
+            set({ _pendingSeek: null })
+            try {
+              howl.seek(pending.pos)
+              set({ progress: pending.pos })
+            } catch {}
+          }
         },
         onpause: () => {
           set({ isPlaying: false })
           if ("mediaSession" in navigator) navigator.mediaSession.playbackState = "paused"
           stopProgressInterval(get)
+          persistResumePoint()
         },
         onend: () => {
           recordPreviousPlay()
@@ -277,6 +363,11 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
     if (tracks[startIndex]) {
       await get().play(tracks[startIndex], { tracks, index: startIndex })
     }
+  },
+
+  playAt: async (track, position, queueOpts) => {
+    set({ _pendingSeek: { trackId: track.id, pos: Math.floor(position) } })
+    await get().play(track, queueOpts)
   },
 
   togglePlay: () => {
@@ -337,6 +428,7 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
   },
 
   stop: () => {
+    persistResumePoint()
     recordPreviousPlay()
     stopProgressInterval(get)
     get().howl?.unload()
@@ -392,3 +484,16 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
       queueIndex: 0,
     })),
 }))
+
+// Save the local resume point when the tab closes (server sync happens
+// on pause/interval/switch; a beacon here would rarely complete).
+if (typeof window !== "undefined") {
+  window.addEventListener("beforeunload", () => {
+    try {
+      const { currentTrack, progress } = usePlayerStore.getState()
+      if (currentTrack) {
+        saveLocalResumePoint(currentTrack, Math.floor(progress), currentTrack.duration_sec || 0)
+      }
+    } catch {}
+  })
+}

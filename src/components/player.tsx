@@ -6,6 +6,16 @@ import { useUIStore } from "@/lib/ui-store"
 import { useLikesStore } from "@/lib/likes-store"
 import { useColorExtract } from "@/lib/use-color-extract"
 import { ArtistLinks } from "@/components/artist-links"
+import { ShuffleIcon as ShuffleLinear } from "@solar-icons/react/linear/shuffle"
+import { RepeatIcon as RepeatLinear } from "@solar-icons/react/linear/repeat"
+import { SkipPreviousIcon as PrevBold } from "@solar-icons/react/bold/skip-previous"
+import { SkipNextIcon as NextBold } from "@solar-icons/react/bold/skip-next"
+import { PlayIcon as PlayBold } from "@solar-icons/react/bold/play"
+import { PauseIcon as PauseBold } from "@solar-icons/react/bold/pause"
+import { HeartIcon as HeartLinear } from "@solar-icons/react/linear/heart"
+import { HeartIcon as HeartBold } from "@solar-icons/react/bold/heart"
+import { ListIcon as ListLinear } from "@solar-icons/react/linear/list"
+import { VolumeLoudIcon as VolumeLinear } from "@solar-icons/react/linear/volume-loud"
 
 function fmt(sec: number) {
   const s = Math.floor(sec)
@@ -176,16 +186,12 @@ export function Player() {
           {/* CENTER — playback controls */}
           <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "4px" }}>
             <CtrlBtn className="player-extra-btn" title={shuffle ? "Shuffle on" : "Shuffle"} dim={!shuffle} active={shuffle} onClick={toggleShuffle} noHover>
-              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-                <polyline points="16 3 21 3 21 8" /><line x1="4" y1="20" x2="21" y2="3" /><polyline points="21 16 21 21 16 21" /><line x1="15" y1="15" x2="21" y2="21" /><line x1="4" y1="4" x2="9" y2="9" />
-              </svg>
+              <ShuffleLinear size={17} color="currentColor" strokeWidth={1.8} />
             </CtrlBtn>
 
             <span className="player-nav-btn">
               <CtrlBtn title="Previous" onClick={prev} noHover>
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
-                  <polygon points="19,20 9,12 19,4" /><rect x="5" y="4" width="2.5" height="16" rx="1.2" />
-                </svg>
+                <PrevBold size={20} color="currentColor" />
               </CtrlBtn>
             </span>
 
@@ -196,9 +202,13 @@ export function Player() {
               onMouseUp={(e) => { e.currentTarget.style.transform = "scale(1)" }}
               onMouseLeave={(e) => { e.currentTarget.style.transform = "scale(1)" }}
             >
-              <svg width="20" height="20" viewBox="0 0 24 24" fill={liked ? "var(--like)" : "none"} stroke={liked ? "var(--like)" : "currentColor"} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
-              </svg>
+              <span key={`${track?.id ?? "none"}-${liked ? "liked" : "plain"}`} className={liked ? "like-burst" : undefined} style={{ display: "flex" }}>
+                {liked ? (
+                  <HeartBold size={20} color="var(--like)" />
+                ) : (
+                  <HeartLinear size={20} color="currentColor" strokeWidth={1.8} />
+                )}
+              </span>
             </button>
 
             <button onClick={togglePlay} title={loading ? "Loading" : isPlaying ? "Pause" : "Play"}
@@ -210,9 +220,9 @@ export function Player() {
               {loading ? (
                 <svg className="spinner" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#1d1d1f" strokeWidth="2.5"><circle cx="12" cy="12" r="10" strokeDasharray="31.4 31.4" strokeLinecap="round" /></svg>
               ) : isPlaying ? (
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="#1d1d1f"><rect x="5" y="4" width="4.5" height="16" rx="1.5" /><rect x="14.5" y="4" width="4.5" height="16" rx="1.5" /></svg>
+                <PauseBold size={16} color="#1d1d1f" />
               ) : (
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="#1d1d1f" style={{ marginLeft: "2px" }}><polygon points="5,3 20,12 5,21" /></svg>
+                <span style={{ marginLeft: "2px", display: "flex" }}><PlayBold size={16} color="#1d1d1f" /></span>
               )}
             </button>
 
@@ -225,9 +235,7 @@ export function Player() {
             </span>
 
             <CtrlBtn className="player-extra-btn" title={repeatMode === "one" ? "Repeat one" : repeatMode === "all" ? "Repeat all" : "Repeat"} dim={repeatMode === "off"} active={repeatMode !== "off"} onClick={toggleRepeat} noHover style={{ position: "relative" }}>
-              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-                <polyline points="17 1 21 5 17 9" /><path d="M3 11V9a4 4 0 014-4h14" /><polyline points="7 23 3 19 7 15" /><path d="M21 13v2a4 4 0 01-4 4H3" />
-              </svg>
+              <RepeatLinear size={17} color="currentColor" strokeWidth={1.8} />
               {repeatMode === "one" && (
                 <span style={{
                   position: "absolute", bottom: "-1px", right: "-1px",
@@ -251,21 +259,21 @@ export function Player() {
 
             {/* Like button */}
             <CtrlBtn title={liked ? "Unlike" : "Like"} dim={!liked} active={liked} onClick={() => { if (track) toggleLike(track.id) }}>
-              <svg width="16" height="16" viewBox="0 0 24 24" fill={liked ? "var(--like)" : "none"} stroke={liked ? "var(--like)" : "currentColor"} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
-              </svg>
+              <span key={`${track?.id ?? "none"}-${liked ? "liked" : "plain"}`} className={liked ? "like-burst" : undefined} style={{ display: "flex" }}>
+                {liked ? (
+                  <HeartBold size={16} color="var(--like)" />
+                ) : (
+                  <HeartLinear size={16} color="currentColor" strokeWidth={1.8} />
+                )}
+              </span>
             </CtrlBtn>
 
             <CtrlBtn className="player-extra-btn" title="Up Next" dim={!queuePanelOpen} active={queuePanelOpen} onClick={toggleQueuePanel}>
-              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-                <line x1="9" y1="6" x2="20" y2="6" /><line x1="9" y1="12" x2="20" y2="12" /><line x1="9" y1="18" x2="20" y2="18" /><line x1="4" y1="6" x2="4.01" y2="6" strokeWidth="2.5" /><line x1="4" y1="12" x2="4.01" y2="12" strokeWidth="2.5" /><line x1="4" y1="18" x2="4.01" y2="18" strokeWidth="2.5" />
-              </svg>
+              <ListLinear size={17} color="currentColor" strokeWidth={1.8} />
             </CtrlBtn>
 
             <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
-                <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" /><path d="M19.07 4.93a10 10 0 010 14.14" /><path d="M15.54 8.46a5 5 0 010 7.07" />
-              </svg>
+              <VolumeLinear size={17} color="currentColor" strokeWidth={1.8} />
               <div style={{ position: "relative", width: "var(--player-volume-width, 70px)", height: "24px", display: "flex", alignItems: "center" }}>
                 <div className="player-volume-track" style={{ position: "absolute", left: 0, height: "4px", width: "100%", borderRadius: "2px", background: "var(--border)", overflow: "hidden" }}>
                   <div className="player-volume-fill" suppressHydrationWarning style={{ height: "100%", width: `${volume * 100}%`, background: "var(--foreground)", borderRadius: "2px", transition: "width 0.05s" }} />

@@ -5,6 +5,15 @@ import { usePlayerStore, type TrackInfo } from "@/lib/store"
 import { useUIStore } from "@/lib/ui-store"
 import { useLikesStore } from "@/lib/likes-store"
 import { useColorExtract } from "@/lib/use-color-extract"
+import { ShuffleIcon as ShuffleLinear } from "@solar-icons/react/linear/shuffle"
+import { RepeatIcon as RepeatLinear } from "@solar-icons/react/linear/repeat"
+import { SkipPreviousIcon as PrevBold } from "@solar-icons/react/bold/skip-previous"
+import { SkipNextIcon as NextBold } from "@solar-icons/react/bold/skip-next"
+import { PlayIcon as PlayBold } from "@solar-icons/react/bold/play"
+import { PauseIcon as PauseBold } from "@solar-icons/react/bold/pause"
+import { HeartIcon as HeartLinear } from "@solar-icons/react/linear/heart"
+import { HeartIcon as HeartBold } from "@solar-icons/react/bold/heart"
+import { ArrowLeftIcon as BackLinear } from "@solar-icons/react/linear/arrow-left"
 
 function fmt(sec: number) {
   const s = Math.floor(sec)
@@ -145,7 +154,7 @@ export function NowPlayingScreen() {
       {/* Top bar — always visible at the top of the screen */}
       <div style={{ position: "relative", zIndex: 5, display: "flex", alignItems: "center", justifyContent: "space-between", padding: isMobile ? "12px 16px" : "20px 32px", flexShrink: 0 }}>
         <button onClick={closeNowPlaying} aria-label="Close Now Playing" style={{ background: "rgba(255,255,255,0.18)", border: "none", borderRadius: "50%", width: isMobile ? "32px" : "36px", height: isMobile ? "32px" : "36px", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", backdropFilter: "blur(12px)", WebkitBackdropFilter: "blur(12px)" }}>
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.8)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 12H5" /><polyline points="12 19 5 12 12 5" /></svg>
+          <BackLinear size={18} color="rgba(255,255,255,0.8)" strokeWidth={2} />
         </button>
         <p style={{ margin: 0, fontSize: isMobile ? "11px" : "13px", fontWeight: 600, letterSpacing: "0.06em", textTransform: "uppercase", color: "rgba(255,255,255,0.45)" }}>Now Playing</p>
         <div style={{ width: isMobile ? "32px" : "36px" }} />
@@ -326,9 +335,11 @@ export function NowPlayingScreen() {
             onClick={() => { if (track) toggleLike(track.id) }}
             style={{ background: "none", border: "none", cursor: "pointer", padding: "8px", borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
             <span key={`${track?.id ?? "none"}-${liked ? "liked" : "plain"}`} className={liked ? "like-burst" : undefined} style={{ display: "flex" }}>
-            <svg width="24" height="24" viewBox="0 0 24 24" fill={liked ? "var(--like)" : "none"} stroke={liked ? "var(--like)" : "rgba(255,255,255,0.6)"} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
-            </svg>
+            {liked ? (
+              <HeartBold size={24} color="var(--like)" />
+            ) : (
+              <HeartLinear size={24} color="rgba(255,255,255,0.6)" strokeWidth={1.8} />
+            )}
             </span>
           </button>
         </div>
@@ -349,32 +360,28 @@ export function NowPlayingScreen() {
         <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "0", width: "100%", margin: isMobile ? "8px 0 12px" : "12px 0 16px" }}>
           {/* Shuffle */}
           <NpBtn title={shuffle ? "Shuffle on" : "Shuffle"} subtle={!shuffle} active={shuffle} style={{ marginRight: "auto" }} onClick={toggleShuffle}>
-            <svg width={isMobile ? "18" : "20"} height={isMobile ? "18" : "20"} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-              <polyline points="16 3 21 3 21 8" /><line x1="4" y1="20" x2="21" y2="3" /><polyline points="21 16 21 21 16 21" /><line x1="15" y1="15" x2="21" y2="21" /><line x1="4" y1="4" x2="9" y2="9" />
-            </svg>
+            <ShuffleLinear size={isMobile ? 18 : 20} color="currentColor" strokeWidth={1.8} />
           </NpBtn>
 
           <NpBtn title="Previous" onClick={prev} style={{ padding: isMobile ? "8px" : "10px" }}>
-            <svg width={isMobile ? "24" : "28"} height={isMobile ? "24" : "28"} viewBox="0 0 24 24" fill="currentColor"><polygon points="19,20 9,12 19,4" /><rect x="5" y="4" width="2.5" height="16" rx="1.2" /></svg>
+            <PrevBold size={isMobile ? 24 : 28} color="currentColor" />
           </NpBtn>
 
           <button onClick={togglePlay} title={isPlaying ? "Pause" : "Play"} style={{ width: isMobile ? "56px" : "68px", height: isMobile ? "56px" : "68px", borderRadius: "50%", background: "#ffffff", border: "none", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", boxShadow: `0 8px 32px rgba(0,0,0,0.35), 0 0 0 3px ${accentAlpha(0.25)}`, transition: "box-shadow 1s ease", margin: "0 8px", flexShrink: 0 }}>
             {isPlaying ? (
-              <svg width={isMobile ? "20" : "24"} height={isMobile ? "20" : "24"} viewBox="0 0 24 24" fill="#1d1d1f"><rect x="5" y="4" width="4.5" height="16" rx="1.5" /><rect x="14.5" y="4" width="4.5" height="16" rx="1.5" /></svg>
+              <PauseBold size={isMobile ? 20 : 24} color="#1d1d1f" />
             ) : (
-              <svg width={isMobile ? "20" : "24"} height={isMobile ? "20" : "24"} viewBox="0 0 24 24" fill="#1d1d1f" style={{ marginLeft: "3px" }}><polygon points="5,3 20,12 5,21" /></svg>
+              <span style={{ marginLeft: "3px", display: "flex" }}><PlayBold size={isMobile ? 20 : 24} color="#1d1d1f" /></span>
             )}
           </button>
 
           <NpBtn title="Next" onClick={next} style={{ padding: isMobile ? "8px" : "10px" }}>
-            <svg width={isMobile ? "24" : "28"} height={isMobile ? "24" : "28"} viewBox="0 0 24 24" fill="currentColor"><polygon points="5,4 15,12 5,20" /><rect x="16.5" y="4" width="2.5" height="16" rx="1.2" /></svg>
+            <NextBold size={isMobile ? 24 : 28} color="currentColor" />
           </NpBtn>
 
           {/* Repeat */}
           <NpBtn title={repeatMode === "one" ? "Repeat one" : repeatMode === "all" ? "Repeat all" : "Repeat"} subtle={repeatMode === "off"} active={repeatMode !== "off"} style={{ marginLeft: "auto", position: "relative" }} onClick={toggleRepeat}>
-            <svg width={isMobile ? "18" : "20"} height={isMobile ? "18" : "20"} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-              <polyline points="17 1 21 5 17 9" /><path d="M3 11V9a4 4 0 014-4h14" /><polyline points="7 23 3 19 7 15" /><path d="M21 13v2a4 4 0 01-4 4H3" />
-            </svg>
+            <RepeatLinear size={isMobile ? 18 : 20} color="currentColor" strokeWidth={1.8} />
             {repeatMode === "one" && (
               <span style={{ position: "absolute", top: "3px", right: "2px", fontSize: "8px", fontWeight: 900, color: "var(--brand)" }}>1</span>
             )}
