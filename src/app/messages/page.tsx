@@ -16,7 +16,7 @@ interface Message {
 export default function MessagesPage() {
   const isAuthed = !!useAuthStore((s) => s.user)
 
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, isError } = useQuery({
     queryKey: ["messages"],
     queryFn: () => api.getMyMessages(50),
     enabled: isAuthed,
@@ -25,14 +25,15 @@ export default function MessagesPage() {
   const messages: Message[] = data?.messages ?? []
 
   return (
-    <div className="fade-in" style={{ padding: "32px 32px 40px", minHeight: "100%", background: "var(--content-bg)" }}>
+    <div className="fade-in messages-page" style={{ padding: "32px", minHeight: "100%", background: "var(--content-bg)" }}>
       <style>{`
         @media (max-width: 640px) {
           .messages-page { padding: 16px 12px 24px !important; }
+          .messages-page h1 { font-size: 22px !important; margin-bottom: 16px !important; }
         }
       `}</style>
 
-      <h1 style={{ fontSize: 28, fontWeight: 700, color: "var(--foreground)", margin: "0 0 24px", letterSpacing: "-0.5px" }}>
+      <h1 style={{ fontSize: 26, fontWeight: 700, color: "var(--foreground)", margin: "0 0 24px", letterSpacing: "-0.5px" }}>
         Messages
       </h1>
 
@@ -40,6 +41,14 @@ export default function MessagesPage() {
         <div style={{ textAlign: "center", padding: "80px 0", color: "var(--muted-foreground)" }}>
           <p style={{ fontSize: 18, fontWeight: 600, margin: "0 0 8px" }}>Sign in to see your messages</p>
           <p style={{ fontSize: 14, margin: 0 }}>Artists you follow send updates and announcements here.</p>
+        </div>
+      ) : isError ? (
+        <div style={{ textAlign: "center", padding: "80px 0", color: "var(--muted-foreground)" }}>
+          <div style={{ width: 56, height: 56, borderRadius: "50%", background: "rgba(239,68,68,0.12)", display: "inline-flex", alignItems: "center", justifyContent: "center", marginBottom: 16 }}>
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#ef4444" strokeWidth="1.8" strokeLinecap="round"><circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="12" /><line x1="12" y1="16" x2="12.01" y2="16" /></svg>
+          </div>
+          <p style={{ fontSize: 16, fontWeight: 500, margin: "0 0 8px" }}>Failed to load messages</p>
+          <p style={{ fontSize: 14, margin: 0 }}>Please try again later.</p>
         </div>
       ) : isLoading ? (
         <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
@@ -66,6 +75,7 @@ export default function MessagesPage() {
           {messages.map((msg) => (
             <div
               key={msg.id}
+              className="msg-card"
               style={{
                 background: msg.read ? "var(--card-bg)" : "var(--card-bg)",
                 borderRadius: 12,

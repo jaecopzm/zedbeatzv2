@@ -1,26 +1,75 @@
 "use client"
 
-import { useState, useEffect, useRef } from "react"
-import { useMutation, useQuery } from "@tanstack/react-query"
+import { useState, useMemo, useRef, useEffect } from "react"
+import { useQuery, useQueryClient } from "@tanstack/react-query"
 import { api } from "@/lib/api"
 import type { SearchResultTrack, BulkImportItem } from "@/types"
-import Link from "next/link"
-
-// ── Styles ───────────────────────────────────────────────────────────────────
-
-const card: React.CSSProperties = { background: "var(--card-bg)", border: "1px solid var(--border)", borderRadius: "14px", padding: "20px", boxShadow: "0 4px 16px rgba(0,0,0,0.03)", marginBottom: "24px" }
-const inputBase: React.CSSProperties = { width: "100%", padding: "7px 10px", borderRadius: "6px", border: "1px solid var(--border)", background: "var(--card-bg)", color: "var(--foreground)", fontSize: "13px", outline: "none" }
-const lbl: React.CSSProperties = { display: "block", fontSize: "11px", fontWeight: 600, color: "var(--muted-foreground)", marginBottom: "3px" }
+import { SECTIONS } from "@/lib/sections"
+import { toast } from "@/lib/toast-store"
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
 type ImportEvent = { type: "progress" | "error" | "done"; index: number; total: number; title?: string; error?: string }
 type TrackLog = { index: number; title: string; status: "pending" | "importing" | "done" | "error"; error?: string; startedAt?: number; finishedAt?: number }
 
+const SPOTIFY_TRACK_RE = /open\.spotify\.com\/(?:intl-[a-z]+\/)?track\/([A-Za-z0-9]{22})/
+
+function isSpotifyTrackQuery(q: string): boolean {
+  if (SPOTIFY_TRACK_RE.test(q)) return true
+  return /^[A-Za-z0-9]{22}$/.test(q.trim())
+}
+
+function extractSpotifyTrackId(q: string): string {
+  const m = q.match(SPOTIFY_TRACK_RE)
+  if (m) return m[1]
+  return q.trim()
+}
+
+function catalogKey(artist: string, title: string): string {
+  return `${artist.toLowerCase().trim()} - ${title.toLowerCase().trim()}`
+}
+
+// Normalize a genre string for loose matching: lowercase, strip punctuation, single-space collapse.
+function normalizeGenre(s: string): string {
+  return s.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim().replace(/\s+/g, " ")
+}
+
+// Find the closest DB genre slug for a Spotify/AI genre label.
+// Matches on exact, contains, or significant-token overlap (e.g. "Zambian Afrobeats" → "Afrobeats").
+function matchGenreLabel(label: string, genres: { slug: string; name: string }[] | undefined): string | null {
+  if (!genres?.length || !label) return null
+  const n = normalizeGenre(label)
+  if (!n) return null
+
+  let best: { slug: string; score: number } | null = null
+  for (const g of genres) {
+    const gn = normalizeGenre(g.name)
+    if (gn === n) return g.slug
+    let score = 0
+    if (gn.includes(n) || n.includes(gn)) score = 2
+    else {
+      const tokens = n.split(" ")
+      const overlap = tokens.filter((t) => t.length > 2 && gn.includes(t)).length
+      if (overlap > 0) score = overlap
+    }
+    if (score > 0 && (!best || score > best.score)) best = { slug: g.slug, score }
+  }
+  return best ? best.slug : null
+}
+
+// Pick the first of a track's Spotify artist genres that maps to a DB genre.
+function autoGenreId(t: SearchResultTrack, genres: { slug: string; name: string }[] | undefined): string | null {
+  for (const g of t.artist_genres || []) {
+    const id = matchGenreLabel(g, genres)
+    if (id) return id
+  }
+  return null
+}
+
 // ── Micro components ─────────────────────────────────────────────────────────
 
 function Field({ title, children }: { title: string; children: React.ReactNode }) {
-  return <div><label style={lbl}>{title}</label>{children}</div>
+  return <div><label className="admin-label">{title}</label>{children}</div>
 }
 
 function Spinner() {
@@ -34,35 +83,90 @@ function Spinner() {
 // ── Page ─────────────────────────────────────────────────────────────────────
 
 export default function AdminImportPage() {
-  const [query, setQuery] = useState("")
+  const queryClient = useQueryClient()
+  const [searchInput, setSearchInput] = useState("")
+  const [searchQuery, setSearchQuery] = useState("")
   const [selectedTracks, setSelectedTracks] = useState<Map<string, BulkImportItem>>(new Map())
   const [importing, setImporting] = useState(false)
   const [logs, setLogs] = useState<TrackLog[]>([])
   const [importDone, setImportDone] = useState(false)
-  const [mounted, setMounted] = useState(false)
   const [aiEnriching, setAiEnriching] = useState(false)
+  const searchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const abortRef = useRef<AbortController | null>(null)
 
-  useEffect(() => setMounted(true), [])
+  useEffect(() => () => {
+    if (searchTimerRef.current) clearTimeout(searchTimerRef.current)
+    abortRef.current?.abort()
+  }, [])
 
-  const search = useMutation({ mutationFn: (q: string) => api.adminImportSearch(q) })
-  const aiEnrich = useMutation({
-    mutationFn: (tracks: { title: string; artist: string; album: string }[]) =>
-      api.adminImportAIEnrich(tracks),
+  const isUrlOrId = isSpotifyTrackQuery(searchQuery)
+
+  const search = useQuery({
+    queryKey: ["admin-import-search", searchQuery, isUrlOrId],
+    queryFn: () =>
+      isUrlOrId
+        ? api.adminImportLookup(extractSpotifyTrackId(searchQuery))
+        : api.adminImportSearch(searchQuery),
+    enabled: searchQuery.length > 1,
+    staleTime: 60_000,
   })
+
+  // Existing catalog, for duplicate detection
+  const catalog = useQuery({
+    queryKey: ["admin-catalog-tracks"],
+    queryFn: () => api.adminListTracks(5000, 0),
+    staleTime: 5 * 60_000,
+  })
+  const catalogKeys = useMemo(() => {
+    const set = new Set<string>()
+    catalog.data?.tracks.forEach((t) => {
+      if (t.artist_name && t.title) set.add(catalogKey(t.artist_name, t.title))
+    })
+    return set
+  }, [catalog.data])
+
   const { data: genres } = useQuery({ queryKey: ["genres"], queryFn: () => api.listGenres() })
+
+  // slug → display name lookup
+  const genreName = useMemo(() => {
+    const m = new Map<string, string>()
+    genres?.genres.forEach((g) => m.set(g.slug, g.name))
+    return (slug: string | null | undefined) => (slug && m.get(slug)) || "Auto"
+  }, [genres])
+
+  // Single expanded track (null = all collapsed). The default is a compact row
+  // with inline genre/section/publish controls; full metadata is on demand.
+  const [expandedId, setExpandedId] = useState<string | null>(null)
 
   const searchResults: SearchResultTrack[] = search.data?.tracks ?? []
   const selected = Array.from(selectedTracks.values())
-  // canSearch is false on SSR (mounted=false) → disabled=true stable on both sides, no hydration mismatch
-  const canSearch = mounted && Boolean(query.trim()) && !search.isPending
+
+  function handleSearchInput(v: string) {
+    setSearchInput(v)
+    if (searchTimerRef.current) clearTimeout(searchTimerRef.current)
+    searchTimerRef.current = setTimeout(() => setSearchQuery(v.trim()), 400)
+  }
+
+  function runSearchNow() {
+    if (searchTimerRef.current) clearTimeout(searchTimerRef.current)
+    setSearchQuery(searchInput.trim())
+  }
 
   function toggleTrack(t: SearchResultTrack) {
     const next = new Map(selectedTracks)
     if (next.has(t.spotify_id)) {
       next.delete(t.spotify_id)
     } else {
-      next.set(t.spotify_id, { spotify_id: t.spotify_id, override_title: t.title, override_artist: t.artists[0], featured_artists: t.artists.slice(1).join(", "), album_title: t.album_name, publish: true, description: "" })
+      next.set(t.spotify_id, {
+        spotify_id: t.spotify_id,
+        override_title: t.title,
+        override_artist: t.artists[0],
+        featured_artists: t.artists.slice(1).join(", "),
+        album_title: t.album_name,
+        genre_id: autoGenreId(t, genres?.genres),
+        publish: true,
+        description: "",
+      })
     }
     setSelectedTracks(next)
   }
@@ -72,7 +176,16 @@ export default function AdminImportPage() {
     const allSelected = searchResults.every((t) => next.has(t.spotify_id))
     searchResults.forEach((t) => {
       if (allSelected) next.delete(t.spotify_id)
-      else if (!next.has(t.spotify_id)) next.set(t.spotify_id, { spotify_id: t.spotify_id, override_title: t.title, override_artist: t.artists[0], featured_artists: t.artists.slice(1).join(", "), album_title: t.album_name, publish: true, description: "" })
+      else if (!next.has(t.spotify_id)) next.set(t.spotify_id, {
+        spotify_id: t.spotify_id,
+        override_title: t.title,
+        override_artist: t.artists[0],
+        featured_artists: t.artists.slice(1).join(", "),
+        album_title: t.album_name,
+        genre_id: autoGenreId(t, genres?.genres),
+        publish: true,
+        description: "",
+      })
     })
     setSelectedTracks(next)
   }
@@ -83,6 +196,12 @@ export default function AdminImportPage() {
     setSelectedTracks(next)
   }
 
+  function applyToAll(field: keyof BulkImportItem, value: unknown) {
+    const next = new Map(selectedTracks)
+    for (const [id, item] of next) next.set(id, { ...item, [field]: value })
+    setSelectedTracks(next)
+  }
+
   async function enrichWithAI() {
     const tracks = Array.from(selectedTracks.values())
     if (!tracks.length) return
@@ -90,7 +209,7 @@ export default function AdminImportPage() {
     try {
       const payload = tracks.map((t) => {
         const orig = searchResults.find((r) => r.spotify_id === t.spotify_id)
-        return { title: t.override_title || orig?.title || "", artist: t.override_artist || orig?.artists[0] || "", album: t.album_title || orig?.album_name || "" }
+        return { title: t.override_title || orig?.title || "", artist: t.override_artist || orig?.artists[0] || "", album: t.album_title || orig?.album_name || "", genres: orig?.artist_genres }
       })
       const res = await api.adminImportAIEnrich(payload)
       if (res?.results) {
@@ -101,19 +220,35 @@ export default function AdminImportPage() {
             const updated = { ...next.get(item.spotify_id)! }
             if (r.description) updated.description = r.description
             if (r.genre) {
-              const match = genres?.genres.find((g) => g.name.toLowerCase() === r.genre.toLowerCase() || g.slug.toLowerCase() === r.genre.toLowerCase())
-              if (match) updated.genre_id = match.slug
+              // Fuzzy-match the AI genre label against the real DB genres
+              const slug = matchGenreLabel(r.genre, genres?.genres)
+              if (slug) updated.genre_id = slug
             }
             next.set(item.spotify_id, updated)
           }
         })
         setSelectedTracks(next)
+        toast("AI enrichment applied", "success")
       }
     } catch {
-      // ignore errors — button is best-effort
+      toast("AI enrichment failed", "error")
     } finally {
       setAiEnriching(false)
     }
+  }
+
+  // Re-apply Spotify artist genres to selected tracks that have no genre yet.
+  function autoFillGenres() {
+    const next = new Map(selectedTracks)
+    for (const [id, item] of next) {
+      if (item.genre_id) continue
+      const orig = searchResults.find((r) => r.spotify_id === id)
+      if (orig) {
+        const g = autoGenreId(orig, genres?.genres)
+        if (g) next.set(id, { ...item, genre_id: g })
+      }
+    }
+    setSelectedTracks(next)
   }
 
   async function startImport() {
@@ -133,11 +268,15 @@ export default function AdminImportPage() {
         body: JSON.stringify({ tracks }),
         signal: abort.signal,
       })
-      if (!res.ok || !res.body) throw new Error("Stream failed")
+      if (!res.ok || !res.body) {
+        const errBody = await res.json().catch(() => ({ error: "Stream failed" }))
+        throw new Error(errBody.error || "Stream failed")
+      }
       setLogs((p) => p.map((l) => l.index === 0 ? { ...l, status: "importing", startedAt: Date.now() } : l))
       const reader = res.body.getReader()
       const dec = new TextDecoder()
       let buf = ""
+      let finished = false
       while (true) {
         const { done, value } = await reader.read()
         if (done) break
@@ -145,20 +284,46 @@ export default function AdminImportPage() {
         const lines = buf.split("\n"); buf = lines.pop() ?? ""
         for (const line of lines) {
           if (!line.startsWith("data: ")) continue
-          const evt: ImportEvent = JSON.parse(line.slice(6))
-          if (evt.type === "done") { setImporting(false); setImportDone(true); setSelectedTracks(new Map()); break }
+          let evt: ImportEvent
+          try {
+            evt = JSON.parse(line.slice(6))
+          } catch {
+            continue
+          }
+          if (evt.type === "done") {
+            setImporting(false)
+            setImportDone(true)
+            finished = true
+            break
+          }
           setLogs((p) => p.map((l) => {
             if (l.index === evt.index) return { ...l, status: evt.type === "error" ? "error" : "done", error: evt.error, finishedAt: Date.now() }
             if (l.index === evt.index + 1 && l.status === "pending") return { ...l, status: "importing", startedAt: Date.now() }
             return l
           }))
         }
+        if (finished) break
+      }
+      if (finished) {
+        queryClient.invalidateQueries({ queryKey: ["admin-catalog-tracks"] })
       }
     } catch (err: unknown) {
       if ((err as Error)?.name !== "AbortError") setLogs((p) => p.map((l) => l.status !== "done" ? { ...l, status: "error", error: "Connection lost" } : l))
       setImporting(false)
     }
   }
+
+  function clearAll() {
+    setSelectedTracks(new Map())
+    setLogs([])
+    setImportDone(false)
+    setImporting(false)
+    setSearchInput("")
+    setSearchQuery("")
+  }
+
+  const doneCount = logs.filter((l) => l.status === "done").length
+  const errorCount = logs.filter((l) => l.status === "error").length
 
   return (
     <div className="fade-in">
@@ -182,58 +347,86 @@ export default function AdminImportPage() {
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
           </span>
           <input
-            type="text" value={query} onChange={(e) => setQuery(e.target.value)}
-            onKeyDown={(e) => { if (e.key === "Enter" && canSearch) search.mutate(query.trim()) }}
-            placeholder="Song name, artist, or Spotify URL..."
-            style={{ ...inputBase, padding: "9px 30px 9px 30px", borderRadius: "8px" }}
-            onFocus={(e) => (e.currentTarget.style.borderColor = "var(--active-fg)")}
-            onBlur={(e) => (e.currentTarget.style.borderColor = "var(--border)")}
+            type="text"
+            value={searchInput}
+            onChange={(e) => handleSearchInput(e.target.value)}
+            onKeyDown={(e) => { if (e.key === "Enter") runSearchNow() }}
+            placeholder="Song name, artist, or paste a Spotify track URL / ID..."
+            className="admin-search"
+            style={{ padding: "10px 30px 10px 34px" }}
+            aria-label="Search Spotify"
           />
-          {query && (
-            <button onClick={() => setQuery("")} style={{ position: "absolute", right: 8, top: "50%", transform: "translateY(-50%)", background: "none", border: "none", color: "var(--muted-foreground)", cursor: "pointer", padding: 0, lineHeight: 0 }}>
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.8" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          {searchInput && (
+            <button onClick={() => { setSearchInput(""); setSearchQuery("") }} aria-label="Clear search" className="admin-icon-btn" style={{ position: "absolute", right: 6, top: "50%", transform: "translateY(-50%)", width: 24, height: 24 }}>
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.8" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
             </button>
           )}
         </div>
         <button
-          onClick={() => search.mutate(query.trim())}
-          disabled={!canSearch}
-          suppressHydrationWarning
-          style={{ borderRadius: "8px", background: canSearch ? "var(--brand)" : "var(--border)", color: canSearch ? "white" : "var(--muted-foreground)", padding: "0 16px", fontSize: "13px", fontWeight: 600, border: "none", cursor: canSearch ? "pointer" : "not-allowed", transition: "background 0.15s, color 0.15s", whiteSpace: "nowrap" }}
+          onClick={runSearchNow}
+          disabled={!searchInput.trim() || search.isFetching}
+          className="admin-btn-primary"
+          style={{ whiteSpace: "nowrap" }}
         >
-          {search.isPending ? "Searching…" : "Search"}
+          {search.isFetching ? "Searching…" : "Search"}
         </button>
       </div>
 
+      {/* Search hint for URL/ID input */}
+      {isUrlOrId && searchQuery.length > 1 && !search.isFetching && (
+        <div style={{ fontSize: "12px", color: "var(--muted-foreground)", marginBottom: "12px" }}>
+          Detected a Spotify track reference — showing the matching track directly.
+        </div>
+      )}
+
       {/* Skeleton */}
-      {search.isPending && (
+      {search.isFetching && (
         <div style={{ display: "flex", flexDirection: "column", gap: "8px", marginBottom: "20px" }}>
           {[0,1,2].map((i) => <div key={i} className="skeleton" style={{ height: "60px", borderRadius: "10px" }} />)}
         </div>
       )}
 
+      {/* Search error */}
+      {search.isError && !search.isFetching && (
+        <div style={{ marginBottom: "16px", padding: "14px 16px", borderRadius: "10px", background: "var(--brand-bg)", color: "#c53030", fontSize: "13px", fontWeight: 500, border: "1px solid var(--brand-bg)" }}>
+          Search failed: {(search.error as Error)?.message || "Something went wrong"}
+        </div>
+      )}
+
       {/* Search results */}
-      {searchResults.length > 0 && !search.isPending && (
-        <div style={card}>
+      {!search.isFetching && searchQuery.length > 1 && search.isSuccess && searchResults.length === 0 && (
+        <div className="admin-empty">
+          No tracks found for <strong>{searchQuery}</strong>. Try a different name, or paste a full Spotify track URL.
+        </div>
+      )}
+
+      {searchResults.length > 0 && !search.isFetching && (
+        <div style={{ background: "var(--card-bg)", border: "1px solid var(--border)", borderRadius: "14px", padding: "20px", boxShadow: "0 4px 16px rgba(0,0,0,0.03)", marginBottom: "24px" }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "12px" }}>
             <span style={{ fontSize: "13px", fontWeight: 700, color: "var(--foreground)" }}>
               Results <span style={{ color: "var(--muted-foreground)", fontWeight: 400 }}>({searchResults.length})</span>
             </span>
-            <button onClick={toggleAll} style={{ background: "none", border: "none", color: "var(--active-fg)", fontSize: "12px", fontWeight: 600, cursor: "pointer", padding: "3px 6px", borderRadius: "5px" }}
-              onMouseEnter={(e) => (e.currentTarget.style.background = "var(--hover-bg)")}
-              onMouseLeave={(e) => (e.currentTarget.style.background = "none")}
-            >
+            <button onClick={toggleAll} className="admin-nav-link" style={{ background: "none", border: "none", color: "var(--active-fg)", fontSize: "12px", fontWeight: 600, cursor: "pointer", padding: "3px 6px", borderRadius: "5px" }}>
               {searchResults.every((t) => selectedTracks.has(t.spotify_id)) ? "Deselect All" : "Select All"}
             </button>
           </div>
           <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
             {searchResults.map((t) => {
               const sel = selectedTracks.has(t.spotify_id)
+              const dup = catalogKeys.has(catalogKey(t.artists[0], t.title))
               return (
-                <div key={t.spotify_id} onClick={() => toggleTrack(t)}
-                  style={{ display: "flex", alignItems: "center", gap: "12px", padding: "10px 12px", borderRadius: "8px", border: `1.5px solid ${sel ? "var(--active-fg)" : "var(--border)"}`, background: sel ? "var(--active-bg)" : "transparent", cursor: "pointer", transition: "all 0.12s" }}
-                  onMouseEnter={(e) => { if (!sel) e.currentTarget.style.borderColor = "var(--muted-foreground)" }}
-                  onMouseLeave={(e) => { if (!sel) e.currentTarget.style.borderColor = "var(--border)" }}
+                <button
+                  key={t.spotify_id}
+                  type="button"
+                  onClick={() => toggleTrack(t)}
+                  aria-pressed={sel}
+                  style={{
+                    display: "flex", alignItems: "center", gap: "12px", padding: "10px 12px", borderRadius: "8px",
+                    border: `1.5px solid ${sel ? "var(--active-fg)" : "var(--border)"}`,
+                    background: sel ? "var(--active-bg)" : "transparent",
+                    cursor: "pointer", transition: "all 0.12s", textAlign: "left", fontFamily: "inherit",
+                    opacity: dup && !sel ? 0.55 : 1, width: "100%",
+                  }}
                 >
                   {t.cover_url
                     ? <img src={t.cover_url} alt="" style={{ width: 40, height: 40, borderRadius: "5px", objectFit: "cover", flexShrink: 0 }} />
@@ -243,10 +436,15 @@ export default function AdminImportPage() {
                     <div style={{ fontSize: "13px", fontWeight: 600, color: "var(--foreground)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{t.title}</div>
                     <div style={{ fontSize: "11px", color: "var(--muted-foreground)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{t.artists.join(", ")} · {t.album_name}</div>
                   </div>
-                  <div style={{ width: 18, height: 18, borderRadius: "50%", border: `2px solid ${sel ? "var(--active-fg)" : "#b0b0b8"}`, background: sel ? "var(--active-fg)" : "transparent", flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                  {dup && (
+                    <span className="admin-pill" style={{ background: "rgba(234,179,8,0.15)", color: "rgb(180,130,10)", flexShrink: 0 }} title="Already in the catalog">
+                      In catalog
+                    </span>
+                  )}
+                  <span style={{ width: 18, height: 18, borderRadius: "50%", border: `2px solid ${sel ? "var(--active-fg)" : "#b0b0b8"}`, background: sel ? "var(--active-fg)" : "transparent", flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center" }}>
                     {sel && <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>}
-                  </div>
-                </div>
+                  </span>
+                </button>
               )
             })}
           </div>
@@ -255,120 +453,156 @@ export default function AdminImportPage() {
 
       {/* Metadata editor */}
       {selected.length > 0 && (
-        <div style={{ ...card, marginBottom: 0 }}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "12px" }}>
+        <div style={{ background: "var(--card-bg)", border: "1px solid var(--border)", borderRadius: "14px", padding: "20px", boxShadow: "0 4px 16px rgba(0,0,0,0.03)" }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "12px", flexWrap: "wrap", gap: 10 }}>
             <div style={{ fontSize: "13px", fontWeight: 700, color: "var(--foreground)" }}>
               Configure — {selected.length} track{selected.length > 1 ? "s" : ""}
             </div>
-            <button onClick={enrichWithAI} disabled={aiEnriching}
-              style={{ display: "inline-flex", alignItems: "center", gap: "5px", background: aiEnriching ? "var(--border)" : "var(--brand)", color: aiEnriching ? "var(--muted-foreground)" : "white", border: "none", borderRadius: "6px", padding: "5px 10px", fontSize: "11px", fontWeight: 600, cursor: aiEnriching ? "not-allowed" : "pointer", transition: "background 0.15s" }}
+            <button onClick={enrichWithAI} disabled={aiEnriching || importing}
+              className="admin-btn-primary"
+              style={{ display: "inline-flex", alignItems: "center", gap: "5px", padding: "5px 10px", fontSize: "11px" }}
             >
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2l2.5 6.5L21 9l-5 4.5 1.5 7L12 16l-5.5 4.5L8 13.5 3 9l6.5-.5z"/></svg>
               {aiEnriching ? "Filling…" : "Auto-fill with AI"}
             </button>
           </div>
 
-          <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+          {/* Bulk apply-to-all */}
+          {selected.length > 1 && (
+            <div style={{ display: "flex", alignItems: "center", gap: "10px", padding: "10px 14px", borderRadius: "10px", border: "1px dashed var(--border)", background: "var(--background)", marginBottom: "12px", flexWrap: "wrap" }}>
+              <span style={{ fontSize: "12px", fontWeight: 600, color: "var(--muted-foreground)" }}>Apply to all:</span>
+              <select value="" onChange={(e) => { if (e.target.value !== "") applyToAll("section", e.target.value); e.target.value = "" }} className="admin-input" style={{ width: "auto", padding: "6px 10px", fontSize: "12px", cursor: "pointer" }} aria-label="Set section for all selected tracks">
+                <option value="">Section…</option>
+                {SECTIONS.filter((s) => s.key).map((s) => <option key={s.key} value={s.key}>{s.label}</option>)}
+              </select>
+              <select value="" onChange={(e) => { if (e.target.value !== "") applyToAll("genre_id", e.target.value); e.target.value = "" }} className="admin-input" style={{ width: "auto", padding: "6px 10px", fontSize: "12px", cursor: "pointer" }} aria-label="Set genre for all selected tracks">
+                <option value="">Genre…</option>
+                {genres?.genres.map((g) => <option key={g.id} value={g.slug}>{g.name}</option>)}
+              </select>
+              <button onClick={() => applyToAll("publish", true)} className="admin-btn-secondary" style={{ padding: "6px 12px", fontSize: "12px" }}>Publish all</button>
+              <button onClick={() => applyToAll("publish", false)} className="admin-btn-secondary" style={{ padding: "6px 12px", fontSize: "12px" }}>Draft all</button>
+              <button onClick={autoFillGenres} className="admin-btn-secondary" style={{ padding: "6px 12px", fontSize: "12px" }} title="Use each track's Spotify artist genres where no genre is set">Auto-fill genres</button>
+            </div>
+          )}
+
+          <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
             {selected.map((item) => {
               const orig = searchResults.find((r) => r.spotify_id === item.spotify_id)
+              const expanded = expandedId === item.spotify_id
+              const isDup = catalogKeys.has(catalogKey(orig?.artists[0] || item.override_artist || "", orig?.title || item.override_title || ""))
               return (
-                <div key={item.spotify_id} style={{ border: "1px solid var(--border)", borderRadius: "8px", padding: "12px", background: "var(--background)", position: "relative" }}>
-                  {/* Remove button */}
-                  <button onClick={() => { const n = new Map(selectedTracks); n.delete(item.spotify_id!); setSelectedTracks(n) }}
-                    style={{ position: "absolute", right: 8, top: 8, background: "none", border: "none", color: "var(--muted-foreground)", cursor: "pointer", padding: 2, lineHeight: 0 }}
-                    onMouseEnter={(e) => (e.currentTarget.style.color = "var(--brand)")}
-                    onMouseLeave={(e) => (e.currentTarget.style.color = "var(--muted-foreground)")}
-                  >
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-                  </button>
-
-                  {/* Identity row */}
-                  <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "10px", paddingRight: "20px" }}>
-                    {orig?.cover_url && <img src={orig.cover_url} alt="" style={{ width: 28, height: 28, borderRadius: "3px", objectFit: "cover", flexShrink: 0 }} />}
-                    <span style={{ fontSize: "12px", fontWeight: 600, color: "var(--foreground)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{orig?.title ?? item.spotify_id}</span>
-                  </div>
-
-                  {/* Fields — 3-col then 2-col on last row */}
-                  <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: "8px" }}>
-                    <Field title="Title">
-                      <input type="text" value={item.override_title ?? ""} onChange={(e) => updateTrack(item.spotify_id!, "override_title", e.target.value)} style={inputBase} />
-                    </Field>
-                    <Field title="Description">
-                      <textarea rows={2} value={item.description ?? ""} onChange={(e) => updateTrack(item.spotify_id!, "description", e.target.value)} placeholder="SEO description — tell the story behind the track" style={{ ...inputBase, resize: "vertical" }} />
-                    </Field>
-                    <Field title="Primary Artist">
-                      <input type="text" value={item.override_artist ?? ""} onChange={(e) => updateTrack(item.spotify_id!, "override_artist", e.target.value)} style={inputBase} />
-                    </Field>
-                    <Field title="Genre">
-                      <select value={item.genre_id ?? ""} onChange={(e) => updateTrack(item.spotify_id!, "genre_id", e.target.value || null)} style={{ ...inputBase, cursor: "pointer" }}>
-                        <option value="">Auto</option>
-                        {genres?.genres.map((g) => <option key={g.id} value={g.slug}>{g.name}</option>)}
-                      </select>
-                    </Field>
-                    <Field title="Collaborators">
-                      <input type="text" value={item.featured_artists ?? ""} onChange={(e) => updateTrack(item.spotify_id!, "featured_artists", e.target.value)} placeholder="e.g. Slapdee, Chef 187" style={inputBase} />
-                    </Field>
-                    <Field title="Album">
-                      <input type="text" value={item.album_title ?? ""} onChange={(e) => updateTrack(item.spotify_id!, "album_title", e.target.value)} placeholder="Single / Album" style={inputBase} />
-                    </Field>
-                    <Field title="Section">
-                      <select value={item.section ?? ""} onChange={(e) => updateTrack(item.spotify_id!, "section", e.target.value)} style={{ ...inputBase, cursor: "pointer" }}>
-                        <option value="">None</option>
-                        <option value="best_new_songs">Best New Songs</option>
-                        <option value="new_this_week">New This Week</option>
-                        <option value="zed_hip_hop">Zambian Hip Hop</option>
-                        <option value="zed_oldies">Zed Oldies</option>
-                        <option value="zed_afrobeats">Zambian Afrobeats</option>
-                        <option value="zed_gospel">Zambian Gospel</option>
-                        <option value="zed_rnb">Zambian R&B</option>
-                        <option value="zed_dancehall">Zambian Dancehall</option>
-                        <option value="zed_kalindula">Kalindula</option>
-                        <option value="zed_bangers">Zed Bangers</option>
-                        <option value="zed_collabos">Big Collabos</option>
-                        <option value="fresh_voices">Fresh Voices</option>
-                        <option value="throwback_thursday">Throwback Thursday</option>
-                      </select>
-                    </Field>
-                    <div style={{ display: "flex", alignItems: "flex-end", paddingBottom: "2px" }}>
-                      <label style={{ display: "inline-flex", alignItems: "center", gap: "6px", cursor: "pointer", fontSize: "12px", fontWeight: 600, color: "var(--foreground)" }}>
-                        <input type="checkbox" checked={item.publish ?? true} onChange={(e) => updateTrack(item.spotify_id!, "publish", e.target.checked)} style={{ width: 14, height: 14, accentColor: "var(--active-fg)" }} />
-                        Publish
-                      </label>
+                <div key={item.spotify_id} style={{ border: "1px solid var(--border)", borderRadius: "8px", padding: expanded ? "12px" : "8px 12px", background: "var(--background)" }}>
+                  {/* Compact row */}
+                  <div style={{ display: "flex", alignItems: "center", gap: "10px", flexWrap: "wrap" }}>
+                    {orig?.cover_url && <img src={orig.cover_url} alt="" style={{ width: 36, height: 36, borderRadius: "5px", objectFit: "cover", flexShrink: 0 }} />}
+                    <div style={{ flex: "1 1 140px", minWidth: 0 }}>
+                      <div style={{ fontSize: "12px", fontWeight: 600, color: "var(--foreground)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{orig?.title ?? item.override_title ?? item.spotify_id}</div>
+                      <div style={{ fontSize: "11px", color: "var(--muted-foreground)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{orig?.artists.join(", ") || item.override_artist}{isDup ? "  ·  already in catalog" : ""}</div>
                     </div>
+                    {/* Inline quick controls */}
+                    <select
+                      value={item.genre_id ?? ""}
+                      onChange={(e) => updateTrack(item.spotify_id!, "genre_id", e.target.value || null)}
+                      className="admin-input"
+                      aria-label={`Genre for ${orig?.title ?? item.spotify_id}`}
+                      title={genreName(item.genre_id)}
+                      style={{ width: "auto", maxWidth: 150, padding: "5px 8px", fontSize: "12px", cursor: "pointer" }}
+                    >
+                      <option value="">Auto</option>
+                      {genres?.genres.map((g) => <option key={g.id} value={g.slug}>{g.name}</option>)}
+                    </select>
+                    <select
+                      value={item.section ?? ""}
+                      onChange={(e) => updateTrack(item.spotify_id!, "section", e.target.value)}
+                      className="admin-input"
+                      aria-label={`Section for ${orig?.title ?? item.spotify_id}`}
+                      style={{ width: "auto", maxWidth: 160, padding: "5px 8px", fontSize: "12px", cursor: "pointer" }}
+                    >
+                      <option value="">Section…</option>
+                      {SECTIONS.map((s) => <option key={s.key} value={s.key}>{s.label}</option>)}
+                    </select>
+                    <label style={{ display: "inline-flex", alignItems: "center", gap: "4px", cursor: "pointer", fontSize: "12px", fontWeight: 600, color: "var(--foreground)", whiteSpace: "nowrap" }}>
+                      <input type="checkbox" checked={item.publish ?? true} onChange={(e) => updateTrack(item.spotify_id!, "publish", e.target.checked)} style={{ width: 13, height: 13, accentColor: "var(--active-fg)" }} />
+                      Publish
+                    </label>
+                    {/* Expand toggle */}
+                    <button
+                      onClick={() => setExpandedId(expanded ? null : item.spotify_id!)}
+                      aria-expanded={expanded}
+                      aria-label={expanded ? `Collapse ${orig?.title ?? item.spotify_id}` : `Edit details for ${orig?.title ?? item.spotify_id}`}
+                      className="admin-icon-btn"
+                      style={{ width: 26, height: 26, color: "var(--muted-foreground)", transition: "transform 0.15s", transform: expanded ? "rotate(180deg)" : "none" }}
+                    >
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+                    </button>
+                    <button onClick={() => { const n = new Map(selectedTracks); n.delete(item.spotify_id!); setSelectedTracks(n) }} aria-label={`Remove ${orig?.title ?? item.spotify_id}`}
+                      className="admin-icon-btn" style={{ width: 26, height: 26, color: "var(--muted-foreground)" }}>
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                    </button>
                   </div>
+
+                  {/* Expanded full metadata */}
+                  {expanded && (
+                    <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: "8px", marginTop: "12px", paddingTop: "12px", borderTop: "1px dashed var(--border)" }}>
+                      <Field title="Title">
+                        <input type="text" value={item.override_title ?? ""} onChange={(e) => updateTrack(item.spotify_id!, "override_title", e.target.value)} className="admin-input" style={{ padding: "7px 10px", fontSize: "13px" }} />
+                      </Field>
+                      <Field title="Primary Artist">
+                        <input type="text" value={item.override_artist ?? ""} onChange={(e) => updateTrack(item.spotify_id!, "override_artist", e.target.value)} className="admin-input" style={{ padding: "7px 10px", fontSize: "13px" }} />
+                      </Field>
+                      <Field title="Collaborators">
+                        <input type="text" value={item.featured_artists ?? ""} onChange={(e) => updateTrack(item.spotify_id!, "featured_artists", e.target.value)} placeholder="e.g. Slapdee, Chef 187" className="admin-input" style={{ padding: "7px 10px", fontSize: "13px" }} />
+                      </Field>
+                      <Field title="Album">
+                        <input type="text" value={item.album_title ?? ""} onChange={(e) => updateTrack(item.spotify_id!, "album_title", e.target.value)} placeholder="Single / Album" className="admin-input" style={{ padding: "7px 10px", fontSize: "13px" }} />
+                      </Field>
+                      <Field title="Description">
+                        <textarea rows={3} value={item.description ?? ""} onChange={(e) => updateTrack(item.spotify_id!, "description", e.target.value)} placeholder="SEO description — tell the story behind the track" className="admin-input" style={{ padding: "7px 10px", fontSize: "13px", resize: "vertical", gridColumn: "1 / -1" }} />
+                      </Field>
+                    </div>
+                  )}
                 </div>
               )
             })}
           </div>
 
           {/* Import button row */}
-          <div style={{ marginTop: "16px", display: "flex", gap: "8px" }}>
+          <div style={{ marginTop: "16px", display: "flex", gap: "8px", flexWrap: "wrap" }}>
             <button onClick={startImport} disabled={importing}
-              style={{ flex: 1, background: importing ? "var(--border)" : "var(--brand)", color: importing ? "var(--muted-foreground)" : "white", border: "none", borderRadius: "8px", padding: "12px", fontSize: "13px", fontWeight: 600, cursor: importing ? "not-allowed" : "pointer", transition: "background 0.15s", boxShadow: importing ? "none" : "0 4px 12px var(--brand-shadow)" }}
+              className="admin-btn-primary"
+              style={{ flex: 1, minWidth: 200 }}
             >
-              {importing ? `Importing… (${logs.filter(l => l.status === "done" || l.status === "error").length} / ${logs.length})` : `Import ${selected.length} Track${selected.length > 1 ? "s" : ""}`}
+              {importing ? `Importing… (${doneCount + errorCount} / ${logs.length})` : `Import ${selected.length} Track${selected.length > 1 ? "s" : ""}`}
             </button>
             {importing && (
-              <button onClick={() => { abortRef.current?.abort(); setImporting(false) }}
-                style={{ padding: "0 14px", borderRadius: "8px", border: "1px solid var(--border)", background: "none", color: "var(--muted-foreground)", fontSize: "12px", fontWeight: 600, cursor: "pointer" }}
-              >
+              <button onClick={() => { abortRef.current?.abort(); setImporting(false) }} className="admin-btn-secondary">
                 Cancel
+              </button>
+            )}
+            {importDone && (
+              <button onClick={clearAll} className="admin-btn-secondary">
+                Clear & start over
               </button>
             )}
           </div>
 
           {/* Progress */}
           {logs.length > 0 && (() => {
-            const done = logs.filter(l => l.status === "done" || l.status === "error").length
-            const pct = Math.round((done / logs.length) * 100)
+            const pct = logs.length ? Math.round(((doneCount + errorCount) / logs.length) * 100) : 0
             return (
               <div style={{ marginTop: "14px" }}>
-                <div style={{ display: "flex", justifyContent: "space-between", fontSize: "11px", color: "var(--muted-foreground)", marginBottom: "5px" }}>
-                  <span>{importDone ? "Import complete" : `Processing ${done + 1} of ${logs.length}…`}</span>
-                  <span>{pct}%</span>
-                </div>
+                {importDone ? (
+                  <div style={{ fontSize: "13px", fontWeight: 600, color: errorCount ? "#c53030" : "#22543d", marginBottom: "8px" }}>
+                    {errorCount ? `Import finished — ${doneCount} done, ${errorCount} failed` : `Import complete — all ${doneCount} track${doneCount === 1 ? "" : "s"} imported`}
+                  </div>
+                ) : (
+                  <div style={{ display: "flex", justifyContent: "space-between", fontSize: "11px", color: "var(--muted-foreground)", marginBottom: "5px" }}>
+                    <span>Processing {Math.min(doneCount + errorCount + 1, logs.length)} of {logs.length}…</span>
+                    <span>{pct}%</span>
+                  </div>
+                )}
                 <div style={{ height: "5px", borderRadius: "99px", background: "var(--border)", overflow: "hidden", marginBottom: "10px" }}>
-                  <div style={{ height: "100%", width: `${pct}%`, borderRadius: "99px", background: importDone ? "#22c55e" : "var(--brand)", transition: "width 0.35s ease" }} />
+                  <div style={{ height: "100%", width: `${pct}%`, borderRadius: "99px", background: errorCount ? "#c53030" : "#22c55e", transition: "width 0.35s ease" }} />
                 </div>
                 <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
                   {logs.map((log) => {

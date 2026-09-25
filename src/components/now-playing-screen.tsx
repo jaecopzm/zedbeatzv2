@@ -14,6 +14,7 @@ import { PauseIcon as PauseBold } from "@solar-icons/react/bold/pause"
 import { HeartIcon as HeartLinear } from "@solar-icons/react/linear/heart"
 import { HeartIcon as HeartBold } from "@solar-icons/react/bold/heart"
 import { ArrowLeftIcon as BackLinear } from "@solar-icons/react/linear/arrow-left"
+import { PremiumTrackMenu } from "@/components/track-menu"
 
 function fmt(sec: number) {
   const s = Math.floor(sec)
@@ -157,7 +158,11 @@ export function NowPlayingScreen() {
           <BackLinear size={18} color="rgba(255,255,255,0.8)" strokeWidth={2} />
         </button>
         <p style={{ margin: 0, fontSize: isMobile ? "11px" : "13px", fontWeight: 600, letterSpacing: "0.06em", textTransform: "uppercase", color: "rgba(255,255,255,0.45)" }}>Now Playing</p>
-        <div style={{ width: isMobile ? "32px" : "36px" }} />
+        {track ? (
+          <PremiumTrackMenu track={{ ...track, artist_id: track.artist_id || "" }} />
+        ) : (
+          <div style={{ width: isMobile ? "32px" : "36px" }} />
+        )}
       </div>
 
       {/* Tabs */}
@@ -302,7 +307,9 @@ export function NowPlayingScreen() {
       )}
 
       {/* Centered content */}
-      <div className="np-content" style={{ position: "relative", zIndex: 5, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", flex: 1, width: "100%", maxWidth: isMobile ? "100%" : "440px", margin: "0 auto", padding: isMobile ? "8px 16px 24px" : "16px 24px 32px", gap: "0" }}>
+      <div className="np-content" style={{ position: "relative", zIndex: 5, display: "flex", flexDirection: "column", alignItems: "center", flex: 1, width: "100%", maxWidth: isMobile ? "100%" : "440px", margin: "0 auto", padding: isMobile ? "0 24px calc(12px + env(safe-area-inset-bottom, 0px))" : "16px 24px 32px", justifyContent: isMobile ? "space-between" : "center" }}>
+        {/* Top section: artwork + info */}
+        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", width: "100%", flex: isMobile ? 1 : 0, justifyContent: isMobile ? "center" : "flex-start" }}>
         {/* Artwork */}
         <div style={{ position: "relative", marginBottom: isMobile ? "16px" : "24px" }}>
           {track?.cover_url && (
@@ -342,6 +349,7 @@ export function NowPlayingScreen() {
             )}
             </span>
           </button>
+        </div>
         </div>
 
         {/* Scrubber */}

@@ -65,8 +65,17 @@ export default async function ArtistPage({ params }: Props) {
     image: artist.photo_url || undefined,
     description: artist.bio || undefined,
     url: `${SITE_URL}/artist/${id}`,
+    ...(Array.isArray(artist.genre_tags) && artist.genre_tags.length > 0
+      ? { genre: artist.genre_tags }
+      : {}),
     ...(typeof artist.follower_count === "number"
-      ? { numberOfFollowers: artist.follower_count }
+      ? {
+          interactionStatistic: {
+            "@type": "InteractionCounter",
+            interactionType: "FollowAction",
+            userInteractionCount: artist.follower_count,
+          },
+        }
       : {}),
     ...(typeof artist.track_count === "number"
       ? { numberOfTracks: artist.track_count }

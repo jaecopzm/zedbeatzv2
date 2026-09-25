@@ -310,27 +310,6 @@ export default function TrackPage() {
           />
         )}
         <div style={{ position: "relative", zIndex: 1 }}>
-          <div className="track-back-wrap" style={{ padding: "52px 20px 0", maxWidth: 1200, margin: "0 auto" }}>
-            <button
-              onClick={() => router.back()}
-              aria-label="Go back"
-              style={{
-                display: "inline-flex", alignItems: "center", gap: 6,
-                background: "rgba(0,0,0,0.25)", border: "none", borderRadius: 20,
-                padding: "7px 14px 7px 10px", color: "rgba(255,255,255,0.9)",
-                fontSize: 13, fontWeight: 600, cursor: "pointer",
-                backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)",
-                transition: "background 0.15s",
-              }}
-              onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(0,0,0,0.4)" }}
-              onMouseLeave={(e) => { e.currentTarget.style.background = "rgba(0,0,0,0.25)" }}
-            >
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round">
-                <path d="M15 18l-6-6 6-6" />
-              </svg>
-              Back
-            </button>
-          </div>
 
           <div className="track-hero">
             <div className="track-hero-art" style={{ position: "relative" }}>

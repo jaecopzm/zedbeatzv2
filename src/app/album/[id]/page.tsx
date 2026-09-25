@@ -9,12 +9,8 @@ import { PremiumTrackMenu } from "@/components/track-menu"
 import { SectionHeading } from "@/components/artist/ui"
 import type { Album, Track } from "@/types"
 import { useState, useEffect } from "react"
-
-function formatDuration(sec: number) {
-  const m = Math.floor(sec / 60)
-  const s = Math.floor(sec % 60)
-  return `${m}:${s.toString().padStart(2, "0")}`
-}
+import { formatDuration } from "@/lib/utils"
+import { toast } from "@/lib/toast-store"
 
 function formatCount(n: number) {
   if (n >= 1_000_000) return (n / 1_000_000).toFixed(1) + "M"
@@ -36,6 +32,7 @@ export default function AlbumPage() {
   const { id } = useParams<{ id: string }>()
   const router = useRouter()
   const { play, playQueue, currentTrack, isPlaying, togglePlay } = usePlayerStore()
+  const playLoading = usePlayerStore((s) => s._loading)
   const [hoveredTrackId, setHoveredTrackId] = useState<string | null>(null)
   const [isMobile, setIsMobile] = useState(false)
 
@@ -47,7 +44,7 @@ export default function AlbumPage() {
     return () => mq.removeEventListener("change", handler)
   }, [])
 
-  const { data: album, isLoading } = useQuery({
+  const { data: album, isLoading, isError } = useQuery({
     queryKey: ["album", id],
     queryFn: () => api.getAlbum(id),
     enabled: !!id,
@@ -166,6 +163,18 @@ export default function AlbumPage() {
     )
   }
 
+  if (isError) {
+    return (
+      <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", minHeight: "60vh", gap: 16, color: "var(--muted-foreground)", textAlign: "center", padding: 24 }}>
+        <div style={{ width: 56, height: 56, borderRadius: "50%", background: "rgba(239,68,68,0.12)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#ef4444" strokeWidth="1.8" strokeLinecap="round"><circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="12" /><line x1="12" y1="16" x2="12.01" y2="16" /></svg>
+        </div>
+        <p style={{ fontSize: 16, fontWeight: 500 }}>Failed to load album</p>
+        <button onClick={() => router.refresh()} style={{ padding: "8px 20px", borderRadius: 20, border: "1.5px solid var(--border)", background: "transparent", cursor: "pointer", fontSize: 14, color: "var(--foreground)" }}>Try again</button>
+      </div>
+    )
+  }
+
   if (!album) {
     return (
       <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", minHeight: "60vh", gap: 16, color: "var(--muted-foreground)" }}>
@@ -178,6 +187,17 @@ export default function AlbumPage() {
 
   return (
     <div className="fade-in" style={{ minHeight: "100%", background: "var(--content-bg)" }}>
+      <style>{`
+        @media (max-width: 640px) {
+          .alb-tl-header { grid-template-columns: 28px 1fr 40px !important; padding: 6px 8px !important; }
+          .alb-tl-header span:nth-child(3),
+          .alb-tl-header span:nth-child(4) { display: none !important; }
+          .alb-tl-row { grid-template-columns: 28px 1fr 40px !important; padding: 10px 8px !important; }
+          .alb-tl-row .alb-tl-thumb { width: 36px !important; height: 36px !important; }
+          .alb-tl-plays,
+          .alb-tl-duration { display: none !important; }
+        }
+      `}</style>
 
       {/* ══ HERO ══ */}
       <div style={{ position: "relative", overflow: "hidden" }}>
@@ -282,7 +302,7 @@ export default function AlbumPage() {
             </p>
 
             {/* Stats row */}
-            <div style={{ display: "flex", gap: isMobile ? 8 : 20, marginBottom: isMobile ? 12 : 24, flexWrap: "wrap", justifyContent: isMobile ? "center" : "flex-start" }}>
+            <div style={{ display: "flex", gap: isMobile ? 8 : 20, marginBottom: isMobile ? 12 : 24, flexWrap: isMobile ? "nowrap" : "wrap", overflow: isMobile ? "hidden" : "visible", justifyContent: isMobile ? "center" : "flex-start" }}>
               <StatPill icon={<TrackIcon size={isMobile ? 12 : 14} />} value={`${tracks.length} track${tracks.length !== 1 ? "s" : ""}`} compact={isMobile} />
               {totalDuration > 0 && (
                 <StatPill icon={<ClockIcon size={isMobile ? 12 : 14} />} value={formatDuration(totalDuration)} compact={isMobile} />
@@ -297,32 +317,36 @@ export default function AlbumPage() {
               {tracks.length > 0 && (
                 <button
                   onClick={handlePlayAll}
+                  disabled={!!playLoading}
                   style={{
                     display: "flex", alignItems: "center", gap: 10,
                     padding: isMobile ? "8px 18px" : "12px 28px",
                     borderRadius: 999,
                     border: "1.5px solid #fff",
-                    background: "rgba(255,255,255,0.95)",
+                    background: playLoading ? "rgba(255,255,255,0.6)" : "rgba(255,255,255,0.95)",
                     color: "#1d1d1f",
                     fontSize: isMobile ? 13 : 15,
                     fontWeight: 700,
-                    cursor: "pointer",
+                    cursor: playLoading ? "default" : "pointer",
                     boxShadow: "0 4px 20px rgba(0,0,0,0.25)",
-                    transition: "transform 0.12s ease, box-shadow 0.12s ease",
+                    transition: "transform 0.12s ease, box-shadow 0.12s ease, background 0.15s",
                     flexShrink: 0,
                   }}
-                  onMouseEnter={(e) => { e.currentTarget.style.transform = "scale(1.03)"; e.currentTarget.style.boxShadow = "0 6px 24px rgba(0,0,0,0.3)" }}
+                  onMouseEnter={(e) => { if (!playLoading) { e.currentTarget.style.transform = "scale(1.03)"; e.currentTarget.style.boxShadow = "0 6px 24px rgba(0,0,0,0.3)" } }}
                   onMouseLeave={(e) => { e.currentTarget.style.transform = "scale(1)"; e.currentTarget.style.boxShadow = "0 4px 20px rgba(0,0,0,0.25)" }}
                 >
-                  {anyTrackPlaying
-                    ? <><PauseIconSolid size={16} /> Pause</>
-                    : <><PlayIconSolid size={16} /> Play All</>
-                  }
+                  {playLoading ? (
+                    <span style={{ width: 16, height: 16, borderRadius: "50%", border: "2px solid currentColor", borderTopColor: "transparent", animation: "app-spin 0.6s linear infinite", display: "inline-block" }} />
+                  ) : anyTrackPlaying ? (
+                    <><PauseIconSolid size={16} /> Pause</>
+                  ) : (
+                    <><PlayIconSolid size={16} /> Play All</>
+                  )}
                 </button>
               )}
 
               <button
-                onClick={() => { navigator.clipboard.writeText(`${window.location.origin}/album/${album.id}`) }}
+                onClick={() => { navigator.clipboard.writeText(`${window.location.origin}/album/${album.id}`); toast("Link copied", "success") }}
                 style={{
                   width: isMobile ? 36 : 48, height: isMobile ? 36 : 48, borderRadius: "50%",
                   border: "1.5px solid rgba(255,255,255,0.55)",

@@ -26,15 +26,19 @@ export default function SettingsPage() {
   useEffect(() => { saveSettings(settings) }, [settings])
 
   return (
-    <div className="fade-in" style={{ padding: "32px 32px 40px", minHeight: "100%", background: "var(--content-bg)" }}>
-      <style>{`@media (max-width: 640px) { .settings-page { padding: 16px 12px 24px !important; } }`}</style>
+    <div className="fade-in settings-page" style={{ padding: "32px", minHeight: "100%", background: "var(--content-bg)" }}>
+      <style>{`
+        @media (max-width: 640px) {
+          .settings-page { padding: 16px 12px 24px !important; }
+        }
+        .settings-link:hover { opacity: 0.7; }
+      `}</style>
 
-      <h1 style={{ fontSize: 28, fontWeight: 700, color: "var(--foreground)", margin: "0 0 28px", letterSpacing: "-0.5px" }}>Settings</h1>
+      <h1 style={{ fontSize: 26, fontWeight: 700, color: "var(--foreground)", margin: "0 0 24px", letterSpacing: "-0.5px" }}>Settings</h1>
 
-      <div style={{ display: "flex", flexDirection: "column", gap: 24, maxWidth: 520 }}>
-        {/* Playback */}
-        <section style={{ background: "var(--card-bg)", borderRadius: 14, padding: "20px 24px" }}>
-          <h3 style={{ fontSize: 13, fontWeight: 700, color: "var(--muted-foreground)", textTransform: "uppercase", letterSpacing: "0.06em", margin: "0 0 16px" }}>Playback</h3>
+      <div style={{ display: "flex", flexDirection: "column", gap: 20, maxWidth: 520 }}>
+        <section style={{ background: "var(--card-bg)", borderRadius: 14, padding: "20px 24px", border: "1px solid var(--border)" }}>
+          <h3 style={{ fontSize: 12, fontWeight: 700, color: "var(--muted-foreground)", textTransform: "uppercase", letterSpacing: "0.06em", margin: "0 0 4px" }}>Playback</h3>
 
           <ToggleRow
             label="Autoplay"
@@ -52,18 +56,22 @@ export default function SettingsPage() {
           />
         </section>
 
-        {/* Account */}
-        <section style={{ background: "var(--card-bg)", borderRadius: 14, padding: "20px 24px" }}>
-          <h3 style={{ fontSize: 13, fontWeight: 700, color: "var(--muted-foreground)", textTransform: "uppercase", letterSpacing: "0.06em", margin: "0 0 16px" }}>Account</h3>
-
-          <a href="/profile" style={{ display: "block", padding: "10px 0", color: "var(--foreground)", fontSize: 14, textDecoration: "none", borderBottom: "1px solid var(--border)" }}>
+        <section style={{ background: "var(--card-bg)", borderRadius: 14, padding: "20px 24px", border: "1px solid var(--border)" }}>
+          <h3 style={{ fontSize: 12, fontWeight: 700, color: "var(--muted-foreground)", textTransform: "uppercase", letterSpacing: "0.06em", margin: "0 0 4px" }}>Account</h3>
+          <a href="/profile" className="settings-link" style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 0", color: "var(--foreground)", fontSize: 14, textDecoration: "none", borderBottom: "1px solid var(--border)", transition: "opacity 0.15s" }}>
+            <span style={{ width: 28, height: 28, borderRadius: 8, background: "var(--hover-bg)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, fontWeight: 700, color: "var(--muted-foreground)", flexShrink: 0 }}>P</span>
             View Profile
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--muted-foreground)" strokeWidth="2" strokeLinecap="round" style={{ marginLeft: "auto", flexShrink: 0 }}><path d="M9 18l6-6-6-6" /></svg>
           </a>
-          <a href="/liked" style={{ display: "block", padding: "10px 0", color: "var(--foreground)", fontSize: 14, textDecoration: "none", borderBottom: "1px solid var(--border)" }}>
+          <a href="/liked" className="settings-link" style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 0", color: "var(--foreground)", fontSize: 14, textDecoration: "none", borderBottom: "1px solid var(--border)", transition: "opacity 0.15s" }}>
+            <span style={{ width: 28, height: 28, borderRadius: 8, background: "var(--hover-bg)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, fontWeight: 700, color: "var(--muted-foreground)", flexShrink: 0 }}>L</span>
             Liked Songs
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--muted-foreground)" strokeWidth="2" strokeLinecap="round" style={{ marginLeft: "auto", flexShrink: 0 }}><path d="M9 18l6-6-6-6" /></svg>
           </a>
-          <a href="/messages" style={{ display: "block", padding: "10px 0", color: "var(--foreground)", fontSize: 14, textDecoration: "none", borderBottom: "1px solid var(--border)" }}>
+          <a href="/messages" className="settings-link" style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 0", color: "var(--foreground)", fontSize: 14, textDecoration: "none", transition: "opacity 0.15s" }}>
+            <span style={{ width: 28, height: 28, borderRadius: 8, background: "var(--hover-bg)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, fontWeight: 700, color: "var(--muted-foreground)", flexShrink: 0 }}>M</span>
             Messages
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--muted-foreground)" strokeWidth="2" strokeLinecap="round" style={{ marginLeft: "auto", flexShrink: 0 }}><path d="M9 18l6-6-6-6" /></svg>
           </a>
         </section>
       </div>
@@ -83,16 +91,16 @@ function ToggleRow({
   return (
     <div style={{
       display: "flex", alignItems: "center", justifyContent: "space-between",
-      padding: "12px 0", borderBottom: last ? "none" : "1px solid var(--border)",
+      padding: "14px 0", borderBottom: last ? "none" : "1px solid var(--border)", gap: 16,
     }}>
-      <div style={{ flex: 1, marginRight: 16 }}>
+      <div style={{ flex: 1, minWidth: 0 }}>
         <p style={{ margin: 0, fontSize: 14, fontWeight: 600, color: "var(--foreground)" }}>{label}</p>
-        <p style={{ margin: "2px 0 0", fontSize: 12, color: "var(--muted-foreground)", lineHeight: 1.3 }}>{description}</p>
+        <p style={{ margin: "3px 0 0", fontSize: 12, color: "var(--muted-foreground)", lineHeight: 1.35 }}>{description}</p>
       </div>
       <button
         onClick={() => onChange(!checked)}
         style={{
-          width: 48, height: 28, borderRadius: 14, border: "none",
+          width: 50, height: 30, borderRadius: 15, border: "none",
           background: checked ? "var(--brand)" : "var(--border)",
           cursor: "pointer", position: "relative", transition: "background 0.2s", flexShrink: 0,
         }}
@@ -100,9 +108,9 @@ function ToggleRow({
         aria-checked={checked}
       >
         <div style={{
-          position: "absolute", top: 2, left: checked ? 22 : 2,
+          position: "absolute", top: 3, left: checked ? 24 : 3,
           width: 24, height: 24, borderRadius: "50%", background: "#fff",
-          boxShadow: "0 2px 4px rgba(0,0,0,0.15)", transition: "left 0.2s",
+          boxShadow: "0 2px 6px rgba(0,0,0,0.2)", transition: "left 0.2s",
         }} />
       </button>
     </div>

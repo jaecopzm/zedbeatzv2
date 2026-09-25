@@ -22,6 +22,8 @@ import { AlbumIcon as AlbumLinear } from "@solar-icons/react/linear/album"
 import { CalendarIcon as CalendarLinear } from "@solar-icons/react/linear/calendar"
 import { HeadphonesRoundIcon as HeadphonesLinear } from "@solar-icons/react/linear/headphones-round"
 import { ShareableArtistCard } from "@/components/shareable-artist-card"
+import { formatDuration } from "@/lib/utils"
+import { toast } from "@/lib/toast-store"
 import {
   Avatar,
   VerifiedBadge,
@@ -31,13 +33,6 @@ import {
 } from "@/components/artist/ui"
 
 /* ─── helpers ─── */
-
-function formatDuration(sec: number) {
-  if (!sec || sec <= 0) return "--:--"
-  const m = Math.floor(sec / 60)
-  const s = Math.floor(sec % 60)
-  return `${m}:${s.toString().padStart(2, "0")}`
-}
 
 function formatCount(n: number) {
   if (n >= 1_000_000) return (n / 1_000_000).toFixed(1) + "M"
@@ -279,6 +274,7 @@ export default function ArtistContent({ artistId, initialArtist }: ArtistContent
   const currentTrack = usePlayerStore((s) => s.currentTrack)
   const isPlaying = usePlayerStore((s) => s.isPlaying)
   const togglePlay = usePlayerStore((s) => s.togglePlay)
+  const playLoading = usePlayerStore((s) => s._loading)
 
   const [followed, setFollowed] = useState<boolean | null>(
     initialArtist && typeof initialArtist.is_followed === "boolean"
@@ -295,13 +291,6 @@ export default function ArtistContent({ artistId, initialArtist }: ArtistContent
   const [bioOpen, setBioOpen] = useState(false)
   const [activeTab, setActiveTab] = useState<"music" | "discography" | "about">("music")
   const [shareLabel, setShareLabel] = useState("Share")
-
-  useEffect(() => {
-    const mq = window.matchMedia("(min-width: 768px)")
-    const handler = (e: MediaQueryListEvent) => setIsDesktop(e.matches)
-    mq.addEventListener("change", handler)
-    return () => mq.removeEventListener("change", handler)
-  }, [])
 
   const { data: artist } = useQuery({
     queryKey: ["artist", artistId],
@@ -421,6 +410,13 @@ export default function ArtistContent({ artistId, initialArtist }: ArtistContent
   })
   const [claimDismissed, setClaimDismissed] = useState(false)
 
+  useEffect(() => {
+    const mq = window.matchMedia("(min-width: 768px)")
+    const handler = (e: MediaQueryListEvent) => setIsDesktop(e.matches)
+    mq.addEventListener("change", handler)
+    return () => mq.removeEventListener("change", handler)
+  }, [])
+
   /* ── actions ── */
 
   const handleFollowToggle = useCallback(async () => {
@@ -430,11 +426,15 @@ export default function ArtistContent({ artistId, initialArtist }: ArtistContent
       if (followed) {
         await api.unfollowArtist(artist.id)
         setFollowed(false)
+        toast("Unfollowed", "success")
       } else {
         await api.followArtist(artist.id)
         setFollowed(true)
+        toast("Followed", "success")
       }
-    } catch { /* ignore */ }
+    } catch {
+      toast("Failed to update", "error")
+    }
     setFollowLoading(false)
   }, [followed, followLoading, artist])
 
@@ -490,6 +490,72 @@ export default function ArtistContent({ artistId, initialArtist }: ArtistContent
   return (
     <>
       <style jsx global>{`
+        .artist-hero-inner {
+          display: flex;
+          gap: 36px;
+          align-items: center;
+          padding: 72px 44px 44px;
+          flex-wrap: wrap;
+          position: relative;
+          z-index: 2;
+        }
+        .artist-hero-avatar-wrap { flex-shrink: 0; }
+        .artist-hero-avatar-wrap > * { width: 180px !important; height: 180px !important; }
+        .artist-hero-info { flex: 1; min-width: 0; }
+        .artist-hero-name {
+          font-size: clamp(28px, 5vw, 52px);
+          font-weight: 800;
+          color: #fff;
+          margin: 0 0 8px;
+          line-height: 1.05;
+          letter-spacing: -0.5px;
+          text-shadow: 0 2px 20px rgba(0,0,0,0.5);
+          display: flex;
+          align-items: center;
+          gap: 10;
+        }
+        .artist-hero-stats {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          flex-wrap: wrap;
+          margin-bottom: 22px;
+        }
+        .artist-hero-pill {
+          display: inline-flex;
+          align-items: center;
+          gap: 4px;
+          padding: 4px 10px;
+          border-radius: 20px;
+          background: rgba(255,255,255,0.12);
+          backdrop-filter: blur(6px);
+          font-size: 12px;
+          font-weight: 600;
+          color: rgba(255,255,255,0.88);
+        }
+        .artist-hero-actions {
+          display: flex;
+          gap: 12px;
+          flex-wrap: wrap;
+          align-items: center;
+        }
+        .artist-hero-body { padding: 40px 40px 64px; }
+        @media (max-width: 768px) {
+          .artist-hero-inner {
+            gap: 16px;
+            padding: 48px 14px 20px;
+            justify-content: center;
+          }
+          .artist-hero-avatar-wrap > * { width: 130px !important; height: 130px !important; }
+          .artist-hero-name {
+            font-size: clamp(24px, 8vw, 36px);
+            justify-content: center;
+          }
+          .artist-hero-stats { justify-content: center; gap: 6px; margin-bottom: 12px; }
+          .artist-hero-pill { gap: 3px; padding: 3px 8px; font-size: 11px; }
+          .artist-hero-actions { justify-content: center; gap: 8px; }
+          .artist-hero-body { padding: 20px 16px 48px; }
+        }
         .artist-tracks .track-row {
           display: flex;
           align-items: center;
@@ -806,20 +872,13 @@ export default function ArtistContent({ artistId, initialArtist }: ArtistContent
             opacity: 0.9,
           }} />
 
-          <div style={{
-            position: "relative", zIndex: 2,
-            display: "flex",
-            gap: isDesktop ? 36 : 16,
-            alignItems: "center",
-            padding: heroPad,
-            flexWrap: "wrap",
-          }}>
+          <div className="artist-hero-inner">
 
-            <div style={{ position: "relative", flexShrink: 0 }}>
+            <div className="artist-hero-avatar-wrap" style={{ position: "relative" }}>
               <Avatar
                 src={artist.photo_url}
                 name={artist.stage_name}
-                size={photoSize}
+                size={180}
                 shape="circle"
                 ring
                 fetchPriority="high"
@@ -863,7 +922,7 @@ export default function ArtistContent({ artistId, initialArtist }: ArtistContent
                 )}
               </h1>
 
-              <div style={{ display: "flex", alignItems: "center", gap: isDesktop ? 10 : 6, flexWrap: "wrap", marginBottom: isDesktop ? 22 : 12 }}>
+              <div className="artist-hero-stats">
                 {artist.location && (
                   <span style={{
                     display: "inline-flex", alignItems: "center", gap: isDesktop ? 4 : 3,
@@ -917,10 +976,11 @@ export default function ArtistContent({ artistId, initialArtist }: ArtistContent
                 )}
               </div>
 
-              <div style={{ display: "flex", gap: isDesktop ? 12 : 8, flexWrap: "wrap", alignItems: "center" }}>
+              <div className="artist-hero-actions">
                 {tracks.length > 0 && (
                   <PillButton
-                    size={isDesktop ? "md" : "xs"}
+                    size="xs"
+                    loading={!!playLoading}
                     iconLeft={
                       isFirstPlaying
                         ? <PauseBold size={14} color="#1d1d1f" />
@@ -940,13 +1000,13 @@ export default function ArtistContent({ artistId, initialArtist }: ArtistContent
                 <PillButton
                   variant="ghost"
                   size={isDesktop ? "md" : "xs"}
+                  loading={followLoading}
                     iconLeft={
                       followed
                         ? <CheckLinear size={12} color="currentColor" strokeWidth={2.5} />
                         : <AddLinear size={12} color="currentColor" strokeWidth={2.5} />
                     }
                   onClick={handleFollowToggle}
-                  disabled={followLoading}
                   style={{
                     border: "1.5px solid rgba(255,255,255,0.55)",
                     background: "rgba(255,255,255,0.1)",

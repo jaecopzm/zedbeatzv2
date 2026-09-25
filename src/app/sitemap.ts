@@ -1,17 +1,26 @@
 import type { MetadataRoute } from "next"
 import { SITE_URL, SERVER_API_BASE } from "@/lib/seo"
 
+export const revalidate = 3600
+
 async function fetchJSON<T>(url: string): Promise<T | null> {
-  try {
-    const controller = new AbortController()
-    const timeout = setTimeout(() => controller.abort(), 5000)
-    const res = await fetch(url, { signal: controller.signal, next: { revalidate: 300 } })
-    clearTimeout(timeout)
-    if (!res.ok) return null
-    return res.json()
-  } catch {
-    return null
+  // Retry a few times: the backend is occasionally slow/flaky under
+  // intermittent network loss, and a single dropped fetch would otherwise
+  // silently truncate the sitemap.
+  for (let attempt = 0; attempt < 3; attempt++) {
+    try {
+      const controller = new AbortController()
+      const timeout = setTimeout(() => controller.abort(), 15000)
+      const res = await fetch(url, { signal: controller.signal, next: { revalidate: 300 } })
+      clearTimeout(timeout)
+      if (!res.ok) return null
+      return await res.json()
+    } catch {
+      // back off briefly before the next attempt
+      await new Promise((r) => setTimeout(r, 1000 * (attempt + 1)))
+    }
   }
+  return null
 }
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
@@ -32,13 +41,19 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: SITE_URL, lastModified: new Date(), changeFrequency: "hourly", priority: 1.0 },
     { url: `${SITE_URL}/releases`, lastModified: new Date(), changeFrequency: "daily", priority: 0.8 },
     { url: `${SITE_URL}/radio`, lastModified: new Date(), changeFrequency: "daily", priority: 0.7 },
-    { url: `${SITE_URL}/search`, lastModified: new Date(), changeFrequency: "weekly", priority: 0.4 },
+    { url: `${SITE_URL}/become-an-artist`, lastModified: new Date(), changeFrequency: "monthly", priority: 0.5 },
+    { url: `${SITE_URL}/privacy`, lastModified: new Date(), changeFrequency: "yearly", priority: 0.2 },
+    { url: `${SITE_URL}/terms`, lastModified: new Date(), changeFrequency: "yearly", priority: 0.2 },
+    { url: `${SITE_URL}/contact`, lastModified: new Date(), changeFrequency: "yearly", priority: 0.2 },
   ]
 
-  const albumData = await fetchJSON<{ albums: { id: string; updated_at: string }[] }>(
-    `${SERVER_API_BASE}/albums?limit=1000&offset=0`
-  )
-  const albumPages: MetadataRoute.Sitemap = (albumData?.albums ?? []).map((a) => ({
+  const sitemapData = await fetchJSON<{
+    tracks: { id: string; updated_at: string }[]
+    albums: { id: string; updated_at: string }[]
+    artists: { id: string; updated_at: string }[]
+  }>(`${SERVER_API_BASE}/sitemap`)
+
+  const albumPages: MetadataRoute.Sitemap = (sitemapData?.albums ?? []).map((a) => ({
     url: `${SITE_URL}/album/${a.id}`,
     lastModified: new Date(a.updated_at),
     changeFrequency: "weekly" as const,
@@ -75,20 +90,14 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     priority: 0.6,
   }))
 
-  const trackData = await fetchJSON<{ tracks: { id: string; updated_at: string }[] }>(
-    `${SERVER_API_BASE}/tracks?limit=5000&offset=0`
-  )
-  const trackPages: MetadataRoute.Sitemap = (trackData?.tracks ?? []).map((t) => ({
+  const trackPages: MetadataRoute.Sitemap = (sitemapData?.tracks ?? []).map((t) => ({
     url: `${SITE_URL}/track/${t.id}`,
     lastModified: new Date(t.updated_at),
     changeFrequency: "weekly" as const,
     priority: 0.6,
   }))
 
-  const artistData = await fetchJSON<{ artists: { id: string; updated_at: string }[] }>(
-    `${SERVER_API_BASE}/artists/featured`
-  )
-  const artistPages: MetadataRoute.Sitemap = (artistData?.artists ?? []).map((a) => ({
+  const artistPages: MetadataRoute.Sitemap = (sitemapData?.artists ?? []).map((a) => ({
     url: `${SITE_URL}/artist/${a.id}`,
     lastModified: new Date(a.updated_at),
     changeFrequency: "weekly" as const,

@@ -4,17 +4,21 @@ import { useState } from "react"
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
 import { api } from "@/lib/api"
 import type { Claim } from "@/types"
-import Link from "next/link"
+import { AdminModal } from "@/components/admin/admin-modal"
+import { Pagination } from "@/components/admin/pagination"
+
+const PAGE_SIZE = 10
 
 export default function AdminClaimsPage() {
   const queryClient = useQueryClient()
   const [selectedClaim, setSelectedClaim] = useState<Claim | null>(null)
   const [rejectReason, setRejectReason] = useState("")
   const [actionError, setActionError] = useState("")
+  const [page, setPage] = useState(1)
 
   const { data, isLoading, error } = useQuery({
-    queryKey: ["admin-claims"],
-    queryFn: () => api.adminListClaims(),
+    queryKey: ["admin-claims", page],
+    queryFn: () => api.adminListClaims(PAGE_SIZE, (page - 1) * PAGE_SIZE),
   })
 
   const approveMutation = useMutation({
@@ -58,10 +62,10 @@ export default function AdminClaimsPage() {
         <div style={{
           padding: "12px",
           borderRadius: "8px",
-          background: "var(--brand-bg)",
+          background: "var(--brand-error-bg)",
           color: "#c53030",
           fontSize: "14px",
-          border: "1px solid var(--brand-bg)",
+          border: "1px solid var(--brand-error-bg)",
           marginBottom: "16px",
         }}>
           {(error as any).message || "Failed to load claims"}
@@ -76,16 +80,7 @@ export default function AdminClaimsPage() {
       )}
 
       {data && data.claims.length === 0 && !isLoading && (
-        <div style={{
-          background: "var(--card-bg)",
-          border: "1px solid var(--border)",
-          borderRadius: "12px",
-          padding: "40px",
-          textAlign: "center",
-          fontSize: "14px",
-          color: "var(--muted-foreground)",
-          boxShadow: "0 4px 12px rgba(0,0,0,0.02)",
-        }}>
+        <div className="admin-empty">
           No pending claims found. All artist accounts are processed!
         </div>
       )}
@@ -102,196 +97,127 @@ export default function AdminClaimsPage() {
               onReview={() => setSelectedClaim(claim)}
             />
           ))}
+          <Pagination page={page} pageSize={PAGE_SIZE} total={data.total} onPageChange={setPage} />
         </div>
       )}
 
       {/* Review modal */}
-      {selectedClaim && (
-        <div style={{
-          position: "fixed",
-          inset: 0,
-          background: "rgba(0, 0, 0, 0.4)",
-          backdropFilter: "blur(4px)",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          zIndex: 300,
-        }}>
-          <div className="fade-in" style={{
-            background: "var(--card-bg)",
-            border: "1px solid var(--border)",
-            borderRadius: "16px",
-            padding: "24px",
-            width: "90%",
-            maxWidth: "520px",
-            boxShadow: "0 20px 40px rgba(0,0,0,0.15)",
-          }}>
-            <h2 style={{ fontSize: "18px", fontWeight: 700, color: "var(--foreground)", margin: "0 0 16px 0", letterSpacing: "-0.3px" }}>
-              Review Verification Claim
-            </h2>
-
-            <div style={{
-              display: "flex",
-              flexDirection: "column",
-              gap: "12px",
-              fontSize: "13px",
-              padding: "16px",
-              borderRadius: "10px",
-              background: "var(--background)",
-              border: "1px solid var(--border)",
-              marginBottom: "20px",
-            }}>
-              <div style={{ display: "flex", justifyContent: "space-between" }}>
-                <span style={{ color: "var(--muted-foreground)" }}>Artist Target ID:</span>
-                <span style={{ fontFamily: "monospace", fontSize: "12px", fontWeight: 600 }}>{selectedClaim.artist_id}</span>
-              </div>
-              <div style={{ display: "flex", justifyContent: "space-between" }}>
-                <span style={{ color: "var(--muted-foreground)" }}>Requesting User ID:</span>
-                <span style={{ fontFamily: "monospace", fontSize: "12px", fontWeight: 600 }}>{selectedClaim.user_id}</span>
-              </div>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                <span style={{ color: "var(--muted-foreground)" }}>Verification Method:</span>
-                <span style={{
-                  background: "var(--card-bg)",
-                  border: "1px solid var(--border)",
-                  padding: "2px 8px",
-                  borderRadius: "6px",
-                  fontSize: "11px",
-                  fontWeight: 600,
-                  textTransform: "uppercase"
-                }}>
-                  {selectedClaim.method.replace("_", " ")}
-                </span>
-              </div>
-              {selectedClaim.verification_code && (
+      <AdminModal open={!!selectedClaim} title="Review Verification Claim" onClose={() => { setSelectedClaim(null); setRejectReason(""); setActionError("") }} maxWidth={520}>
+        {selectedClaim && (
+          <>
+            <div style={{ padding: "24px", display: "flex", flexDirection: "column", gap: "12px" }}>
+              <h2 style={{ fontSize: "18px", fontWeight: 700, color: "var(--foreground)", margin: "0 0 16px 0", letterSpacing: "-0.3px" }}>
+                Review Verification Claim
+              </h2>
+              <div style={{
+                display: "flex", flexDirection: "column", gap: "12px", fontSize: "13px",
+                padding: "16px", borderRadius: "10px", background: "var(--background)",
+                border: "1px solid var(--border)", marginBottom: "4px",
+              }}>
+                <div style={{ display: "flex", justifyContent: "space-between" }}>
+                  <span style={{ color: "var(--muted-foreground)" }}>Artist Target ID:</span>
+                  <span style={{ fontFamily: "monospace", fontSize: "12px", fontWeight: 600 }}>{selectedClaim.artist_id}</span>
+                </div>
+                <div style={{ display: "flex", justifyContent: "space-between" }}>
+                  <span style={{ color: "var(--muted-foreground)" }}>Requesting User ID:</span>
+                  <span style={{ fontFamily: "monospace", fontSize: "12px", fontWeight: 600 }}>{selectedClaim.user_id}</span>
+                </div>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                  <span style={{ color: "var(--muted-foreground)" }}>Verification Code:</span>
-                  <span style={{ fontFamily: "monospace", color: "var(--active-fg)", fontWeight: 700, fontSize: "14px" }}>
-                    {selectedClaim.verification_code}
+                  <span style={{ color: "var(--muted-foreground)" }}>Verification Method:</span>
+                  <span style={{
+                    background: "var(--card-bg)", border: "1px solid var(--border)",
+                    padding: "2px 8px", borderRadius: "6px", fontSize: "11px", fontWeight: 600, textTransform: "uppercase",
+                  }}>
+                    {selectedClaim.method.replace("_", " ")}
                   </span>
                 </div>
-              )}
-              {selectedClaim.social_platform && (
-                <div style={{ display: "flex", justifyContent: "space-between" }}>
-                  <span style={{ color: "var(--muted-foreground)" }}>Social Platform:</span>
-                  <span style={{ textTransform: "capitalize", fontWeight: 600 }}>{selectedClaim.social_platform}</span>
-                </div>
-              )}
-              {selectedClaim.social_post_url && (
-                <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
-                  <span style={{ color: "var(--muted-foreground)" }}>Verification Post Link:</span>
-                  <a
-                    href={selectedClaim.social_post_url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    style={{ color: "#1e88e5", wordBreak: "break-all", fontWeight: 500 }}
-                  >
-                    {selectedClaim.social_post_url}
-                  </a>
-                </div>
-              )}
-              {selectedClaim.document_keys && selectedClaim.document_keys.length > 0 && (
-                <div style={{ display: "flex", justifyContent: "space-between" }}>
-                  <span style={{ color: "var(--muted-foreground)" }}>Uploaded Proofs:</span>
-                  <span style={{ fontWeight: 600 }}>{selectedClaim.document_keys.length} File(s)</span>
-                </div>
-              )}
-            </div>
-
-            {actionError && (
-              <div style={{
-                padding: "8px 12px",
-                borderRadius: "6px",
-                background: "var(--brand-bg)",
-                color: "#c53030",
-                fontSize: "12px",
-                marginBottom: "14px",
-              }}>
-                {actionError}
+                {selectedClaim.verification_code && (
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                    <span style={{ color: "var(--muted-foreground)" }}>Verification Code:</span>
+                    <span style={{ fontFamily: "monospace", color: "var(--active-fg)", fontWeight: 700, fontSize: "14px" }}>
+                      {selectedClaim.verification_code}
+                    </span>
+                  </div>
+                )}
+                {selectedClaim.social_platform && (
+                  <div style={{ display: "flex", justifyContent: "space-between" }}>
+                    <span style={{ color: "var(--muted-foreground)" }}>Social Platform:</span>
+                    <span style={{ textTransform: "capitalize", fontWeight: 600 }}>{selectedClaim.social_platform}</span>
+                  </div>
+                )}
+                {selectedClaim.social_post_url && (
+                  <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
+                    <span style={{ color: "var(--muted-foreground)" }}>Verification Post Link:</span>
+                    <a
+                      href={selectedClaim.social_post_url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      style={{ color: "var(--active-fg)", wordBreak: "break-all", fontWeight: 500 }}
+                    >
+                      {selectedClaim.social_post_url}
+                    </a>
+                  </div>
+                )}
+                {selectedClaim.document_keys && selectedClaim.document_keys.length > 0 && (
+                  <div style={{ display: "flex", justifyContent: "space-between" }}>
+                    <span style={{ color: "var(--muted-foreground)" }}>Uploaded Proofs:</span>
+                    <span style={{ fontWeight: 600 }}>{selectedClaim.document_keys.length} File(s)</span>
+                  </div>
+                )}
               </div>
-            )}
 
-            <div style={{ marginBottom: "20px" }}>
-              <label style={{ display: "block", fontSize: "11px", fontWeight: 600, color: "var(--muted-foreground)", marginBottom: "6px" }}>
-                Reject Feedback / Notes (Required if rejecting)
-              </label>
-              <textarea
-                value={rejectReason}
-                onChange={(e) => setRejectReason(e.target.value)}
-                placeholder="e.g. The verification code is missing from the social post. Please update the post content..."
-                rows={3}
-                style={{
-                  width: "100%",
-                  padding: "10px",
-                  borderRadius: "8px",
-                  border: "1px solid var(--border)",
-                  background: "var(--background)",
-                  color: "var(--foreground)",
-                  fontSize: "13px",
-                  outline: "none",
-                }}
-              />
+              {actionError && (
+                <div style={{
+                  padding: "8px 12px", borderRadius: "6px",
+                  background: "var(--brand-error-bg)", color: "#c53030", fontSize: "12px", marginBottom: "8px",
+                }}>
+                  {actionError}
+                </div>
+              )}
+
+              <div>
+                <label className="admin-label">
+                  Reject Feedback / Notes (Required if rejecting)
+                </label>
+                <textarea
+                  value={rejectReason}
+                  onChange={(e) => setRejectReason(e.target.value)}
+                  placeholder="e.g. The verification code is missing from the social post. Please update the post content..."
+                  rows={3}
+                  className="admin-input"
+                />
+              </div>
             </div>
 
-            <div style={{ display: "flex", gap: "10px", justifyContent: "flex-end" }}>
+            <div style={{ padding: "16px 24px", borderTop: "1px solid var(--border)", display: "flex", gap: "10px", justifyContent: "flex-end" }}>
               <button
                 onClick={() => {
                   setSelectedClaim(null)
                   setRejectReason("")
                   setActionError("")
                 }}
-                style={{
-                  padding: "10px 16px",
-                  borderRadius: "8px",
-                  background: "none",
-                  border: "1.5px solid var(--border)",
-                  color: "var(--foreground)",
-                  fontSize: "13px",
-                  fontWeight: 600,
-                  cursor: "pointer",
-                }}
+                className="admin-btn-secondary"
               >
                 Cancel
               </button>
               <button
                 onClick={() => rejectMutation.mutate(selectedClaim.id)}
                 disabled={!rejectReason.trim() || rejectMutation.isPending}
-                style={{
-                  padding: "10px 16px",
-                  borderRadius: "8px",
-                  background: "#e53e3e",
-                  border: "none",
-                  color: "white",
-                  fontSize: "13px",
-                  fontWeight: 600,
-                  cursor: "pointer",
-                  opacity: (!rejectReason.trim() || rejectMutation.isPending) ? 0.5 : 1,
-                }}
+                className="admin-btn-danger"
               >
                 {rejectMutation.isPending ? "Rejecting..." : "Reject Claim"}
               </button>
               <button
                 onClick={() => approveMutation.mutate(selectedClaim.id)}
                 disabled={approveMutation.isPending}
-                style={{
-                  padding: "10px 16px",
-                  borderRadius: "8px",
-                  background: "var(--brand)",
-                  border: "none",
-                  color: "white",
-                  fontSize: "13px",
-                  fontWeight: 600,
-                  cursor: "pointer",
-                  opacity: approveMutation.isPending ? 0.5 : 1,
-                  boxShadow: "0 4px 12px var(--brand-shadow)",
-                }}
+                className="admin-btn-primary"
               >
                 {approveMutation.isPending ? "Approving..." : "Approve & Verify"}
               </button>
             </div>
-          </div>
-        </div>
-      )}
+          </>
+        )}
+      </AdminModal>
     </div>
   )
 }
@@ -321,7 +247,7 @@ function ClaimCard({
   const methodLabel = isSocial ? "Social Verification" : "Manual Document Upload"
 
   return (
-    <div 
+    <div
       style={{
         display: "flex",
         alignItems: "center",
@@ -343,13 +269,10 @@ function ClaimCard({
             {methodLabel}
           </span>
           <span style={{
-            background: "#fff9db",
-            color: "#f59f00",
-            fontSize: "10px",
-            fontWeight: 700,
-            textTransform: "uppercase",
-            padding: "2px 8px",
-            borderRadius: "8px",
+            background: "var(--brand-bg)",
+            color: "var(--active-fg)",
+            fontSize: "10px", fontWeight: 700, textTransform: "uppercase",
+            padding: "2px 8px", borderRadius: "8px",
           }}>
             {claim.status.replace("_", " ")}
           </span>
@@ -368,32 +291,16 @@ function ClaimCard({
           )}
           {claim.social_post_url && (
             <div style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-              Post URL: <a href={claim.social_post_url} target="_blank" rel="noopener noreferrer" style={{ color: "#1e88e5", textDecoration: "underline" }}>{claim.social_post_url}</a>
+              Post URL: <a href={claim.social_post_url} target="_blank" rel="noopener noreferrer" style={{ color: "var(--active-fg)", textDecoration: "underline" }}>{claim.social_post_url}</a>
             </div>
           )}
         </div>
-        <div style={{ fontSize: "11px", color: "#a0a0a8", marginTop: "6px" }}>
+        <div style={{ fontSize: "11px", color: "var(--muted-foreground)", marginTop: "6px" }}>
           Submitted: {new Date(claim.created_at).toLocaleString()}
         </div>
       </div>
 
-      <button
-        onClick={onReview}
-        style={{
-          background: "var(--brand)",
-          color: "white",
-          border: "none",
-          borderRadius: "8px",
-          padding: "8px 16px",
-          fontSize: "12px",
-          fontWeight: 600,
-          cursor: "pointer",
-          transition: "opacity 0.15s",
-          boxShadow: "0 2px 8px var(--brand-shadow)",
-        }}
-        onMouseEnter={(e) => e.currentTarget.style.opacity = "0.9"}
-        onMouseLeave={(e) => e.currentTarget.style.opacity = "1"}
-      >
+      <button onClick={onReview} className="admin-btn-primary" style={{ padding: "8px 16px", fontSize: 12, flexShrink: 0 }}>
         Review Claim
       </button>
     </div>

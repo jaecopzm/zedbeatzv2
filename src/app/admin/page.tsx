@@ -1,8 +1,49 @@
 "use client"
 
 import Link from "next/link"
+import { useQuery } from "@tanstack/react-query"
+import { api } from "@/lib/api"
+
+function formatNumber(n: number) {
+  return new Intl.NumberFormat().format(n)
+}
 
 export default function AdminDashboard() {
+  const { data: artists } = useQuery({
+    queryKey: ["admin-stats-artists"],
+    queryFn: () => api.adminListArtists(5000, 0),
+  })
+  const { data: albums } = useQuery({
+    queryKey: ["admin-stats-albums"],
+    queryFn: () => api.adminListAlbums(5000, 0),
+  })
+  const { data: claims } = useQuery({
+    queryKey: ["admin-stats-claims"],
+    queryFn: () => api.adminListClaims(1, 0),
+  })
+  const { data: tracks } = useQuery({
+    queryKey: ["admin-stats-tracks"],
+    queryFn: () => api.adminListTracks(5000, 0),
+  })
+  const { data: stations } = useQuery({
+    queryKey: ["admin-stats-stations"],
+    queryFn: () => api.adminListStations(),
+  })
+
+  const artistCount = artists?.artists?.length ?? null
+  const albumCount = albums?.albums?.length ?? null
+  const claimCount = claims?.total ?? null
+  const trackCount = tracks?.tracks?.length ?? null
+  const stationCount = stations?.stations?.length ?? null
+
+  const stats = [
+    { label: "Tracks", value: trackCount, href: "/admin/upload", color: "var(--brand)" },
+    { label: "Artists", value: artistCount, href: "/admin/artists", color: "rgb(59,130,246)" },
+    { label: "Albums", value: albumCount, href: "/admin/albums", color: "rgb(168,85,247)" },
+    { label: "Pending Claims", value: claimCount, href: "/admin/claims", color: "rgb(245,158,11)" },
+    { label: "Radio Stations", value: stationCount, href: "/admin/radio", color: "rgb(16,185,129)" },
+  ]
+
   const cards = [
     {
       title: "Spotify Import",
@@ -107,11 +148,41 @@ export default function AdminDashboard() {
         </p>
       </div>
 
+      {/* Stats row */}
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))", gap: "16px", marginBottom: "28px" }}>
+        {stats.map((stat) => (
+          <Link
+            key={stat.label}
+            href={stat.href}
+            className="admin-card-lift"
+            style={{
+              textDecoration: "none",
+              background: "var(--card-bg)",
+              border: "1px solid var(--border)",
+              borderRadius: "14px",
+              padding: "18px 20px",
+            }}
+          >
+            <p style={{ margin: "0 0 6px", fontSize: "11px", fontWeight: 600, color: "var(--muted-foreground)", textTransform: "uppercase", letterSpacing: "0.06em" }}>
+              {stat.label}
+            </p>
+            {stat.value === null ? (
+              <div className="skeleton" style={{ width: 48, height: 28, borderRadius: 6 }} />
+            ) : (
+              <p style={{ margin: 0, fontSize: "26px", fontWeight: 800, color: stat.color, fontVariantNumeric: "tabular-nums" }}>
+                {formatNumber(stat.value)}
+              </p>
+            )}
+          </Link>
+        ))}
+      </div>
+
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: "20px" }}>
         {cards.map((card) => (
           <Link
             key={card.href}
             href={card.href}
+            className="admin-card-lift"
             style={{
               display: "flex",
               flexDirection: "column",
@@ -122,18 +193,7 @@ export default function AdminDashboard() {
               padding: "24px",
               boxShadow: "0 4px 16px rgba(0,0,0,0.04), 0 1px 2px rgba(0,0,0,0.02)",
               border: card.highlight ? "none" : "1px solid var(--border)",
-              transition: "transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.2s ease",
               cursor: "pointer",
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.transform = "translateY(-4px)"
-              e.currentTarget.style.boxShadow = card.highlight 
-                ? "0 8px 24px rgba(252, 60, 68, 0.35)" 
-                : "0 10px 24px rgba(0,0,0,0.08)"
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.transform = "translateY(0)"
-              e.currentTarget.style.boxShadow = "0 4px 16px rgba(0,0,0,0.04), 0 1px 2px rgba(0,0,0,0.02)"
             }}
           >
             {/* Icon container */}

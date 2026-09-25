@@ -6,7 +6,6 @@ import { useEffect, useState } from "react"
 import { useUIStore } from "@/lib/ui-store"
 import { useAuthStore } from "@/lib/auth-store"
 import { useThemeStore } from "@/lib/theme-store"
-import { LoginModal } from "@/components/login-modal"
 import { SolarNavIcon } from "@/components/solar"
 
 import { HomeIcon as HomeLinear } from "@solar-icons/react/linear/home"
@@ -72,7 +71,6 @@ export function MobileMenu() {
   const { theme, toggle: toggleTheme } = useThemeStore()
   const sidebarOpen = useUIStore((s) => s.sidebarOpen)
   const setSidebarOpen = useUIStore((s) => s.setSidebarOpen)
-  const [showLogin, setShowLogin] = useState(false)
   const [mounted, setMounted] = useState(false)
 
   useEffect(() => {
@@ -115,7 +113,6 @@ export function MobileMenu() {
 
   return (
     <>
-      {showLogin && <LoginModal onClose={() => setShowLogin(false)} />}
       <aside className={`mobile-menu${sidebarOpen ? " is-open" : ""}`} aria-hidden={!sidebarOpen}>
         {/* profile header */}
         <div className="mm-head">
@@ -137,7 +134,7 @@ export function MobileMenu() {
                 className="mm-logo"
                 suppressHydrationWarning
               />
-              <button type="button" className="mm-signin" onClick={() => setShowLogin(true)}>
+              <button type="button" className="mm-signin" onClick={() => { close(); router.push("/login") }}>
                 Sign in
               </button>
             </div>

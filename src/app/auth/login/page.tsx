@@ -1,10 +1,21 @@
 "use client"
 
+import { useEffect, useState } from "react"
 import { useThemeStore } from "@/lib/theme-store"
 import { AUTH_BASE } from "@/lib/api"
 
 export default function LoginPage() {
   const theme = useThemeStore((s) => s.theme)
+  const [origin, setOrigin] = useState("")
+
+  useEffect(() => {
+    setOrigin(window.location.origin)
+    const params = new URLSearchParams(window.location.search)
+    const redirect = params.get("redirect")
+    if (redirect) {
+      sessionStorage.setItem("post_login_redirect", redirect)
+    }
+  }, [])
 
   return (
     <div style={{
@@ -35,7 +46,7 @@ export default function LoginPage() {
         </p>
 
         <a
-          href={`${AUTH_BASE}/auth/google`}
+          href={origin ? `${AUTH_BASE}/auth/google?redirect=${encodeURIComponent(origin)}` : "#"}
           style={{
             display: "flex",
             alignItems: "center",

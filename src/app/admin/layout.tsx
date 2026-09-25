@@ -22,6 +22,7 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
   const pathname = usePathname()
   const router = useRouter()
   const [mounted, setMounted] = useState(false)
+  const [sidebarOpen, setSidebarOpen] = useState(false)
   const user = useAuthStore((s) => s.user)
   const logout = useAuthStore((s) => s.logout)
   const { theme, toggle: toggleTheme } = useThemeStore()
@@ -35,106 +36,146 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
     }
   }, [user, router])
 
-  if (!mounted || !user || user.role !== "admin") return null
+  if (!mounted || !user || user.role !== "admin") {
+    return (
+      <div style={{ display: "flex", height: "100vh", alignItems: "center", justifyContent: "center", background: "var(--background)" }}>
+        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 16 }}>
+          <div style={{ width: 44, height: 44, borderRadius: "50%", border: "3px solid var(--border)", borderTopColor: "var(--brand)", animation: "app-spin 0.8s linear infinite" }} />
+          <p style={{ margin: 0, fontSize: 13, color: "var(--muted-foreground)" }}>Checking access...</p>
+        </div>
+      </div>
+    )
+  }
+
+  const sidebar = (
+    <aside className={`admin-sidebar${sidebarOpen ? " admin-sidebar-open" : ""}`} style={{
+      width: 240, flexShrink: 0,
+      background: "var(--sidebar-bg)",
+      borderRight: "1px solid var(--border)",
+      display: "flex", flexDirection: "column",
+      overflowY: "auto",
+    }}>
+      <div style={{ padding: "20px 16px 16px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+        <Link href="/" style={{ display: "flex", alignItems: "center", gap: 10, textDecoration: "none" }}>
+          <img src={theme === "dark" ? "/logo-white.png" : "/logo-black.png"} alt="ZedBeatz" style={{ height: 22 }} />
+          <span style={{
+            fontSize: 11, fontWeight: 700, padding: "2px 8px", borderRadius: 6,
+            background: "var(--brand-bg)", color: "var(--brand)", textTransform: "uppercase", letterSpacing: "0.06em",
+          }}>
+            Admin
+          </span>
+        </Link>
+        <button
+          type="button"
+          aria-label="Close menu"
+          onClick={() => setSidebarOpen(false)}
+          className="admin-icon-btn"
+          style={{ display: "none" }}
+        >
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
+        </button>
+      </div>
+
+      <nav style={{ flex: 1, padding: "4px 8px" }}>
+        {navLinks.map((link) => {
+          const active = pathname === link.href || (link.href !== "/admin" && pathname.startsWith(link.href))
+          return (
+            <Link
+              key={link.href}
+              href={link.href}
+              onClick={() => setSidebarOpen(false)}
+              style={{
+                display: "flex", alignItems: "center", gap: 10,
+                padding: "9px 12px", borderRadius: 8, marginBottom: 2,
+                fontSize: 13, fontWeight: active ? 600 : 400,
+                color: active ? "var(--active-fg)" : "var(--foreground)",
+                background: active ? "var(--active-bg)" : "transparent",
+                textDecoration: "none",
+                transition: "background 0.12s, color 0.12s",
+              }}
+              className={active ? "" : "admin-nav-link"}
+              onMouseEnter={(e) => { if (!active) e.currentTarget.style.background = "var(--hover-bg)" }}
+              onMouseLeave={(e) => { if (!active) e.currentTarget.style.background = "transparent" }}
+            >
+              <NavIcon name={link.icon} active={active} />
+              {link.label}
+            </Link>
+          )
+        })}
+      </nav>
+
+      <div style={{ padding: "12px 16px", borderTop: "1px solid var(--border)" }}>
+        {mounted && (
+          <button
+            onClick={toggleTheme}
+            title={theme === "dark" ? "Light mode" : "Dark mode"}
+            className="admin-nav-link"
+            style={{
+              display: "flex", alignItems: "center", gap: 8, padding: "6px 10px",
+              borderRadius: 8, border: "none", background: "var(--hover-bg)",
+              cursor: "pointer", color: "var(--foreground)", fontSize: 12, fontWeight: 500,
+              width: "100%", marginBottom: 8, transition: "background 0.12s",
+            }}
+          >
+            {theme === "dark" ? <MoonIcon /> : <SunIcon />}
+            {theme === "dark" ? "Light Mode" : "Dark Mode"}
+          </button>
+        )}
+
+        <Link href="/" className="admin-nav-link" onClick={() => setSidebarOpen(false)}
+          style={{ display: "flex", alignItems: "center", gap: 10, padding: "6px 10px", borderRadius: 8, color: "var(--muted-foreground)", fontSize: 12, fontWeight: 500, textDecoration: "none", transition: "background 0.12s", marginBottom: 8 }}>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M9 18l6-6-6-6" /></svg>
+          Back to ZedBeatz
+        </Link>
+
+        {user && (
+          <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "6px 10px", borderRadius: 10, background: "var(--hover-bg)" }}>
+            <div style={{ width: 26, height: 26, borderRadius: "50%", background: "linear-gradient(135deg, var(--brand), var(--brand-light))", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontSize: 11, fontWeight: 700, flexShrink: 0 }}>
+              {user.email?.charAt(0).toUpperCase()}
+            </div>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <p style={{ margin: 0, fontSize: 12, fontWeight: 600, color: "var(--foreground)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{user.email}</p>
+              <p style={{ margin: 0, fontSize: 10, color: "var(--muted-foreground)" }}>Admin</p>
+            </div>
+            <button onClick={logout} title="Sign out" className="admin-icon-btn" style={{ width: 28, height: 28, border: "none", color: "var(--muted-foreground)" }}>
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                <path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4" /><path d="M16 17l5-5-5-5" /><path d="M21 12H9" />
+              </svg>
+            </button>
+          </div>
+        )}
+      </div>
+    </aside>
+  )
 
   return (
     <div style={{ display: "flex", height: "100vh", background: "var(--background)", overflow: "hidden" }}>
-      <aside style={{
-        width: 240, flexShrink: 0,
-        background: "var(--sidebar-bg)",
-        borderRight: "1px solid var(--border)",
-        display: "flex", flexDirection: "column",
-        overflowY: "auto",
-      }}>
-        <div style={{ padding: "20px 16px 16px" }}>
-          <Link href="/" style={{ display: "flex", alignItems: "center", gap: 10, textDecoration: "none" }}>
-            <img src={theme === "dark" ? "/logo-white.png" : "/logo-black.png"} alt="ZedBeatz" style={{ height: 22 }} />
-            <span style={{
-              fontSize: 11, fontWeight: 700, padding: "2px 8px", borderRadius: 6,
-              background: "var(--brand-bg)", color: "var(--brand)", textTransform: "uppercase", letterSpacing: "0.06em",
-            }}>
-              Admin
-            </span>
-          </Link>
-        </div>
+      {/* Mobile overlay */}
+      {sidebarOpen && (
+        <div
+          onClick={() => setSidebarOpen(false)}
+          style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)", zIndex: 850 }}
+        />
+      )}
 
-        <nav style={{ flex: 1, padding: "4px 8px" }}>
-          {navLinks.map((link) => {
-            const active = pathname === link.href || (link.href !== "/admin" && pathname.startsWith(link.href))
-            return (
-              <Link
-                key={link.href}
-                href={link.href}
-                style={{
-                  display: "flex", alignItems: "center", gap: 10,
-                  padding: "9px 12px", borderRadius: 8, marginBottom: 2,
-                  fontSize: 13, fontWeight: active ? 600 : 400,
-                  color: active ? "var(--active-fg)" : "var(--foreground)",
-                  background: active ? "var(--active-bg)" : "transparent",
-                  textDecoration: "none",
-                  transition: "background 0.12s, color 0.12s",
-                }}
-                onMouseEnter={(e) => { if (!active) e.currentTarget.style.background = "var(--hover-bg)" }}
-                onMouseLeave={(e) => { if (!active) e.currentTarget.style.background = "transparent" }}
-              >
-                <NavIcon name={link.icon} active={active} />
-                {link.label}
-              </Link>
-            )
-          })}
-        </nav>
+      {sidebar}
 
-        <div style={{ padding: "12px 16px", borderTop: "1px solid var(--border)" }}>
-          {mounted && (
-            <button
-              onClick={toggleTheme}
-              title={theme === "dark" ? "Light mode" : "Dark mode"}
-              style={{
-                display: "flex", alignItems: "center", gap: 8, padding: "6px 10px",
-                borderRadius: 8, border: "none", background: "var(--hover-bg)",
-                cursor: "pointer", color: "var(--foreground)", fontSize: 12, fontWeight: 500,
-                width: "100%", marginBottom: 8, transition: "background 0.12s",
-              }}
-            >
-              {theme === "dark" ? <MoonIcon /> : <SunIcon />}
-              {theme === "dark" ? "Light Mode" : "Dark Mode"}
-            </button>
-          )}
-
-          <Link href="/"
-            style={{ display: "flex", alignItems: "center", gap: 10, padding: "6px 10px", borderRadius: 8, color: "var(--muted-foreground)", fontSize: 12, fontWeight: 500, textDecoration: "none", transition: "background 0.12s", marginBottom: 8 }}
-            onMouseEnter={(e) => (e.currentTarget.style.background = "var(--hover-bg)")}
-            onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}>
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M9 18l6-6-6-6" /></svg>
-            Back to ZedBeatz
-          </Link>
-
-          {mounted && user && (
-            <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "6px 10px", borderRadius: 10, background: "var(--hover-bg)" }}>
-              <div style={{ width: 26, height: 26, borderRadius: "50%", background: "linear-gradient(135deg, var(--brand), var(--brand-light))", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontSize: 11, fontWeight: 700, flexShrink: 0 }}>
-                {user.email?.charAt(0).toUpperCase()}
-              </div>
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <p style={{ margin: 0, fontSize: 12, fontWeight: 600, color: "var(--foreground)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{user.email}</p>
-                <p style={{ margin: 0, fontSize: 10, color: "var(--muted-foreground)" }}>Admin</p>
-              </div>
-              <button onClick={logout} title="Sign out"
-                style={{ background: "none", border: "none", cursor: "pointer", color: "var(--muted-foreground)", padding: 2, borderRadius: 4, lineHeight: 0 }}
-                onMouseEnter={(e) => (e.currentTarget.style.color = "var(--foreground)")}
-                onMouseLeave={(e) => (e.currentTarget.style.color = "var(--muted-foreground)")}>
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-                  <path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4" /><path d="M16 17l5-5-5-5" /><path d="M21 12H9" />
-                </svg>
-              </button>
-            </div>
-          )}
-        </div>
-      </aside>
-
-      <main style={{
+      <main className="admin-main" style={{
         flex: 1, minWidth: 0, overflowY: "auto", overflowX: "hidden",
         padding: "28px 32px 40px", background: "var(--content-bg)",
+        display: "flex", flexDirection: "column",
       }}>
+        {/* Mobile top bar */}
+        <div className="admin-topbar" style={{
+          alignItems: "center", gap: 12, marginBottom: 16,
+        }}>
+          <button type="button" aria-label="Open menu" onClick={() => setSidebarOpen(true)} className="admin-icon-btn">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><line x1="3" y1="6" x2="21" y2="6" /><line x1="3" y1="12" x2="21" y2="12" /><line x1="3" y1="18" x2="21" y2="18" /></svg>
+          </button>
+          <Link href="/admin" style={{ textDecoration: "none", fontSize: 14, fontWeight: 700, color: "var(--foreground)" }}>
+            ZedBeatz Admin
+          </Link>
+        </div>
         {children}
       </main>
     </div>

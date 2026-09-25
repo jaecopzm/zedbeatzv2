@@ -17,6 +17,8 @@ import { HeartIcon as HeartLinear } from "@solar-icons/react/linear/heart"
 import { HeartIcon as HeartBold } from "@solar-icons/react/bold/heart"
 import { ListIcon as ListLinear } from "@solar-icons/react/linear/list"
 import { VolumeLoudIcon as VolumeLinear } from "@solar-icons/react/linear/volume-loud"
+import { formatDuration } from "@/lib/utils"
+import { toast } from "@/lib/toast-store"
 
 function fmt(sec: number) {
   const s = Math.floor(sec)
@@ -79,7 +81,7 @@ export function Player() {
         onNext={next}
         onPrev={prev}
         onSeek={seek}
-        onToggleLike={() => { if (track) toggleLike(track.id) }}
+        onToggleLike={() => { if (track) toggleLike(track.id).then(liked => toast(liked ? "Liked" : "Removed from likes", "success")) }}
         onOpenNowPlaying={openNowPlaying}
       />
     )
@@ -196,7 +198,7 @@ export function Player() {
               </CtrlBtn>
             </span>
 
-            <button onClick={() => { if (track) toggleLike(track.id) }} title={liked ? "Unlike" : "Like"}
+            <button onClick={() => { if (track) toggleLike(track.id).then(liked => toast(liked ? "Liked" : "Removed from likes", "success")) }} title={liked ? "Unlike" : "Like"}
               className="player-mobile-like"
               style={{ background: "none", border: "none", cursor: "pointer", display: "none", alignItems: "center", justifyContent: "center", padding: "6px", borderRadius: "8px", color: liked ? "var(--like)" : "rgba(255,255,255,0.8)", lineHeight: 0, transition: "color 0.15s, transform 0.1s" }}
               onMouseDown={(e) => { e.currentTarget.style.transform = "scale(0.85)" }}
@@ -259,7 +261,7 @@ export function Player() {
             )}
 
             {/* Like button */}
-            <CtrlBtn title={liked ? "Unlike" : "Like"} dim={!liked} active={liked} onClick={() => { if (track) toggleLike(track.id) }}>
+            <CtrlBtn title={liked ? "Unlike" : "Like"} dim={!liked} active={liked} onClick={() => { if (track) toggleLike(track.id).then((v) => toast(v ? "Liked" : "Removed from likes", "success")) }}>
               <span key={`${track?.id ?? "none"}-${liked ? "liked" : "plain"}`} className={liked ? "like-burst" : undefined} style={{ display: "flex" }}>
                 {liked ? (
                   <HeartBold size={16} color="var(--like)" />
@@ -465,60 +467,56 @@ function MobileMiniPlayer({
           </div>
         </div>
 
-        <div
-          onClick={() => { if (track) onOpenNowPlaying() }}
-          style={{
-            flex: 1,
-            minWidth: 0,
-            cursor: track ? "pointer" : "default",
-            userSelect: "none",
-          }}
-        >
-          {track ? (
-            <>
-              <div
-                ref={titleContainerRef}
-                className="player-mobile-title"
-                style={{ position: "relative" }}
-              >
-                <span
-                  ref={titleRef}
-                  className={`player-mobile-title-inner${titleOverflows ? " marquee" : ""}`}
-                  style={{
-                    fontSize: "14px",
-                    fontWeight: 700,
-                    color: track ? "rgba(255,255,255,0.97)" : "var(--foreground)",
-                    lineHeight: 1.25,
-                    letterSpacing: "-0.2px",
-                  }}
-                >
-                  {track.title}
-                </span>
-              </div>
-              <p
+        {track && (
+          <div
+            onClick={() => onOpenNowPlaying()}
+            style={{
+              flex: 1,
+              minWidth: 0,
+              cursor: "pointer",
+              userSelect: "none",
+            }}
+          >
+            <div
+              ref={titleContainerRef}
+              className="player-mobile-title"
+              style={{ position: "relative" }}
+            >
+              <span
+                ref={titleRef}
+                className={`player-mobile-title-inner${titleOverflows ? " marquee" : ""}`}
                 style={{
-                  margin: "2px 0 0",
-                  fontSize: "12px",
-                  fontWeight: 500,
-                  color: track ? "rgba(255,255,255,0.58)" : "var(--muted-foreground)",
-                  overflow: "hidden",
-                  textOverflow: "ellipsis",
-                  whiteSpace: "nowrap",
-                  lineHeight: 1.3,
+                  fontSize: "14px",
+                  fontWeight: 700,
+                  color: "rgba(255,255,255,0.97)",
+                  lineHeight: 1.25,
+                  letterSpacing: "-0.2px",
                 }}
               >
-                {track.artist_name}
-                {track.collaborators && track.collaborators.length > 0
-                  ? ", " + track.collaborators.map((c) => c.stage_name).join(", ")
-                  : ""}
-              </p>
-            </>
-          ) : (
-            <p style={{ margin: 0, fontSize: "13px", color: track ? "rgba(255,255,255,0.45)" : "var(--muted-foreground)" }}>Nothing playing</p>
-          )}
-        </div>
+                {track.title}
+              </span>
+            </div>
+            <p
+              style={{
+                margin: "2px 0 0",
+                fontSize: "12px",
+                fontWeight: 500,
+                color: "rgba(255,255,255,0.58)",
+                overflow: "hidden",
+                textOverflow: "ellipsis",
+                whiteSpace: "nowrap",
+                lineHeight: 1.3,
+              }}
+            >
+              {track.artist_name}
+              {track.collaborators && track.collaborators.length > 0
+                ? ", " + track.collaborators.map((c) => c.stage_name).join(", ")
+                : ""}
+            </p>
+          </div>
+        )}
 
-        <div style={{ display: "flex", alignItems: "center", gap: "2px", flexShrink: 0 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: "2px", flexShrink: 0, marginLeft: "auto" }}>
           <button
             onClick={(e) => { e.stopPropagation(); if (hasTrack) onToggleLike() }}
             disabled={!hasTrack}
@@ -590,7 +588,7 @@ function MobileMiniPlayer({
             }}
           >
             {loading ? (
-              <svg className="spinner" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#1d1d1f" strokeWidth="2.5">
+              <svg className="spinner" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={track ? "#1d1d1f" : "var(--foreground)"} strokeWidth="2.5">
                 <circle cx="12" cy="12" r="10" strokeDasharray="31.4 31.4" strokeLinecap="round" />
               </svg>
             ) : isPlaying ? (
@@ -789,7 +787,7 @@ function QueuePanel({
                     <p style={{ margin: "1px 0 0", fontSize: "11px", color: "var(--muted-foreground)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{t.artist_name}</p>
                   </div>
                   <span style={{ fontSize: "11px", color: "var(--muted-foreground)", flexShrink: 0 }}>
-                    {Math.floor(t.duration_sec / 60)}:{String(t.duration_sec % 60).padStart(2, "0")}
+                    {formatDuration(t.duration_sec)}
                   </span>
                     <button
                       onClick={(e) => { e.stopPropagation(); onRemove(actualIndex) }}

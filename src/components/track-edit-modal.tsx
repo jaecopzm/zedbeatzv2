@@ -4,6 +4,7 @@ import { useState, useEffect } from "react"
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
 import { api } from "@/lib/api"
 import { toast } from "@/lib/toast-store"
+import { formatDuration } from "@/lib/utils"
 
 interface Track {
   id: string
@@ -104,7 +105,7 @@ export function TrackEditModal({ track, onClose }: Props) {
           <div>
             <p style={{ margin: 0, fontSize: 15, fontWeight: 700, color: "var(--foreground)" }}>{track.title}</p>
             <p style={{ margin: "2px 0 0", fontSize: 12, color: "var(--muted-foreground)" }}>
-              {Math.floor(track.duration_sec / 60)}:{String(track.duration_sec % 60).padStart(2, "0")} · {track.play_count} plays · {track.like_count} likes
+              {formatDuration(track.duration_sec)} · {track.play_count} plays · {track.like_count} likes
               {track.album_name ? ` · ${track.album_name}` : ""}
             </p>
           </div>

@@ -78,7 +78,8 @@ export default async function TrackLayout({ params, children }: Props) {
               name: track.title,
               url: `${SITE_URL}/track/${id}`,
               image: track.cover_url || undefined,
-              duration: `PT${Math.floor(track.duration_sec / 60)}M${track.duration_sec % 60}S`,
+              duration: `PT${Math.max(0, Math.floor((track.duration_sec || 0) / 60))}M${Math.max(0, (track.duration_sec || 0) % 60)}S`,
+              isAccessibleForFree: true,
               byArtist: [
                 {
                   "@type": "MusicGroup",

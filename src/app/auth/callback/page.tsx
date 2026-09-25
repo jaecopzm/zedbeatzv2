@@ -19,7 +19,9 @@ function CallbackContent() {
       localStorage.setItem("refresh_token", refreshToken)
       setToken(accessToken)
       setStatus("Signed in! Redirecting...")
-      setTimeout(() => router.push("/"), 500)
+      const target = sessionStorage.getItem("post_login_redirect") || "/"
+      sessionStorage.removeItem("post_login_redirect")
+      setTimeout(() => router.push(target), 500)
     } else {
       setStatus("Authentication failed. Please try again.")
     }
@@ -39,7 +41,7 @@ function CallbackContent() {
 
 export default function AuthCallbackPage() {
   return (
-    <Suspense fallback={<div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", minHeight: "60vh", color: "var(--muted-foreground)" }}><p>Loading...</p></div>}>
+    <Suspense fallback={<div style={{ display: "flex", alignItems: "center", justifyContent: "center", minHeight: "60vh", color: "var(--muted-foreground)" }}><div style={{ width: 32, height: 32, borderRadius: "50%", border: "3px solid var(--border)", borderTopColor: "var(--brand)", animation: "spin 0.7s linear infinite" }} /></div>}>
       <CallbackContent />
     </Suspense>
   )

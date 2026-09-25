@@ -24,6 +24,8 @@ export function TrackList({ tracks, accentColor }: { tracks: any[]; accentColor?
   const router = useRouter()
   const [hoveredId, setHoveredId] = useState<string | null>(null)
 
+  if (!tracks || tracks.length === 0) return null
+
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
       {tracks.map((t, idx) => {

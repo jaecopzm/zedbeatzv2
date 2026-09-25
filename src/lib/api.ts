@@ -346,6 +346,12 @@ export const api = {
     return request<{ tracks: import("@/types").Track[] }>(`/admin/tracks${qs}`)
   },
 
+  adminUpdateTrackSection: (id: string, section: string) =>
+    request<void>(`/admin/tracks/${id}`, {
+      method: "PATCH",
+      body: JSON.stringify({ section }),
+    }),
+
   adminUploadTrack: (formData: FormData) => {
     const token = localStorage.getItem("access_token")
     return fetch(`${API_BASE}/admin/tracks`, {
@@ -364,6 +370,11 @@ export const api = {
   adminImportSearch: (query: string) =>
     request<{ tracks: import("@/types").SearchResultTrack[] }>(
       `/admin/import/search?q=${encodeURIComponent(query)}`
+    ),
+
+  adminImportLookup: (id: string) =>
+    request<{ tracks: import("@/types").SearchResultTrack[] }>(
+      `/admin/import/lookup?id=${encodeURIComponent(id)}`
     ),
 
   adminImportBulk: (tracks: import("@/types").BulkImportItem[]) =>

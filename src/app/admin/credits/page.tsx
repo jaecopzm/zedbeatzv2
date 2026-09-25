@@ -4,9 +4,12 @@ import { useQuery, useMutation } from "@tanstack/react-query"
 import { useState, useMemo } from "react"
 import { api } from "@/lib/api"
 import { toast } from "@/lib/toast-store"
+import { ConfirmDialog } from "@/components/confirm-dialog"
+import { Pagination } from "@/components/admin/pagination"
 
 const GRANT_OPTIONS = [1, 5, 10, 25, 50, 100]
 const REVOKE_OPTIONS = [1, 5, 10, 25]
+const TX_PAGE_SIZE = 20
 
 const txTypeLabel: Record<string, { label: string; color: string; bg: string }> = {
   free_grant: { label: "Free Grant", color: "rgb(16,185,129)", bg: "rgba(16,185,129,0.1)" },
@@ -44,10 +47,12 @@ export default function AdminCreditsPage() {
   const [customGrant, setCustomGrant] = useState("")
   const [customRevoke, setCustomRevoke] = useState("")
   const [txFilter, setTxFilter] = useState<TxFilter>("all")
+  const [txPage, setTxPage] = useState(1)
+  const [confirmAction, setConfirmAction] = useState<"grant" | "revoke" | null>(null)
 
   const { data: artistsData, isLoading: artistsLoading } = useQuery({
     queryKey: ["admin-artists"],
-    queryFn: () => api.adminListArtists(),
+    queryFn: () => api.adminListArtists(5000, 0),
   })
 
   const filteredArtists = useMemo(() => {
@@ -73,6 +78,7 @@ export default function AdminCreditsPage() {
       toast(`${grantAmount} credit${grantAmount === 1 ? "" : "s"} granted`, "success")
       setGrantReason("")
       setCustomGrant("")
+      setConfirmAction(null)
     },
     onError: (e: any) => toast(e?.message || "Failed to grant credits", "error"),
   })
@@ -84,6 +90,7 @@ export default function AdminCreditsPage() {
       toast(`${revokeAmount} credit${revokeAmount === 1 ? "" : "s"} revoked`, "success")
       setRevokeReason("")
       setCustomRevoke("")
+      setConfirmAction(null)
     },
     onError: (e: any) => toast(e?.message || "Failed to revoke credits", "error"),
   })
@@ -98,6 +105,11 @@ export default function AdminCreditsPage() {
     if (txFilter === "deduction") return allTxs.filter((tx: any) => tx.type === "deduction")
     return allTxs
   }, [allTxs, txFilter])
+
+  const pageTxs = useMemo(() => {
+    const start = (txPage - 1) * TX_PAGE_SIZE
+    return filteredTxs.slice(start, start + TX_PAGE_SIZE)
+  }, [filteredTxs, txPage])
 
   const handleGrantCustom = (val: string) => {
     const n = parseInt(val, 10)
@@ -144,12 +156,8 @@ export default function AdminCreditsPage() {
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Search artist by name or email..."
-              style={{
-                width: "100%", maxWidth: 420, padding: "12px 16px", borderRadius: 12,
-                border: "1.5px solid var(--border)", background: "var(--background)",
-                color: "var(--foreground)", fontSize: 14, outline: "none",
-                transition: "border-color 0.15s ease",
-              }}
+              className="admin-search"
+              style={{ maxWidth: 420 }}
             />
           </div>
 
@@ -161,10 +169,7 @@ export default function AdminCreditsPage() {
               ))}
             </div>
           ) : filteredArtists.length === 0 ? (
-            <div style={{
-              background: "var(--card-bg)", border: "1px solid var(--border)", borderRadius: 16,
-              padding: "48px 24px", textAlign: "center", color: "var(--muted-foreground)", fontSize: 14,
-            }}>
+            <div className="admin-empty" style={{ padding: "48px 24px", fontSize: 14 }}>
               {search.trim() ? "No matching artists found." : "No artists registered yet."}
             </div>
           ) : (
@@ -173,22 +178,12 @@ export default function AdminCreditsPage() {
                 <button
                   key={artist.id}
                   onClick={() => setSelectedArtist(artist.id)}
+                  className="admin-card-lift"
                   style={{
                     display: "flex", alignItems: "center", gap: 14,
                     background: "var(--card-bg)", border: "1.5px solid var(--border)", borderRadius: 14,
                     padding: "16px 18px", cursor: "pointer", textAlign: "left",
-                    transition: "transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.2s ease, border-color 0.15s ease",
-                    width: "100%",
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.transform = "translateY(-3px)"
-                    e.currentTarget.style.boxShadow = "0 8px 24px rgba(0,0,0,0.06)"
-                    e.currentTarget.style.borderColor = "var(--brand)"
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.transform = "translateY(0)"
-                    e.currentTarget.style.boxShadow = "none"
-                    e.currentTarget.style.borderColor = "var(--border)"
+                    width: "100%", fontFamily: "inherit",
                   }}
                 >
                   {artist.photo_url ? (
@@ -230,7 +225,7 @@ export default function AdminCreditsPage() {
           <div style={{
             display: "flex", alignItems: "center", gap: 16, marginBottom: 24,
             background: "var(--card-bg)", border: "1px solid var(--border)", borderRadius: 16,
-            padding: "20px 24px",
+            padding: "20px 24px", flexWrap: "wrap",
           }}>
             {selectedArtistData?.photo_url ? (
               <img
@@ -257,15 +252,9 @@ export default function AdminCreditsPage() {
               </p>
             </div>
             <button
-              onClick={() => { setSelectedArtist(""); setTxFilter("all") }}
-              style={{
-                padding: "8px 14px", borderRadius: 10, border: "1.5px solid var(--border)",
-                background: "transparent", color: "var(--foreground)", fontSize: 13, fontWeight: 500,
-                cursor: "pointer", fontFamily: "inherit", display: "flex", alignItems: "center", gap: 6,
-                transition: "background 0.15s",
-              }}
-              onMouseEnter={(e) => (e.currentTarget.style.background = "var(--hover-bg)")}
-              onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
+              onClick={() => { setSelectedArtist(""); setTxFilter("all"); setTxPage(1) }}
+              className="admin-btn-secondary"
+              style={{ padding: "8px 14px", fontSize: 13, display: "flex", alignItems: "center", gap: 6 }}
             >
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><polyline points="15 18 9 12 15 6" /></svg>
               Change Artist
@@ -279,7 +268,7 @@ export default function AdminCreditsPage() {
             <div style={{
               background: "linear-gradient(135deg, var(--brand) 0%, var(--brand-light) 100%)",
               borderRadius: 16, padding: "28px 32px", marginBottom: 24,
-              color: "#fff", boxShadow: "0 8px 24px rgba(252, 60, 68, 0.2)",
+              color: "#fff", boxShadow: "0 8px 24px var(--brand-shadow)",
             }}>
               <p style={{ margin: "0 0 4px", fontSize: 13, fontWeight: 600, opacity: 0.85 }}>Available Credits</p>
               <p style={{ margin: 0, fontSize: 48, fontWeight: 900, lineHeight: 1.1, fontVariantNumeric: "tabular-nums" }}>
@@ -303,7 +292,7 @@ export default function AdminCreditsPage() {
 
           {/* Stats Row */}
           {bal && (
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 16, marginBottom: 24 }}>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))", gap: 16, marginBottom: 24 }}>
               {[
                 { label: "Granted", value: bal.lifetime_granted, color: "rgb(16,185,129)" },
                 { label: "Purchased", value: bal.lifetime_purchased, color: "rgb(59,130,246)" },
@@ -326,7 +315,7 @@ export default function AdminCreditsPage() {
           )}
 
           {/* Grant + Revoke */}
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20, marginBottom: 24 }}>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))", gap: 20, marginBottom: 24 }}>
             {/* Grant form */}
             <div style={{ background: "var(--card-bg)", borderRadius: 16, border: "1px solid var(--border)", padding: "24px 28px" }}>
               <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 16 }}>
@@ -341,7 +330,7 @@ export default function AdminCreditsPage() {
               <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
                 <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
                   {GRANT_OPTIONS.map((n) => (
-                    <button key={n} onClick={() => { setGrantAmount(n); setCustomGrant("") }}
+                    <button key={n} type="button" onClick={() => { setGrantAmount(n); setCustomGrant("") }}
                       style={{
                         padding: "7px 16px", borderRadius: 999, fontFamily: "inherit", fontSize: 13, fontWeight: 600,
                         border: grantAmount === n && !isGrantCustom ? "2px solid rgb(16,185,129)" : "1.5px solid var(--border)",
@@ -358,25 +347,16 @@ export default function AdminCreditsPage() {
                     value={customGrant}
                     onChange={(e) => handleGrantCustom(e.target.value)}
                     placeholder="Custom"
-                    style={{
-                      width: 85, padding: "7px 10px", borderRadius: 999, border: isGrantCustom ? "2px solid rgb(16,185,129)" : "1.5px solid var(--border)",
-                      background: isGrantCustom ? "rgba(16,185,129,0.08)" : "transparent",
-                      color: isGrantCustom ? "rgb(16,185,129)" : "var(--foreground)",
-                      fontSize: 13, fontWeight: 600, outline: "none", fontFamily: "inherit", textAlign: "center",
-                    }}
+                    className="admin-input"
+                    style={{ width: 85, padding: "7px 10px", borderRadius: 999, border: isGrantCustom ? "2px solid rgb(16,185,129)" : "1.5px solid var(--border)", background: isGrantCustom ? "rgba(16,185,129,0.08)" : "transparent", color: isGrantCustom ? "rgb(16,185,129)" : "var(--foreground)", textAlign: "center" }}
                   />
                 </div>
-                <input value={grantReason} onChange={(e) => setGrantReason(e.target.value)} placeholder="Reason for grant" style={{
-                  padding: "10px 14px", borderRadius: 10, border: "1.5px solid var(--border)",
-                  background: "var(--background)", color: "var(--foreground)", fontSize: 13, outline: "none", fontFamily: "inherit",
-                  transition: "border-color 0.15s ease",
-                }} />
-                <button onClick={() => grantMut.mutate()} disabled={grantMut.isPending || !selectedArtist}
+                <input value={grantReason} onChange={(e) => setGrantReason(e.target.value)} placeholder="Reason for grant" className="admin-input" />
+                <button type="button" onClick={() => setConfirmAction("grant")} disabled={grantMut.isPending || !selectedArtist}
                   style={{
                     padding: "11px 20px", borderRadius: 999, border: "none",
                     background: grantMut.isPending ? "var(--border)" : "rgb(16,185,129)", color: "#fff",
                     fontSize: 14, fontWeight: 600, cursor: grantMut.isPending ? "default" : "pointer", fontFamily: "inherit",
-                    transition: "opacity 0.15s ease, transform 0.1s ease",
                   }}>
                   {grantMut.isPending ? "Granting..." : `Grant ${formatNumber(grantAmount)} Credit${grantAmount === 1 ? "" : "s"}`}
                 </button>
@@ -397,7 +377,7 @@ export default function AdminCreditsPage() {
               <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
                 <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
                   {REVOKE_OPTIONS.map((n) => (
-                    <button key={n} onClick={() => { setRevokeAmount(n); setCustomRevoke("") }}
+                    <button key={n} type="button" onClick={() => { setRevokeAmount(n); setCustomRevoke("") }}
                       style={{
                         padding: "7px 16px", borderRadius: 999, fontFamily: "inherit", fontSize: 13, fontWeight: 600,
                         border: revokeAmount === n && !isRevokeCustom ? "2px solid rgb(239,68,68)" : "1.5px solid var(--border)",
@@ -414,25 +394,16 @@ export default function AdminCreditsPage() {
                     value={customRevoke}
                     onChange={(e) => handleRevokeCustom(e.target.value)}
                     placeholder="Custom"
-                    style={{
-                      width: 85, padding: "7px 10px", borderRadius: 999, border: isRevokeCustom ? "2px solid rgb(239,68,68)" : "1.5px solid var(--border)",
-                      background: isRevokeCustom ? "rgba(239,68,68,0.08)" : "transparent",
-                      color: isRevokeCustom ? "rgb(239,68,68)" : "var(--foreground)",
-                      fontSize: 13, fontWeight: 600, outline: "none", fontFamily: "inherit", textAlign: "center",
-                    }}
+                    className="admin-input"
+                    style={{ width: 85, padding: "7px 10px", borderRadius: 999, border: isRevokeCustom ? "2px solid rgb(239,68,68)" : "1.5px solid var(--border)", background: isRevokeCustom ? "rgba(239,68,68,0.08)" : "transparent", color: isRevokeCustom ? "rgb(239,68,68)" : "var(--foreground)", textAlign: "center" }}
                   />
                 </div>
-                <input value={revokeReason} onChange={(e) => setRevokeReason(e.target.value)} placeholder="Reason for revoke" style={{
-                  padding: "10px 14px", borderRadius: 10, border: "1.5px solid var(--border)",
-                  background: "var(--background)", color: "var(--foreground)", fontSize: 13, outline: "none", fontFamily: "inherit",
-                  transition: "border-color 0.15s ease",
-                }} />
-                <button onClick={() => revokeMut.mutate()} disabled={revokeMut.isPending || !selectedArtist}
+                <input value={revokeReason} onChange={(e) => setRevokeReason(e.target.value)} placeholder="Reason for revoke" className="admin-input" />
+                <button type="button" onClick={() => setConfirmAction("revoke")} disabled={revokeMut.isPending || !selectedArtist}
                   style={{
                     padding: "11px 20px", borderRadius: 999, border: "none",
                     background: revokeMut.isPending ? "var(--border)" : "rgb(239,68,68)", color: "#fff",
                     fontSize: 14, fontWeight: 600, cursor: revokeMut.isPending ? "default" : "pointer", fontFamily: "inherit",
-                    transition: "opacity 0.15s ease, transform 0.1s ease",
                   }}>
                   {revokeMut.isPending ? "Revoking..." : `Revoke ${formatNumber(revokeAmount)} Credit${revokeAmount === 1 ? "" : "s"}`}
                 </button>
@@ -444,7 +415,7 @@ export default function AdminCreditsPage() {
           <div style={{ background: "var(--card-bg)", borderRadius: 16, border: "1px solid var(--border)", padding: "24px 28px" }}>
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16, flexWrap: "wrap", gap: 12 }}>
               <h3 style={{ margin: 0, fontSize: 15, fontWeight: 700, color: "var(--foreground)" }}>Transaction History</h3>
-              <div style={{ display: "flex", gap: 6, background: "var(--background)", borderRadius: 999, padding: 3 }}>
+              <div style={{ display: "flex", gap: 6, background: "var(--background)", borderRadius: 999, padding: 3, flexWrap: "wrap" }}>
                 {([
                   { key: "all", label: "All" },
                   { key: "grant", label: "Grants" },
@@ -453,7 +424,7 @@ export default function AdminCreditsPage() {
                 ] as { key: TxFilter; label: string }[]).map((f) => (
                   <button
                     key={f.key}
-                    onClick={() => setTxFilter(f.key)}
+                    onClick={() => { setTxFilter(f.key); setTxPage(1) }}
                     style={{
                       padding: "5px 14px", borderRadius: 999, border: "none", fontFamily: "inherit", fontSize: 12, fontWeight: 600,
                       background: txFilter === f.key ? "var(--brand-bg)" : "transparent",
@@ -480,57 +451,82 @@ export default function AdminCreditsPage() {
                 {txFilter === "all" ? "No transactions yet." : `No ${txFilter} transactions found.`}
               </div>
             ) : (
-              <div style={{ overflowX: "auto" }}>
-                <table style={{
-                  width: "100%", borderCollapse: "collapse", fontSize: 13,
-                }}>
-                  <thead>
-                    <tr>
-                      <th style={{ textAlign: "left", padding: "8px 12px", fontSize: 11, fontWeight: 600, color: "var(--muted-foreground)", textTransform: "uppercase", letterSpacing: "0.06em", borderBottom: "1px solid var(--border)" }}>Type</th>
-                      <th style={{ textAlign: "left", padding: "8px 12px", fontSize: 11, fontWeight: 600, color: "var(--muted-foreground)", textTransform: "uppercase", letterSpacing: "0.06em", borderBottom: "1px solid var(--border)" }}>Description</th>
-                      <th style={{ textAlign: "right", padding: "8px 12px", fontSize: 11, fontWeight: 600, color: "var(--muted-foreground)", textTransform: "uppercase", letterSpacing: "0.06em", borderBottom: "1px solid var(--border)" }}>Amount</th>
-                      <th style={{ textAlign: "right", padding: "8px 12px", fontSize: 11, fontWeight: 600, color: "var(--muted-foreground)", textTransform: "uppercase", letterSpacing: "0.06em", borderBottom: "1px solid var(--border)" }}>Date</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {filteredTxs.map((tx: any) => {
-                      const info = txTypeLabel[tx.type] ?? { label: tx.type || "Transaction", color: "var(--muted-foreground)", bg: "var(--hover-bg)" }
-                      return (
-                        <tr key={tx.id} style={{ transition: "background 0.1s" }}
-                          onMouseEnter={(e) => { e.currentTarget.style.background = "var(--hover-bg)" }}
-                          onMouseLeave={(e) => { e.currentTarget.style.background = "transparent" }}
-                        >
-                          <td style={{ padding: "10px 12px", borderBottom: "1px solid var(--border)" }}>
-                            <span style={{
-                              display: "inline-block", padding: "3px 10px", borderRadius: 999, fontSize: 12, fontWeight: 600,
-                              color: info.color, background: info.bg,
+              <>
+                <div style={{ overflowX: "auto" }}>
+                  <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
+                    <caption style={{ position: "absolute", width: 1, height: 1, overflow: "hidden", clip: "rect(0 0 0 0)" }}>
+                      Credit transactions for {selectedArtistData?.stage_name}
+                    </caption>
+                    <thead>
+                      <tr>
+                        <th style={{ textAlign: "left", padding: "8px 12px", fontSize: 11, fontWeight: 600, color: "var(--muted-foreground)", textTransform: "uppercase", letterSpacing: "0.06em", borderBottom: "1px solid var(--border)" }}>Type</th>
+                        <th style={{ textAlign: "left", padding: "8px 12px", fontSize: 11, fontWeight: 600, color: "var(--muted-foreground)", textTransform: "uppercase", letterSpacing: "0.06em", borderBottom: "1px solid var(--border)" }}>Description</th>
+                        <th style={{ textAlign: "right", padding: "8px 12px", fontSize: 11, fontWeight: 600, color: "var(--muted-foreground)", textTransform: "uppercase", letterSpacing: "0.06em", borderBottom: "1px solid var(--border)" }}>Amount</th>
+                        <th style={{ textAlign: "right", padding: "8px 12px", fontSize: 11, fontWeight: 600, color: "var(--muted-foreground)", textTransform: "uppercase", letterSpacing: "0.06em", borderBottom: "1px solid var(--border)" }}>Date</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {pageTxs.map((tx: any) => {
+                        const info = txTypeLabel[tx.type] ?? { label: tx.type || "Transaction", color: "var(--muted-foreground)", bg: "var(--hover-bg)" }
+                        return (
+                          <tr key={tx.id} style={{ transition: "background 0.1s" }}
+                            onMouseEnter={(e) => { e.currentTarget.style.background = "var(--hover-bg)" }}
+                            onMouseLeave={(e) => { e.currentTarget.style.background = "transparent" }}
+                          >
+                            <td style={{ padding: "10px 12px", borderBottom: "1px solid var(--border)" }}>
+                              <span style={{
+                                display: "inline-block", padding: "3px 10px", borderRadius: 999, fontSize: 12, fontWeight: 600,
+                                color: info.color, background: info.bg,
+                              }}>
+                                {info.label}
+                              </span>
+                            </td>
+                            <td style={{ padding: "10px 12px", borderBottom: "1px solid var(--border)", color: "var(--foreground)" }}>
+                              {tx.description || "—"}
+                            </td>
+                            <td style={{
+                              padding: "10px 12px", borderBottom: "1px solid var(--border)", textAlign: "right",
+                              fontWeight: 700, fontSize: 14, fontVariantNumeric: "tabular-nums",
+                              color: tx.amount > 0 ? "rgb(16,185,129)" : "rgb(239,68,68)",
                             }}>
-                              {info.label}
-                            </span>
-                          </td>
-                          <td style={{ padding: "10px 12px", borderBottom: "1px solid var(--border)", color: "var(--foreground)" }}>
-                            {tx.description || "—"}
-                          </td>
-                          <td style={{
-                            padding: "10px 12px", borderBottom: "1px solid var(--border)", textAlign: "right",
-                            fontWeight: 700, fontSize: 14, fontVariantNumeric: "tabular-nums",
-                            color: tx.amount > 0 ? "rgb(16,185,129)" : "rgb(239,68,68)",
-                          }}>
-                            {tx.amount > 0 ? "+" : ""}{tx.amount}
-                          </td>
-                          <td style={{ padding: "10px 12px", borderBottom: "1px solid var(--border)", textAlign: "right", color: "var(--muted-foreground)", fontSize: 12, whiteSpace: "nowrap" }}>
-                            {formatDate(tx.created_at)}
-                          </td>
-                        </tr>
-                      )
-                    })}
-                  </tbody>
-                </table>
-              </div>
+                              {tx.amount > 0 ? "+" : ""}{tx.amount}
+                            </td>
+                            <td style={{ padding: "10px 12px", borderBottom: "1px solid var(--border)", textAlign: "right", color: "var(--muted-foreground)", fontSize: 12, whiteSpace: "nowrap" }}>
+                              {formatDate(tx.created_at)}
+                            </td>
+                          </tr>
+                        )
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+                <Pagination page={txPage} pageSize={TX_PAGE_SIZE} total={filteredTxs.length} onPageChange={setTxPage} />
+              </>
             )}
           </div>
         </div>
       )}
+
+      {/* Grant confirmation */}
+      <ConfirmDialog
+        open={confirmAction === "grant"}
+        title="Grant Credits"
+        message={`Confirm granting ${formatNumber(grantAmount)} credit${grantAmount === 1 ? "" : "s"} to ${selectedArtistData?.stage_name ?? "this artist"}?`}
+        confirmLabel="Grant Credits"
+        destructive={false}
+        onConfirm={() => grantMut.mutate()}
+        onCancel={() => setConfirmAction(null)}
+      />
+
+      {/* Revoke confirmation */}
+      <ConfirmDialog
+        open={confirmAction === "revoke"}
+        title="Revoke Credits"
+        message={`Confirm revoking ${formatNumber(revokeAmount)} credit${revokeAmount === 1 ? "" : "s"} from ${selectedArtistData?.stage_name ?? "this artist"}?`}
+        confirmLabel="Revoke Credits"
+        onConfirm={() => revokeMut.mutate()}
+        onCancel={() => setConfirmAction(null)}
+      />
     </div>
   )
 }

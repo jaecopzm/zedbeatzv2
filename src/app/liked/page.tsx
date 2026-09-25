@@ -21,7 +21,7 @@ export default function LikedPage() {
     return () => mq.removeEventListener("change", handler)
   }, [])
 
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, isError } = useQuery({
     queryKey: ["my-likes"],
     queryFn: () => api.getMyLikes(),
     staleTime: 30_000,
@@ -95,7 +95,16 @@ export default function LikedPage() {
       </div>
 
       <div style={{ padding: isMobile ? "16px 12px 32px" : "32px 40px 64px" }}>
-        {isLoading ? (
+        {isError ? (
+          <div style={{ textAlign: "center", padding: "60px 0", color: "var(--muted-foreground)" }}>
+            <div style={{ width: 56, height: 56, borderRadius: "50%", background: "rgba(239,68,68,0.12)", display: "inline-flex", alignItems: "center", justifyContent: "center", marginBottom: 16 }}>
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#ef4444" strokeWidth="1.8" strokeLinecap="round"><circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="12" /><line x1="12" y1="16" x2="12.01" y2="16" /></svg>
+            </div>
+            <p style={{ fontSize: 16, fontWeight: 500, margin: "0 0 8px" }}>Failed to load liked songs</p>
+            <p style={{ fontSize: 14, margin: "0 0 24px" }}>Please try again later.</p>
+            <button onClick={() => window.location.reload()} style={{ padding: "10px 28px", borderRadius: 999, border: "none", background: "var(--brand)", color: "#fff", fontSize: 14, fontWeight: 600, cursor: "pointer" }}>Try again</button>
+          </div>
+        ) : isLoading ? (
           <div style={{ background: "var(--card-bg)", borderRadius: 12, overflow: "hidden" }}>
             {Array.from({ length: 8 }).map((_, i) => (
               <div key={i} style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 12px" }}>
