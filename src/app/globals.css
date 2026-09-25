@@ -54,7 +54,7 @@
   --player-padding: 10px 20px 6px;
   --player-progress-padding: 0 20px 10px;
   --player-grid-gap: 16px;
-  --player-art-size: 44px;
+  --player-art-size: 52px;
   --player-btn-size: 38px;
   --player-volume-width: 70px;
   --player-grid-cols: 1fr auto 1fr;
@@ -2535,4 +2535,19 @@ input[type="range"]::-webkit-slider-thumb:hover {
 }
 [data-theme="light"] .hp-hero-panel-scrim {
   background: linear-gradient(105deg, rgba(0, 0, 0, 0.68) 0%, rgba(0, 0, 0, 0.38) 45%, rgba(0, 0, 0, 0.18) 100%);
+}
+
+/* ── Player progress: thickens on hover like the big apps ── */
+.player-progress-track {
+  transition: height 0.15s ease;
+}
+.player-progress-track:hover {
+  height: 5px !important;
+}
+.player-progress-track .player-progress-dot {
+  transform: translate(-50%, -50%) scale(0.6);
+  transition: left 0.12s linear, opacity 0.2s, transform 0.15s ease;
+}
+.player-progress-track:hover .player-progress-dot {
+  transform: translate(-50%, -50%) scale(1);
 }

@@ -6,6 +6,7 @@ import { useUIStore } from "@/lib/ui-store"
 import { useLikesStore } from "@/lib/likes-store"
 import { useColorExtract } from "@/lib/use-color-extract"
 import { ArtistLinks } from "@/components/artist-links"
+import { CoverImage } from "@/components/cover-image"
 import { ShuffleIcon as ShuffleLinear } from "@solar-icons/react/linear/shuffle"
 import { RepeatIcon as RepeatLinear } from "@solar-icons/react/linear/repeat"
 import { SkipPreviousIcon as PrevBold } from "@solar-icons/react/bold/skip-previous"
@@ -291,7 +292,7 @@ export function Player() {
             <div className="player-progress-track" style={{ height: "3px", background: "var(--border)", position: "relative", cursor: "pointer", borderRadius: "999px", overflow: "hidden" }}
               onClick={(e) => { const rect = e.currentTarget.getBoundingClientRect(); const pct = (e.clientX - rect.left) / rect.width; seek(Math.round(pct * duration)) }}>
               <div className="player-progress-fill" style={{ height: "100%", width: `${progressPct}%`, background: palette.vibrant, borderRadius: "999px", transition: "width 0.12s linear, background 1s ease", position: "relative" }} />
-              <div className="player-progress-dot" style={{ position: "absolute", top: "50%", left: `${progressPct}%`, transform: "translate(-50%, -50%)", width: "10px", height: "10px", borderRadius: "50%", background: palette.vibrant, opacity: progressPct > 0 ? 1 : 0, transition: "left 0.12s linear, opacity 0.2s, background 1s ease", pointerEvents: "none" }} />
+              <div className="player-progress-dot" style={{ position: "absolute", top: "50%", left: `${progressPct}%`, width: "10px", height: "10px", borderRadius: "50%", background: palette.vibrant, opacity: progressPct > 0 ? 1 : 0, transition: "left 0.12s linear, opacity 0.2s, background 1s ease", pointerEvents: "none" }} />
             </div>
           </div>
         </div>
@@ -434,22 +435,15 @@ function MobileMiniPlayer({
               }}
             />
           )}
-          <div style={{ position: "relative", zIndex: 1 }}>
+          <div style={{
+            position: "relative", zIndex: 1, width: "48px", height: "48px",
+            borderRadius: "10px", overflow: "hidden",
+            boxShadow: "0 4px 16px rgba(0,0,0,0.3)",
+            transform: isPlaying ? "scale(1)" : "scale(0.94)",
+            transition: "transform 0.4s cubic-bezier(0.34,1.56,0.64,1), box-shadow 0.4s ease",
+          }}>
             {track?.cover_url ? (
-              <img
-                src={track.cover_url}
-                alt={track.title}
-                style={{
-                  width: "48px",
-                  height: "48px",
-                  borderRadius: "10px",
-                  objectFit: "cover",
-                  display: "block",
-                  boxShadow: "0 4px 16px rgba(0,0,0,0.3)",
-                  transform: isPlaying ? "scale(1)" : "scale(0.94)",
-                  transition: "transform 0.4s cubic-bezier(0.34,1.56,0.64,1), box-shadow 0.4s ease",
-                }}
-              />
+              <CoverImage src={track.cover_url} alt={track.title} sizes="120px" />
             ) : (
               <div
                 style={{
@@ -544,9 +538,13 @@ function MobileMiniPlayer({
               transition: "color 0.15s",
             }}
           >
-            <svg width="19" height="19" viewBox="0 0 24 24" fill={liked ? "var(--like)" : "none"} stroke={liked ? "var(--like)" : "currentColor"} strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
-            </svg>
+            <span key={`${track?.id ?? "none"}-${liked ? "liked" : "plain"}`} className={liked ? "like-burst" : undefined} style={{ display: "flex" }}>
+              {liked ? (
+                <HeartBold size={19} color="var(--like)" />
+              ) : (
+                <HeartLinear size={19} color="currentColor" strokeWidth={1.9} />
+              )}
+            </span>
           </button>
 
           <button
@@ -567,9 +565,7 @@ function MobileMiniPlayer({
               WebkitTapHighlightColor: "transparent",
             }}
           >
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
-              <polygon points="19,20 9,12 19,4" /><rect x="5" y="4" width="2.5" height="16" rx="1.2" />
-            </svg>
+            <PrevBold size={20} color="currentColor" />
           </button>
 
           <button
@@ -598,14 +594,9 @@ function MobileMiniPlayer({
                 <circle cx="12" cy="12" r="10" strokeDasharray="31.4 31.4" strokeLinecap="round" />
               </svg>
             ) : isPlaying ? (
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="#1d1d1f">
-                <rect x="5" y="4" width="4.5" height="16" rx="1.5" />
-                <rect x="14.5" y="4" width="4.5" height="16" rx="1.5" />
-              </svg>
+              <PauseBold size={16} color="#1d1d1f" />
             ) : (
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="#1d1d1f" style={{ marginLeft: "2px" }}>
-                <polygon points="5,3 20,12 5,21" />
-              </svg>
+              <span style={{ marginLeft: "2px", display: "flex" }}><PlayBold size={16} color="#1d1d1f" /></span>
             )}
           </button>
 
@@ -627,9 +618,7 @@ function MobileMiniPlayer({
               WebkitTapHighlightColor: "transparent",
             }}
           >
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
-              <polygon points="5,4 15,12 5,20" /><rect x="16.5" y="4" width="2.5" height="16" rx="1.2" />
-            </svg>
+            <NextBold size={20} color="currentColor" />
           </button>
         </div>
       </div>
@@ -708,7 +697,7 @@ function QueuePanel({
           background: "var(--card-bg)",
           backdropFilter: "blur(40px) saturate(180%)",
           WebkitBackdropFilter: "blur(40px) saturate(180%)",
-borderRadius: "999px",
+          borderRadius: "16px",
           border: `1px solid ${accentAlpha(0.15)}`,
           boxShadow: `0 12px 48px rgba(0,0,0,0.18), 0 0 0 1px ${accentAlpha(0.06)}`,
           overflow: "hidden",
@@ -749,7 +738,9 @@ borderRadius: "999px",
             onMouseLeave={(e) => { e.currentTarget.style.background = accentAlpha(0.06) }}
           >
             {currentTrack.cover_url ? (
-              <img src={currentTrack.cover_url} alt="" style={{ width: 40, height: 40, borderRadius: 4, objectFit: "cover", flexShrink: 0 }} />
+              <span style={{ position: "relative", width: 40, height: 40, borderRadius: 6, overflow: "hidden", flexShrink: 0, display: "block" }}>
+                <CoverImage src={currentTrack.cover_url} alt="" sizes="100px" />
+              </span>
             ) : (
               <div style={{ width: 40, height: 40, borderRadius: 4, background: "linear-gradient(135deg, var(--brand), var(--brand-light))", flexShrink: 0 }} />
             )}
@@ -786,9 +777,11 @@ borderRadius: "999px",
                     onMouseLeave={(e) => { e.currentTarget.style.background = "transparent" }}
                   >
                     <span style={{ fontSize: "12px", color: "var(--muted-foreground)", fontWeight: 500, width: "22px", textAlign: "center", flexShrink: 0 }}>{actualIndex}</span>
-                  {t.cover_url ? (
-                    <img src={t.cover_url} alt="" style={{ width: 36, height: 36, borderRadius: 4, objectFit: "cover", flexShrink: 0 }} />
-                  ) : (
+                    {t.cover_url ? (
+                      <span style={{ position: "relative", width: 36, height: 36, borderRadius: 6, overflow: "hidden", flexShrink: 0, display: "block" }}>
+                        <CoverImage src={t.cover_url} alt="" sizes="100px" />
+                      </span>
+                    ) : (
                     <div style={{ width: 36, height: 36, borderRadius: 4, background: "linear-gradient(135deg, #e8e8ec, #d0d0d8)", flexShrink: 0 }} />
                   )}
                   <div style={{ flex: 1, minWidth: 0 }}>

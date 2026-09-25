@@ -180,6 +180,7 @@ export function ShareableArtistCard({ data }: Props) {
     ctx.fillStyle = "rgba(255,255,255,0.85)"
     ctx.fillText("zedbeatz.com", size / 2, size - 30)
 
+    setPreviewUrl(canvas.toDataURL("image/png"))
     setGenerating(false)
   }
 
