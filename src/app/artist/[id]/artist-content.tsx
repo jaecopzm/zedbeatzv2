@@ -8,6 +8,18 @@ import { usePlayerStore } from "@/lib/store"
 import type { Track, Album, Artist } from "@/types"
 import { useState, useEffect, useCallback, useMemo } from "react"
 import { PremiumTrackMenu } from "@/components/track-menu"
+import { CoverImage } from "@/components/cover-image"
+import { PlayIcon as PlayBold } from "@solar-icons/react/bold/play"
+import { PauseIcon as PauseBold } from "@solar-icons/react/bold/pause"
+import { CheckCircleIcon as BadgeBold } from "@solar-icons/react/bold/check-circle"
+import { AddIcon as AddLinear } from "@solar-icons/react/linear/add"
+import { CheckIcon as CheckLinear } from "@solar-icons/react/linear/check"
+import { PointOnMapIcon as PinLinear } from "@solar-icons/react/linear/point-on-map"
+import { UsersGroupRoundedIcon as FansLinear } from "@solar-icons/react/linear/users-group-rounded"
+import { MusicNoteIcon as MusicLinear } from "@solar-icons/react/linear/music-note"
+import { AltArrowDownIcon as ChevronDownLinear } from "@solar-icons/react/linear/alt-arrow-down"
+import { AlbumIcon as AlbumLinear } from "@solar-icons/react/linear/album"
+import { CalendarIcon as CalendarLinear } from "@solar-icons/react/linear/calendar"
 import {
   Avatar,
   VerifiedBadge,
@@ -82,8 +94,8 @@ function TrackRow({
       {isHovered ? (
         <div className="track-play-icon" style={{ display: "flex" }}>
           {isActiveAndPlaying
-            ? <PauseIconSolid size={14} />
-            : <PlayIconSolid size={14} />
+            ? <PauseBold size={14} color="currentColor" />
+            : <PlayBold size={14} color="currentColor" />
           }
         </div>
       ) : (
@@ -106,15 +118,7 @@ function TrackRow({
 
       <div className="track-cover-wrapper">
         {track.cover_url ? (
-          <img
-            src={track.cover_url}
-            alt=""
-            style={{
-              width: "100%", height: "100%",
-              borderRadius: 6, objectFit: "cover",
-              display: "block",
-            }}
-          />
+          <CoverImage src={track.cover_url} alt="" sizes="100px" />
         ) : (
           <div style={{
             width: "100%", height: "100%", borderRadius: 6,
@@ -130,8 +134,8 @@ function TrackRow({
         )}
         <div className="track-cover-overlay">
           {isActiveAndPlaying
-            ? <PauseIconSolid size={16} />
-            : <PlayIconSolid size={16} />
+            ? <PauseBold size={16} color="#fff" />
+            : <PlayBold size={16} color="#fff" />
           }
         </div>
       </div>
@@ -209,6 +213,52 @@ function TrackRow({
   )
 }
 
+/* ─── AlbumRail (Albums / Singles & EPs share one card) ─── */
+
+function AlbumRail({ albums }: { albums: Album[] }) {
+  const router = useRouter()
+  return (
+    <div className="scroll-row" style={{
+      display: "flex", gap: 18, overflowX: "auto",
+      padding: "4px 24px 12px 2px",
+      scrollbarWidth: "none",
+    }}>
+      {albums.map((album) => (
+        <div key={album.id} className="album-card" onClick={() => router.push(`/album/${album.id}`)}>
+          <div className="album-cover" style={{ position: "relative", overflow: "hidden" }}>
+            {album.cover_url ? (
+              <CoverImage src={album.cover_url} alt={album.title} sizes="220px" />
+            ) : (
+              <div className="album-cover-placeholder">
+                <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#a0a0b0" strokeWidth="1.4" strokeLinecap="round">
+                  <rect x="3" y="3" width="18" height="18" rx="3" />
+                  <path d="M9 18V9l8-1.5v9" />
+                  <circle cx="7" cy="18" r="2" />
+                  <circle cx="15" cy="16.5" r="2" />
+                </svg>
+              </div>
+            )}
+          </div>
+          <p style={{
+            margin: "9px 0 2px",
+            fontSize: 13, fontWeight: 600,
+            color: "var(--foreground)",
+            overflow: "hidden",
+            textOverflow: "ellipsis",
+            whiteSpace: "nowrap",
+          }}>
+            {album.title}
+          </p>
+          <p style={{ margin: 0, fontSize: 11, color: "var(--muted-foreground)" }}>
+            {albumTypeLabel(album.type)}
+            {album.released_at ? ` · ${new Date(album.released_at).getFullYear()}` : ""}
+          </p>
+        </div>
+      ))}
+    </div>
+  )
+}
+
 /* ─── main page component ─── */
 
 interface ArtistContentProps {
@@ -234,6 +284,8 @@ export default function ArtistContent({ artistId, initialArtist }: ArtistContent
     return window.matchMedia("(min-width: 768px)").matches
   })
   const [hoveredTrackId, setHoveredTrackId] = useState<string | null>(null)
+  const [showAllSongs, setShowAllSongs] = useState(false)
+  const [bioOpen, setBioOpen] = useState(false)
 
   useEffect(() => {
     const mq = window.matchMedia("(min-width: 768px)")
@@ -285,6 +337,14 @@ export default function ArtistContent({ artistId, initialArtist }: ArtistContent
     () => (tracksData?.tracks ?? []).slice(0, 10),
     [tracksData],
   )
+  const visibleTracks = showAllSongs ? tracks : tracks.slice(0, 5)
+  const latestRelease = useMemo(() => {
+    const list = albumsData?.albums ?? []
+    if (list.length === 0) return null
+    return [...list].sort((a: any, b: any) =>
+      String(b.released_at || b.created_at || "").localeCompare(String(a.released_at || a.created_at || "")),
+    )[0]
+  }, [albumsData])
   const collabTracks = useMemo(
     () => collabTracksData?.tracks ?? [],
     [collabTracksData],
@@ -407,6 +467,8 @@ export default function ArtistContent({ artistId, initialArtist }: ArtistContent
           width: 44px;
           height: 44px;
           flex-shrink: 0;
+          border-radius: 6px;
+          overflow: hidden;
         }
         @media (max-width: 480px) {
           .artist-tracks .track-row {
@@ -487,12 +549,15 @@ export default function ArtistContent({ artistId, initialArtist }: ArtistContent
           }
         }
 
-        .scroll-row::-webkit-scrollbar {
-          height: 4px;
+        .scroll-row {
+          scroll-snap-type: x proximity;
+          scrollbar-width: none;
         }
-        .scroll-row::-webkit-scrollbar-thumb {
-          background: var(--border);
-          border-radius: 4px;
+        .scroll-row::-webkit-scrollbar {
+          display: none;
+        }
+        .album-card {
+          scroll-snap-align: start;
         }
       `}</style>
 
@@ -546,12 +611,13 @@ export default function ArtistContent({ artistId, initialArtist }: ArtistContent
 
             <div style={{ flex: 1, minWidth: 0 }}>
               <h1 style={{
-                fontSize: isDesktop ? "clamp(28px, 5vw, 52px)" : "clamp(20px, 7vw, 30px)",
-                fontWeight: 800,
+                fontFamily: "var(--font-display, Inter, sans-serif)",
+                fontSize: isDesktop ? "clamp(32px, 5vw, 56px)" : "clamp(24px, 8vw, 32px)",
+                fontWeight: 700,
                 color: "#fff",
                 margin: "0 0 8px",
-                lineHeight: 1.05,
-                letterSpacing: "-0.5px",
+                lineHeight: 1.02,
+                letterSpacing: "-0.02em",
                 textShadow: "0 2px 20px rgba(0,0,0,0.5)",
                 display: "flex",
                 alignItems: "center",
@@ -565,17 +631,10 @@ export default function ArtistContent({ artistId, initialArtist }: ArtistContent
                       display: "inline-flex",
                       alignItems: "center",
                       justifyContent: "center",
-                      width: isDesktop ? 26 : 20,
-                      height: isDesktop ? 26 : 20,
-                      borderRadius: "50%",
                       flexShrink: 0,
-                      background: "var(--brand)",
-                      boxShadow: "0 2px 8px rgba(0,0,0,0.25)",
                     }}
                   >
-                    <svg width={isDesktop ? 13 : 10} height={isDesktop ? 13 : 10} viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M20 6L9 17l-5-5" />
-                    </svg>
+                    <BadgeBold size={isDesktop ? 26 : 20} color="var(--brand)" secondaryColor="#fff" secondaryOpacity={1} />
                   </span>
                 )}
               </h1>
@@ -589,10 +648,7 @@ export default function ArtistContent({ artistId, initialArtist }: ArtistContent
                     backdropFilter: "blur(6px)",
                     fontSize: isDesktop ? 12 : 11, fontWeight: 600, color: "rgba(255,255,255,0.88)",
                   }}>
-                    <svg width={isDesktop ? 11 : 10} height={isDesktop ? 11 : 10} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-                      <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z" />
-                      <circle cx="12" cy="10" r="3" />
-                    </svg>
+                    <PinLinear size={isDesktop ? 11 : 10} color="currentColor" strokeWidth={2} />
                     {artist.location}
                   </span>
                 )}
@@ -605,11 +661,7 @@ export default function ArtistContent({ artistId, initialArtist }: ArtistContent
                     backdropFilter: "blur(6px)",
                     fontSize: isDesktop ? 12 : 11, fontWeight: 600, color: "rgba(255,255,255,0.88)",
                   }}>
-                    <svg width={isDesktop ? 11 : 10} height={isDesktop ? 11 : 10} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-                      <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2" />
-                      <circle cx="9" cy="7" r="4" />
-                      <path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75" />
-                    </svg>
+                    <FansLinear size={isDesktop ? 11 : 10} color="currentColor" strokeWidth={2} />
                     {formatCount(artist.follower_count as number)} followers
                   </span>
                 )}
@@ -622,11 +674,7 @@ export default function ArtistContent({ artistId, initialArtist }: ArtistContent
                     backdropFilter: "blur(6px)",
                     fontSize: isDesktop ? 12 : 11, fontWeight: 600, color: "rgba(255,255,255,0.88)",
                   }}>
-                    <svg width={isDesktop ? 11 : 10} height={isDesktop ? 11 : 10} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-                      <path d="M9 18V5l12-2v13" />
-                      <circle cx="6" cy="18" r="3" />
-                      <circle cx="18" cy="16" r="3" />
-                    </svg>
+                    <MusicLinear size={isDesktop ? 11 : 10} color="currentColor" strokeWidth={2} />
                     {formatCount(artist.track_count as number)} tracks
                   </span>
                 )}
@@ -638,8 +686,8 @@ export default function ArtistContent({ artistId, initialArtist }: ArtistContent
                     size={isDesktop ? "md" : "xs"}
                     iconLeft={
                       isFirstPlaying
-                        ? <PauseIconSolid size={14} />
-                        : <PlayIconSolid size={14} />
+                        ? <PauseBold size={14} color="#1d1d1f" />
+                        : <PlayBold size={14} color="#1d1d1f" />
                     }
                     onClick={handlePlayFirst}
                     style={{
@@ -654,11 +702,11 @@ export default function ArtistContent({ artistId, initialArtist }: ArtistContent
                 <PillButton
                   variant="ghost"
                   size={isDesktop ? "md" : "xs"}
-                  iconLeft={
-                    followed
-                      ? <CheckIcon size={12} />
-                      : <PlusIcon size={12} />
-                  }
+                    iconLeft={
+                      followed
+                        ? <CheckLinear size={12} color="currentColor" strokeWidth={2.5} />
+                        : <AddLinear size={12} color="currentColor" strokeWidth={2.5} />
+                    }
                   onClick={handleFollowToggle}
                   disabled={followLoading}
                   style={{
@@ -680,62 +728,59 @@ export default function ArtistContent({ artistId, initialArtist }: ArtistContent
         {/* ══ BODY ══ */}
         <div style={{ padding: isDesktop ? "40px 40px 64px" : "20px 16px 48px" }}>
 
-          {artist.bio && (
-            <section style={{ marginBottom: 36 }}>
-              <p style={{
-                fontSize: 14, lineHeight: 1.65,
-                color: "var(--muted-foreground)", maxWidth: 620, margin: 0,
-              }}>
-                {artist.bio}
-              </p>
-            </section>
-          )}
-
-          {artist.genre_tags && artist.genre_tags.length > 0 && (
-            <section style={{ marginBottom: 36 }}>
-              <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
-                {artist.genre_tags.map((tag) => {
-                  const genreId = genreMap.get(tag.toLowerCase())
-                  return genreId ? (
-                    <Link key={tag} href={`/genres/${genreId}`} style={{ textDecoration: "none" }}>
-                      <span style={{
-                        display: "inline-block",
-                        padding: "4px 12px",
-                        borderRadius: 999,
-                        background: "var(--brand-bg)",
-                        color: "var(--brand)",
-                        fontSize: 12,
-                        fontWeight: 600,
-                        cursor: "pointer",
-                        transition: "opacity 0.15s",
-                      }}
-                        onMouseEnter={(e) => { e.currentTarget.style.opacity = "0.8" }}
-                        onMouseLeave={(e) => { e.currentTarget.style.opacity = "1" }}>
-                        {tag}
-                      </span>
-                    </Link>
+          {/* ── Latest Release spotlight ── */}
+          {latestRelease && (
+            <section style={{ marginBottom: 40 }}>
+              <div
+                onClick={() => router.push(`/album/${latestRelease.id}`)}
+                style={{
+                  display: "flex", alignItems: "center", gap: isDesktop ? 20 : 14,
+                  padding: isDesktop ? 20 : 14, borderRadius: 16,
+                  background: "var(--card-bg)", border: "1px solid var(--border)",
+                  cursor: "pointer",
+                  boxShadow: "0 1px 2px rgba(18,18,28,0.05), 0 16px 40px -16px rgba(18,18,28,0.22)",
+                  transition: "transform 0.18s ease, box-shadow 0.18s ease",
+                }}
+                onMouseEnter={(e) => { e.currentTarget.style.transform = "translateY(-2px)" }}
+                onMouseLeave={(e) => { e.currentTarget.style.transform = "translateY(0)" }}
+              >
+                <div style={{ position: "relative", width: isDesktop ? 104 : 84, height: isDesktop ? 104 : 84, borderRadius: 12, overflow: "hidden", flexShrink: 0 }}>
+                  {latestRelease.cover_url ? (
+                    <CoverImage src={latestRelease.cover_url} alt={latestRelease.title} sizes="160px" />
                   ) : (
-                    <span key={tag} style={{
-                      display: "inline-block",
-                      padding: "4px 12px",
-                      borderRadius: 999,
-                      background: "var(--brand-bg)",
-                      color: "var(--brand)",
-                      fontSize: 12,
-                      fontWeight: 600,
-                    }}>
-                      {tag}
-                    </span>
-                  )
-                })}
+                    <div style={{ width: "100%", height: "100%", background: "linear-gradient(135deg, var(--brand), var(--brand-light))", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                      <AlbumLinear size={32} color="rgba(255,255,255,0.8)" strokeWidth={1.4} />
+                    </div>
+                  )}
+                </div>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <p style={{ margin: "0 0 4px", fontSize: 11, fontWeight: 700, letterSpacing: "0.16em", textTransform: "uppercase", color: "var(--brand)" }}>
+                    Latest release
+                  </p>
+                  <p style={{ margin: 0, fontFamily: "var(--font-display, Inter, sans-serif)", fontSize: isDesktop ? 24 : 19, fontWeight: 700, letterSpacing: "-0.02em", color: "var(--foreground)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                    {latestRelease.title}
+                  </p>
+                  <p style={{ margin: "4px 0 0", fontSize: 13, color: "var(--muted-foreground)" }}>
+                    {albumTypeLabel(latestRelease.type)}
+                    {latestRelease.released_at ? ` · ${new Date(latestRelease.released_at).getFullYear()}` : ""}
+                  </p>
+                </div>
+                <span style={{
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                  width: isDesktop ? 48 : 40, height: isDesktop ? 48 : 40, borderRadius: "50%",
+                  background: "var(--brand)", color: "#fff", flexShrink: 0,
+                  boxShadow: "0 8px 20px var(--brand-shadow)",
+                }}>
+                  <PlayBold size={isDesktop ? 18 : 15} color="#fff" />
+                </span>
               </div>
             </section>
           )}
 
-          {/* ── Songs ── */}
+          {/* ── Popular ── */}
           <section style={{ marginBottom: 44 }}>
             <SectionHeading
-              title="Songs"
+              title="Popular"
               size="md"
             />
 
@@ -756,7 +801,7 @@ export default function ArtistContent({ artistId, initialArtist }: ArtistContent
               </div>
             ) : tracks.length > 0 ? (
               <div className="artist-tracks" style={{ position: "relative" }}>
-                {tracks.map((track, index) => {
+                {visibleTracks.map((track, index) => {
                   const isActive = currentTrack?.id === track.id
                   const isHovered = hoveredTrackId === track.id
                   return (
@@ -773,6 +818,25 @@ export default function ArtistContent({ artistId, initialArtist }: ArtistContent
                     />
                   )
                 })}
+                {tracks.length > 5 && (
+                  <button
+                    onClick={() => setShowAllSongs((v) => !v)}
+                    style={{
+                      display: "inline-flex", alignItems: "center", gap: 6,
+                      marginTop: 12, padding: "9px 20px", borderRadius: 999,
+                      border: "1px solid var(--border)", background: "transparent",
+                      color: "var(--foreground)", fontSize: 13, fontWeight: 600,
+                      cursor: "pointer", transition: "background 0.15s ease",
+                    }}
+                    onMouseEnter={(e) => { e.currentTarget.style.background = "var(--hover-bg)" }}
+                    onMouseLeave={(e) => { e.currentTarget.style.background = "transparent" }}
+                  >
+                    {showAllSongs ? "Show less" : `Show all ${tracks.length}`}
+                    <span style={{ display: "inline-flex", transform: showAllSongs ? "rotate(180deg)" : "none", transition: "transform 0.2s ease" }}>
+                      <ChevronDownLinear size={14} color="currentColor" strokeWidth={2} />
+                    </span>
+                  </button>
+                )}
               </div>
             ) : (
               <EmptyState
@@ -782,73 +846,49 @@ export default function ArtistContent({ artistId, initialArtist }: ArtistContent
             )}
           </section>
 
-          {/* ── Albums ── */}
+          {/* ── Discography ── */}
           {(albumsLoading || albums.length > 0) && (
-            <section style={{ marginBottom: 44 }}>
-              <SectionHeading
-                title="Albums & EPs"
-                size="md"
-              />
-
-              {albumsLoading ? (
-                <div className="scroll-row" style={{ display: "flex", gap: 18, overflowX: "auto", paddingBottom: 8 }}>
-                  {Array.from({ length: 5 }).map((_, i) => (
-                    <div key={i} className="album-card" style={{ flexShrink: 0, width: 160 }}>
-                      <div className="skeleton" style={{ width: 160, height: 160, borderRadius: 4 }} />
-                      <div className="skeleton" style={{ width: "70%", height: 13, marginTop: 9, marginBottom: 4 }} />
-                      <div className="skeleton" style={{ width: "40%", height: 11 }} />
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="scroll-row" style={{
-                  display: "flex", gap: 18, overflowX: "auto",
-                  paddingBottom: 8,
-                  scrollbarWidth: "thin",
-                }}>
-                  {albums.map((album) => (
-                    <div key={album.id} className="album-card" onClick={() => router.push(`/album/${album.id}`)}>
-                      {album.cover_url ? (
-                        <img
-                          src={album.cover_url}
-                          alt={album.title}
-                          className="album-cover"
-                        />
-                      ) : (
-                        <div className="album-cover-placeholder">
-                          <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#a0a0b0" strokeWidth="1.4" strokeLinecap="round">
-                            <rect x="3" y="3" width="18" height="18" rx="3" />
-                            <path d="M9 18V9l8-1.5v9" />
-                            <circle cx="7" cy="18" r="2" />
-                            <circle cx="15" cy="16.5" r="2" />
-                          </svg>
-                        </div>
-                      )}
-                      <p style={{
-                        margin: "9px 0 2px",
-                        fontSize: 13, fontWeight: 600,
-                        color: "var(--foreground)",
-                        overflow: "hidden",
-                        textOverflow: "ellipsis",
-                        whiteSpace: "nowrap",
-                      }}>
-                        {album.title}
-                      </p>
-                      <p style={{ margin: 0, fontSize: 11, color: "var(--muted-foreground)" }}>
-                        {albumTypeLabel(album.type)}
-                      </p>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </section>
+            <>
+              {(() => {
+                const fullAlbums = albums.filter((a) => a.type !== "single" && a.type !== "ep")
+                const singlesEps = albums.filter((a) => a.type === "single" || a.type === "ep")
+                return (
+                  <>
+                    {(albumsLoading || fullAlbums.length > 0) && (
+                      <section style={{ marginBottom: 44 }}>
+                        <SectionHeading title="Albums" size="md" />
+                        {albumsLoading ? (
+                          <div className="scroll-row" style={{ display: "flex", gap: 18, overflowX: "auto", paddingBottom: 8 }}>
+                            {Array.from({ length: 5 }).map((_, i) => (
+                              <div key={i} className="album-card" style={{ flexShrink: 0, width: 160 }}>
+                                <div className="skeleton" style={{ width: 160, height: 160, borderRadius: 4 }} />
+                                <div className="skeleton" style={{ width: "70%", height: 13, marginTop: 9, marginBottom: 4 }} />
+                                <div className="skeleton" style={{ width: "40%", height: 11 }} />
+                              </div>
+                            ))}
+                          </div>
+                        ) : (
+                          <AlbumRail albums={fullAlbums} />
+                        )}
+                      </section>
+                    )}
+                    {!albumsLoading && singlesEps.length > 0 && (
+                      <section style={{ marginBottom: 44 }}>
+                        <SectionHeading title="Singles & EPs" size="md" />
+                        <AlbumRail albums={singlesEps} />
+                      </section>
+                    )}
+                  </>
+                )
+              })()}
+            </>
           )}
 
-          {/* ── Featured Collaborations ── */}
+          {/* ── Appears On ── */}
           {(collabLoading || collabTracks.length > 0) && (
             <section style={{ marginBottom: 44 }}>
               <SectionHeading
-                title="Featured Collaborations"
+                title="Appears On"
                 size="md"
               />
 
@@ -891,44 +931,74 @@ export default function ArtistContent({ artistId, initialArtist }: ArtistContent
             </section>
           )}
 
+          {/* ── About ── */}
+          {(artist.bio || artist.location || (artist.genre_tags && artist.genre_tags.length > 0)) && (
+            <section style={{ marginBottom: 8 }}>
+              <SectionHeading title="About" size="md" />
+              <div style={{
+                background: "var(--card-bg)", border: "1px solid var(--border)",
+                borderRadius: 16, padding: isDesktop ? 24 : 18,
+                boxShadow: "0 1px 2px rgba(18,18,28,0.05), 0 16px 40px -16px rgba(18,18,28,0.2)",
+              }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 14, marginBottom: artist.bio ? 14 : 0 }}>
+                  <Avatar src={artist.photo_url} name={artist.stage_name} size={isDesktop ? 64 : 52} shape="circle" />
+                  <div style={{ minWidth: 0 }}>
+                    <p style={{ margin: 0, fontSize: isDesktop ? 18 : 16, fontWeight: 700, color: "var(--foreground)", letterSpacing: "-0.02em" }}>
+                      {artist.stage_name}
+                    </p>
+                    <p style={{ margin: "2px 0 0", fontSize: 12, color: "var(--muted-foreground)" }}>
+                      {typeof artist.follower_count === "number" && artist.follower_count > 0
+                        ? `${formatCount(artist.follower_count)} followers`
+                        : "Artist"}
+                      {artist.location ? ` · ${artist.location}` : ""}
+                    </p>
+                  </div>
+                </div>
+                {artist.bio && (
+                  <>
+                    <p style={{ margin: 0, fontSize: 14, lineHeight: 1.7, color: "var(--muted-foreground)", maxWidth: 640 }}>
+                      {bioOpen || artist.bio.length <= 240 ? artist.bio : `${artist.bio.slice(0, 240).trimEnd()}…`}
+                    </p>
+                    {artist.bio.length > 240 && (
+                      <button
+                        onClick={() => setBioOpen((v) => !v)}
+                        style={{ background: "none", border: "none", cursor: "pointer", padding: "8px 0 0", fontSize: 13, fontWeight: 700, color: "var(--brand)" }}
+                      >
+                        {bioOpen ? "Show less" : "Read more"}
+                      </button>
+                    )}
+                  </>
+                )}
+                <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginTop: 16 }}>
+                  {artist.location && (
+                    <span style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "6px 12px", borderRadius: 999, background: "var(--hover-bg)", fontSize: 12, fontWeight: 600, color: "var(--foreground)" }}>
+                      <PinLinear size={13} color="currentColor" strokeWidth={2} /> {artist.location}
+                    </span>
+                  )}
+                  <span style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "6px 12px", borderRadius: 999, background: "var(--hover-bg)", fontSize: 12, fontWeight: 600, color: "var(--foreground)" }}>
+                    <CalendarLinear size={13} color="currentColor" strokeWidth={2} /> On ZedBeatz since {new Date(artist.created_at).getFullYear()}
+                  </span>
+                  {(artist.genre_tags ?? []).map((tag) => {
+                    const genreId = genreMap.get(tag.toLowerCase())
+                    return genreId ? (
+                      <Link key={tag} href={`/genres/${genreId}`} style={{ textDecoration: "none" }}>
+                        <span style={{ display: "inline-block", padding: "6px 12px", borderRadius: 999, background: "var(--brand-bg)", color: "var(--brand)", fontSize: 12, fontWeight: 600, cursor: "pointer" }}>
+                          {tag}
+                        </span>
+                      </Link>
+                    ) : (
+                      <span key={tag} style={{ display: "inline-block", padding: "6px 12px", borderRadius: 999, background: "var(--brand-bg)", color: "var(--brand)", fontSize: 12, fontWeight: 600 }}>
+                        {tag}
+                      </span>
+                    )
+                  })}
+                </div>
+              </div>
+            </section>
+          )}
+
         </div>
       </div>
     </>
-  )
-}
-
-/* ─── Icons ─── */
-
-function PlayIconSolid({ size = 16 }: { size?: number }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor">
-      <polygon points="5,3 19,12 5,21" />
-    </svg>
-  )
-}
-
-function PauseIconSolid({ size = 16 }: { size?: number }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor">
-      <rect x="5" y="4" width="4" height="16" rx="1.5" />
-      <rect x="15" y="4" width="4" height="16" rx="1.5" />
-    </svg>
-  )
-}
-
-function PlusIcon({ size = 14 }: { size?: number }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
-      <line x1="12" y1="5" x2="12" y2="19" />
-      <line x1="5" y1="12" x2="19" y2="12" />
-    </svg>
-  )
-}
-
-function CheckIcon({ size = 14 }: { size?: number }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M20 6L9 17l-5-5" />
-    </svg>
   )
 }
