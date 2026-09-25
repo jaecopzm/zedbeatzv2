@@ -857,10 +857,14 @@ input[type="range"]::-webkit-slider-thumb:hover {
   gap: 8px;
   overflow-x: auto;
   overflow-y: hidden;
-  padding: 4px 0 8px;
+  padding: 4px 24px 8px 0;
   scrollbar-width: none;
   scroll-behavior: smooth;
   -webkit-overflow-scrolling: touch;
+  scroll-snap-type: x proximity;
+}
+.hp-scroller-inner > * {
+  scroll-snap-align: start;
 }
 .hp-scroller-inner::-webkit-scrollbar { display: none; }
 .hp-scroller-fade-right {
@@ -1391,7 +1395,7 @@ input[type="range"]::-webkit-slider-thumb:hover {
   scroll-behavior: smooth;
   -webkit-overflow-scrolling: touch;
   scrollbar-width: none;
-  padding: 4px 2px 8px;
+  padding: 4px 32px 8px 2px;
   margin: 0 -2px;
 }
 
