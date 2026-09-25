@@ -159,11 +159,11 @@ export function Player() {
                   {track.cover_url && (
                     <img src={track.cover_url} alt="" aria-hidden style={{ position: "absolute", inset: "-6px", width: "calc(100% + 12px)", height: "calc(100% + 12px)", borderRadius: "2px", objectFit: "cover", filter: "blur(12px) brightness(0.9)", opacity: 0.25, zIndex: 0, pointerEvents: "none" }} />
                   )}
-                  <div style={{ position: "relative", zIndex: 1, borderRadius: "12px", overflow: "hidden" }}>
+                  <div style={{ position: "relative", zIndex: 1, borderRadius: "4px", overflow: "hidden" }}>
                     {track.cover_url ? (
-                      <img key={track.id} src={track.cover_url} alt={track.title} className="np-art-swap" style={{ width: "var(--player-art-size, 44px)", height: "var(--player-art-size, 44px)", borderRadius: "12px", objectFit: "cover", boxShadow: "0 4px 16px rgba(0,0,0,0.2)", display: "block", transition: "box-shadow 0.3s ease" }} />
+                      <img key={track.id} src={track.cover_url} alt={track.title} className="np-art-swap" style={{ width: "var(--player-art-size, 44px)", height: "var(--player-art-size, 44px)", borderRadius: "4px", objectFit: "cover", boxShadow: "0 4px 16px rgba(0,0,0,0.2)", display: "block", transition: "box-shadow 0.3s ease" }} />
                     ) : (
-                      <div style={{ width: "var(--player-art-size, 44px)", height: "var(--player-art-size, 44px)", borderRadius: "12px", background: "linear-gradient(135deg, var(--brand) 0%, var(--brand-light) 100%)", display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 4px 16px var(--brand-shadow)" }}>
+                      <div style={{ width: "var(--player-art-size, 44px)", height: "var(--player-art-size, 44px)", borderRadius: "4px", background: "linear-gradient(135deg, var(--brand) 0%, var(--brand-light) 100%)", display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 4px 16px var(--brand-shadow)" }}>
                         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><path d="M9 18V5l12-2v13" /><circle cx="6" cy="18" r="3" /><circle cx="18" cy="16" r="3" /></svg>
                       </div>
                     )}

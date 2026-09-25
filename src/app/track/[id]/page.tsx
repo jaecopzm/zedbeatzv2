@@ -388,7 +388,7 @@ export default function TrackPage() {
           </div>
 
           <div className="track-hero">
-            <div className="track-hero-art">
+            <div className="track-hero-art" style={{ position: "relative" }}>
                 {track.cover_url ? (
                   <CoverImage src={track.cover_url} alt={track.title} sizes="(max-width: 768px) 40vw, 300px" priority />
               ) : (
