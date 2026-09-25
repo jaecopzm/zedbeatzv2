@@ -54,21 +54,13 @@ function Greeting() {
   else if (hour < 17) timeOfDay = "afternoon"
 
   const name = user?.email?.split("@")[0]
-  const dateLine = new Date().toLocaleDateString("en-US", {
-    weekday: "long",
-    month: "long",
-    day: "numeric",
-  })
 
   return (
-    <div className="hp-greeting" style={{ flexDirection: "column", alignItems: "flex-start", gap: 2 }}>
+    <div className="hp-greeting">
       <h1>
         Good {timeOfDay}
         {name ? `, ${name}` : ""}
       </h1>
-      <p style={{ margin: 0, fontSize: 12, fontWeight: 600, letterSpacing: "0.14em", textTransform: "uppercase", color: "var(--muted-foreground)" }}>
-        {dateLine} · Fresh drops daily
-      </p>
     </div>
   )
 }
@@ -294,7 +286,7 @@ function GenreRail() {
       {isLoading ? (
         <HorizontalScroller>
           {Array.from({ length: 6 }).map((_, i) => (
-            <div key={i} className="skeleton" style={{ flexShrink: 0, width: 148, height: 76, borderRadius: 14 }} />
+            <div key={i} className="skeleton" style={{ flexShrink: 0, width: 148, height: 104, borderRadius: 10 }} />
           ))}
         </HorizontalScroller>
       ) : (
@@ -306,7 +298,7 @@ function GenreRail() {
                 key={g.id}
                 onClick={() => router.push(`/genres/${g.id}`)}
                 style={{
-                  flexShrink: 0, width: 148, height: 76, borderRadius: 14, border: "none",
+                  flexShrink: 0, width: 148, height: 104, borderRadius: 10, border: "none",
                   background: `linear-gradient(135deg, ${from}, ${to})`,
                   cursor: "pointer", position: "relative", overflow: "hidden", textAlign: "left",
                   transition: "transform 0.18s ease, box-shadow 0.18s ease",

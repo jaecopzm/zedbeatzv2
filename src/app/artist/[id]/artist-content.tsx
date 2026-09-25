@@ -1378,7 +1378,7 @@ export default function ArtistContent({ artistId, initialArtist }: ArtistContent
               <SectionHeading title="About" size="md" />
               <div style={{
                 background: "var(--card-bg)", border: "1px solid var(--border)",
-                borderRadius: 16, padding: isDesktop ? 24 : 18,
+                borderRadius: 10, padding: isDesktop ? 24 : 18,
                 boxShadow: "0 1px 2px rgba(18,18,28,0.05), 0 16px 40px -16px rgba(18,18,28,0.2)",
               }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 14, marginBottom: artist.bio ? 14 : 0 }}>
@@ -1470,7 +1470,7 @@ export default function ArtistContent({ artistId, initialArtist }: ArtistContent
               ].map((s) => (
                 <div key={s.label} style={{
                   background: "var(--card-bg)", border: "1px solid var(--border)",
-                  borderRadius: 14, padding: isDesktop ? "16px 18px" : "13px 14px",
+                  borderRadius: 10, padding: isDesktop ? "16px 18px" : "13px 14px",
                 }}>
                   <p style={{ margin: 0, fontSize: isDesktop ? 22 : 18, fontWeight: 800, letterSpacing: "-0.02em", color: "var(--foreground)" }}>
                     {s.value}

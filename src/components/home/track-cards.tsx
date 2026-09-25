@@ -31,7 +31,7 @@ export function useIsCurrentTrack(trackId: string) {
 
 export function TrackArt({ track, size = 168 }: { track: Track; size?: number }) {
   return track.cover_url ? (
-    <div style={{ position: "relative", width: size, height: size }}>
+    <div style={{ position: "relative", width: "100%", height: "100%" }}>
       <CoverImage src={track.cover_url} alt={track.title} sizes="220px" />
     </div>
   ) : (

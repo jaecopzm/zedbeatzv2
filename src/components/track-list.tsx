@@ -26,14 +26,6 @@ export function TrackList({ tracks, accentColor }: { tracks: any[]; accentColor?
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-      <div className="tl-header" style={{ display: "grid", gridTemplateColumns: "40px 1fr 1fr 80px 44px 40px", padding: "8px 12px", fontSize: 11, fontWeight: 700, color: "var(--muted-foreground)", textTransform: "uppercase", letterSpacing: "0.1em", borderBottom: "1px solid var(--border)", marginBottom: 8 }}>
-        <span>#</span>
-        <span>Title</span>
-        <span>Album</span>
-        <span style={{ textAlign: "right" }}>Plays</span>
-        <span style={{ textAlign: "right" }}><ClockIcon /></span>
-        <span />
-      </div>
       {tracks.map((t, idx) => {
         const isCurrent = currentTrack?.id === t.id
         const isPlayingNow = isCurrent && isPlaying
@@ -119,7 +111,4 @@ export function PlayIconSolid({ size = 16, color = "currentColor" }: { size?: nu
 }
 export function PauseIcon({ size = 16, color = "currentColor" }: { size?: number; color?: string }) {
   return <svg width={size} height={size} viewBox="0 0 24 24" fill={color}><rect x="5" y="4" width="4" height="16" rx="1.5" /><rect x="15" y="4" width="4" height="16" rx="1.5" /></svg>
-}
-export function ClockIcon() {
-  return <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" style={{ display: "inline-block", verticalAlign: "middle" }}><circle cx="12" cy="12" r="10" /><path d="M12 6v6l4 2" /></svg>
 }

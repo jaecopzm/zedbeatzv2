@@ -8,9 +8,10 @@ import { usePlayerStore } from "@/lib/store"
 import { useAuthStore } from "@/lib/auth-store"
 import { useLikesStore } from "@/lib/likes-store"
 import { ArtistLinks } from "@/components/artist-links"
-import { TrackList, PlayIconSolid, PauseIcon } from "@/components/track-list"
+import { TrackList } from "@/components/track-list"
 import { PremiumTrackMenu } from "@/components/track-menu"
 import { CoverImage } from "@/components/cover-image"
+import { SectionHeading } from "@/components/artist/ui"
 import { PlayIcon as PlayBold } from "@solar-icons/react/bold/play"
 import { PauseIcon as PauseBold } from "@solar-icons/react/bold/pause"
 import { CheckCircleIcon as BadgeBold } from "@solar-icons/react/bold/check-circle"
@@ -48,9 +49,9 @@ function TrackPageSkeleton() {
         </div>
         <div className="track-skel-actions">
           <div className="skeleton" style={{ width: 56, height: 56, borderRadius: "50%" }} />
-          <div className="skeleton" style={{ width: 44, height: 44, borderRadius: "50%" }} />
-          <div className="skeleton" style={{ width: 44, height: 44, borderRadius: "50%" }} />
-          <div className="skeleton" style={{ width: 44, height: 44, borderRadius: "50%" }} />
+          <div className="skeleton" style={{ width: 48, height: 48, borderRadius: "50%" }} />
+          <div className="skeleton" style={{ width: 48, height: 48, borderRadius: "50%" }} />
+          <div className="skeleton" style={{ width: 30, height: 30, borderRadius: 8 }} />
         </div>
       </div>
       <div className="track-skel-body">
@@ -130,7 +131,7 @@ export default function TrackPage() {
   const [followLoading, setFollowLoading] = useState(false)
   const [liked, setLiked] = useState(() => (id ? isLiked(id) : false))
   const [shareCopied, setShareCopied] = useState(false)
-  const [showSticky, setShowSticky] = useState(false)
+  const [aboutExpanded, setAboutExpanded] = useState(false)
 
   const { data: track, isLoading, isError } = useQuery({
     queryKey: ["track", id],
@@ -154,12 +155,6 @@ export default function TrackPage() {
     const val = artist?.is_followed
     if (val === true || val === false) setFollowing(val)
   }, [artist?.is_followed])
-
-  useEffect(() => {
-    const handleScroll = () => setShowSticky(window.scrollY > 80)
-    window.addEventListener("scroll", handleScroll, { passive: true })
-    return () => window.removeEventListener("scroll", handleScroll)
-  }, [])
 
   const { data: genresData } = useQuery({
     queryKey: ["genres"],
@@ -295,56 +290,6 @@ export default function TrackPage() {
       fontFamily: "var(--font-sans)",
       paddingBottom: 100,
     }}>
-      {/* Sticky header bar */}
-      <div style={{
-        position: "fixed", top: 0, left: 0, right: 0, zIndex: 300,
-        height: 56,
-        background: "color-mix(in srgb, var(--content-bg) 82%, transparent)",
-        backdropFilter: "blur(16px) saturate(180%)",
-        WebkitBackdropFilter: "blur(16px) saturate(180%)",
-        borderBottom: "1px solid var(--border)",
-        display: "flex",
-        alignItems: "center",
-        padding: "0 16px",
-        gap: 12,
-        opacity: showSticky ? 1 : 0,
-        pointerEvents: showSticky ? "auto" : "none",
-        transition: "opacity 0.2s ease",
-      }}>
-        {track?.cover_url && (
-          <img src={track.cover_url} alt="" style={{ width: 36, height: 36, borderRadius: 4, objectFit: "cover", flexShrink: 0 }} />
-        )}
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontSize: 14, fontWeight: 700, color: "var(--foreground)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", lineHeight: 1.3 }}>
-            {track?.title}
-          </div>
-          <div style={{ fontSize: 12, color: "var(--muted-foreground)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", lineHeight: 1.3 }}>
-            {track?.artist_name}
-          </div>
-        </div>
-        <button
-          onClick={handlePlay}
-          style={{
-            width: 34, height: 34, borderRadius: "50%", border: "none",
-            background: "var(--brand)", color: "#fff",
-            display: "flex", alignItems: "center", justifyContent: "center",
-            cursor: loading ? "default" : "pointer",
-            flexShrink: 0, padding: 0,
-          }}
-          title={loading ? "Loading" : isCurrentlyPlaying ? "Pause" : "Play"}
-        >
-          {loading ? (
-            <svg className="spinner" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-              <circle cx="12" cy="12" r="10" strokeDasharray="31.4 31.4" strokeLinecap="round" />
-            </svg>
-          ) : isCurrentlyPlaying ? (
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="4" width="4" height="16" rx="1.5" /><rect x="14" y="4" width="4" height="16" rx="1.5" /></svg>
-          ) : (
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" style={{ marginLeft: 1 }}><polygon points="5,3 19,12 5,21" /></svg>
-          )}
-        </button>
-      </div>
-
       {/* Hero */}
       <div style={{
         position: "relative",
@@ -405,14 +350,14 @@ export default function TrackPage() {
             </div>
             <div className="track-hero-info" style={{ flex: 1, minWidth: 0 }}>
               <span style={{
-                fontSize: 12, fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase",
-                color: "rgba(255,255,255,0.75)", marginBottom: 6, display: "block",
+                fontSize: 13, fontWeight: 600, letterSpacing: "-0.01em",
+                color: "rgba(255,255,255,0.72)", marginBottom: 6, display: "block",
               }}>
-                Song
+                {album ? "Song" : "Single"}
               </span>
               <h1 className="track-hero-title" style={{
                 fontFamily: "var(--font-display, Inter, sans-serif)",
-                fontSize: "clamp(30px, 5.5vw, 72px)", fontWeight: 700, color: "#fff",
+                fontSize: "clamp(28px, 5vw, 56px)", fontWeight: 700, color: "#fff",
                 margin: "0 0 16px", lineHeight: 1.02, letterSpacing: "-0.02em",
                 textShadow: "0 2px 14px rgba(0,0,0,0.35)",
               }}>
@@ -441,20 +386,6 @@ export default function TrackPage() {
                 {track.released_at && (
                   <><span aria-hidden>•</span><span>{new Date(track.released_at).getFullYear()}</span></>
                 )}
-                <span aria-hidden>•</span>
-                <span>{formatDuration(track.duration_sec)}</span>
-                <span aria-hidden>•</span>
-                <span style={{ color: "rgba(255,255,255,0.5)" }}>{formatCount(track.play_count)} plays</span>
-                {track.genre_id && genreName && (
-                  <>
-                    <span aria-hidden>•</span>
-                    <span onClick={() => router.push(`/genres/${track.genre_id}`)} style={{ cursor: "pointer", color: "#fff" }}
-                      onMouseEnter={(e) => { e.currentTarget.style.textDecoration = "underline" }}
-                      onMouseLeave={(e) => { e.currentTarget.style.textDecoration = "none" }}>
-                      {genreName}
-                    </span>
-                  </>
-                )}
               </div>
             </div>
           </div>
@@ -464,12 +395,12 @@ export default function TrackPage() {
               className="play-btn-hero"
               onClick={handlePlay}
               style={{
-                width: 56, height: 56, borderRadius: "50%", border: "none",
-                background: "var(--brand)", color: "#fff",
+                width: 56, height: 56, borderRadius: "50%",
+                border: "1.5px solid #fff",
+                background: "#fff", color: "#1d1d1f",
                 display: "flex", alignItems: "center", justifyContent: "center",
                 cursor: "pointer", boxShadow: "0 6px 20px rgba(0,0,0,0.35)",
-                transition: "transform 0.15s", padding: 0,
-                paddingLeft: isCurrentlyPlaying ? 0 : 3, flexShrink: 0,
+                transition: "transform 0.15s", padding: 0, flexShrink: 0,
               }}
               onMouseEnter={(e) => { e.currentTarget.style.transform = loading ? "scale(1)" : "scale(1.06)" }}
               onMouseLeave={(e) => { e.currentTarget.style.transform = "scale(1)" }}
@@ -480,9 +411,9 @@ export default function TrackPage() {
                   <circle cx="12" cy="12" r="10" strokeDasharray="31.4 31.4" strokeLinecap="round" />
                 </svg>
               ) : isCurrentlyPlaying ? (
-                <PauseBold size={24} color="#fff" />
+                <PauseBold size={24} color="#1d1d1f" />
               ) : (
-                <span style={{ marginLeft: "3px", display: "flex" }}><PlayBold size={24} color="#fff" /></span>
+                <span style={{ marginLeft: "2px", display: "flex" }}><PlayBold size={24} color="#1d1d1f" /></span>
               )}
             </button>
             <button
@@ -490,20 +421,15 @@ export default function TrackPage() {
               onClick={handleLike}
               disabled={likeLoading}
               style={{
-                width: 48, height: 48, borderRadius: "50%", border: "none",
-                background: "transparent",
+                width: 48, height: 48, borderRadius: "50%",
+                border: liked ? "1.5px solid var(--like)" : "1.5px solid rgba(255,255,255,0.55)",
+                background: liked ? "color-mix(in srgb, var(--like) 15%, transparent)" : "rgba(255,255,255,0.1)",
                 display: "flex", alignItems: "center", justifyContent: "center",
-                cursor: "pointer", color: liked ? "var(--like)" : "rgba(255,255,255,0.7)",
+                cursor: "pointer", color: liked ? "var(--like)" : "rgba(255,255,255,0.85)",
                 transition: "all 0.2s", padding: 0, flexShrink: 0,
               }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.color = liked ? "var(--like)" : "#fff"
-                e.currentTarget.style.transform = "scale(1.05)"
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.color = liked ? "var(--like)" : "rgba(255,255,255,0.7)"
-                e.currentTarget.style.transform = "scale(1)"
-              }}
+              onMouseEnter={(e) => { e.currentTarget.style.transform = "scale(1.05)" }}
+              onMouseLeave={(e) => { e.currentTarget.style.transform = "scale(1)" }}
               title={liked ? "Unlike" : "Like"}
             >
               <span key={liked ? "liked" : "plain"} className={liked ? "like-burst" : undefined} style={{ display: "flex" }}>
@@ -518,21 +444,14 @@ export default function TrackPage() {
               className="icon-btn-hero"
               onClick={handleShare}
               style={{
-                width: 48, height: 48, borderRadius: "50%", border: "none", background: "transparent",
+                width: 48, height: 48, borderRadius: "50%",
+                border: "1.5px solid rgba(255,255,255,0.55)", background: "rgba(255,255,255,0.1)",
                 display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer",
-                color: shareCopied ? "#fff" : "rgba(255,255,255,0.7)", transition: "all 0.2s",
+                color: "#fff", transition: "transform 0.15s",
                 padding: 0, flexShrink: 0,
               }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.color = "#fff"
-                e.currentTarget.style.background = "rgba(255,255,255,0.1)"
-                e.currentTarget.style.transform = "scale(1.05)"
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.color = shareCopied ? "#fff" : "rgba(255,255,255,0.7)"
-                e.currentTarget.style.background = "transparent"
-                e.currentTarget.style.transform = "scale(1)"
-              }}
+              onMouseEnter={(e) => { e.currentTarget.style.transform = "scale(1.05)" }}
+              onMouseLeave={(e) => { e.currentTarget.style.transform = "scale(1)" }}
               title={shareCopied ? "Link copied" : "Share"}
             >
               {shareCopied ? <CheckLinear size={18} color="currentColor" strokeWidth={2.4} /> : <ShareLinear size={18} color="currentColor" strokeWidth={2} />}
@@ -548,21 +467,27 @@ export default function TrackPage() {
       <div className="track-body">
         {track.description && (
           <section style={{ marginBottom: 28 }}>
-            <div style={{
-              background: "var(--card-bg)", border: "1px solid var(--border)",
-              borderRadius: 16, padding: "20px 22px",
-              boxShadow: "0 1px 2px rgba(18,18,28,0.05), 0 16px 40px -16px rgba(18,18,28,0.2)",
-            }}>
-              <p style={{ margin: "0 0 10px", fontSize: 11, fontWeight: 700, letterSpacing: "0.16em", textTransform: "uppercase", color: "var(--brand)" }}>
-                About this track
-              </p>
-              <p style={{
-                fontSize: 15, lineHeight: 1.7, color: "var(--foreground)",
-                margin: 0, whiteSpace: "pre-wrap", maxWidth: 680,
-              }}>
-                {track.description}
-              </p>
-            </div>
+            <p style={{ margin: "0 0 10px", fontSize: 13, fontWeight: 700, letterSpacing: "-0.01em", color: "var(--foreground)" }}>
+              About this track
+            </p>
+            <p
+              className={`track-about-text${aboutExpanded ? "" : " clamped"}`}
+              style={{
+                fontSize: 16, lineHeight: 1.8, color: "var(--foreground)",
+                margin: 0, whiteSpace: "pre-wrap", maxWidth: 680, letterSpacing: "-0.005em",
+              }}
+            >
+              {track.description}
+            </p>
+            {track.description.length > 180 && (
+              <button
+                onClick={() => setAboutExpanded((v) => !v)}
+                className="track-about-toggle"
+                style={{ background: "none", border: "none", cursor: "pointer", padding: "8px 0 0", fontSize: 13, fontWeight: 700, color: "var(--brand)" }}
+              >
+                {aboutExpanded ? "Show less" : "Read more"}
+              </button>
+            )}
           </section>
         )}
 
@@ -621,7 +546,7 @@ export default function TrackPage() {
               onClick={handleFollow}
               disabled={followLoading}
               style={{
-                padding: "8px 22px", borderRadius: 20,
+                padding: "8px 22px", borderRadius: 999,
                 border: `1.5px solid ${following ? "var(--border)" : "transparent"}`,
                 background: following ? "transparent" : "var(--brand)",
                 color: following ? "var(--foreground)" : "#fff",
@@ -638,10 +563,10 @@ export default function TrackPage() {
         {track.collaborators && track.collaborators.length > 0 && (
           <div style={{ marginBottom: 20 }}>
             <span style={{
-              fontSize: 11, fontWeight: 700, color: "var(--muted-foreground)",
-              letterSpacing: "0.06em", display: "block", marginBottom: 10,
+              fontSize: 13, fontWeight: 700, color: "var(--foreground)",
+              letterSpacing: "-0.01em", display: "block", marginBottom: 10,
             }}>
-              Featured
+              Featuring
             </span>
             {track.collaborators.map((c: any, i: number) => (
               <CollaboratorRow key={c.id || c.artist_id || i} collaborator={c} />
@@ -653,9 +578,9 @@ export default function TrackPage() {
         <section style={{ marginBottom: 32 }}>
           <div style={{
             background: "var(--card-bg)", border: "1px solid var(--border)",
-            borderRadius: 16, padding: "20px 22px",
+            borderRadius: 10, padding: "20px 22px",
           }}>
-            <p style={{ margin: "0 0 6px", fontSize: 11, fontWeight: 700, letterSpacing: "0.16em", textTransform: "uppercase", color: "var(--brand)" }}>
+            <p style={{ margin: "0 0 6px", fontSize: 13, fontWeight: 700, letterSpacing: "-0.01em", color: "var(--foreground)" }}>
               Credits
             </p>
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: "4px 24px" }}>
@@ -693,7 +618,7 @@ export default function TrackPage() {
                 <span style={{ fontSize: 12, color: "var(--muted-foreground)" }}>Length</span>
                 <span style={{ fontSize: 14, fontWeight: 600, color: "var(--foreground)", fontVariantNumeric: "tabular-nums" }}>{formatDuration(track.duration_sec)}</span>
               </div>
-              <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 16, padding: "10px 0", borderBottom: "1px solid var(--border)" }}>
+              <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 16, padding: "10px 0 2px" }}>
                 <span style={{ fontSize: 12, color: "var(--muted-foreground)" }}>Plays</span>
                 <span style={{ fontSize: 14, fontWeight: 600, color: "var(--foreground)", fontVariantNumeric: "tabular-nums" }}>{formatCount(track.play_count)}</span>
               </div>
@@ -706,22 +631,23 @@ export default function TrackPage() {
           <SectionSkeleton rows={4} />
         ) : popularTracks.length > 0 ? (
           <section style={{ marginBottom: 32 }} className="fade-in">
-            <div style={{ marginBottom: 14 }}>
-              <span style={{
-                fontSize: 12, fontWeight: 700, color: "var(--muted-foreground)",
-                textTransform: "uppercase", letterSpacing: "0.08em",
-              }}>
-                Popular tracks by
-              </span>
-              <h2
-                onClick={() => router.push(`/artist/${track.artist_id}`)}
-                style={{ fontSize: 22, fontWeight: 800, margin: "2px 0 0", cursor: "pointer" }}
-                onMouseEnter={(e) => { e.currentTarget.style.textDecoration = "underline" }}
-                onMouseLeave={(e) => { e.currentTarget.style.textDecoration = "none" }}
-              >
-                {track.artist_name}
-              </h2>
-            </div>
+            <SectionHeading
+              title="Popular tracks"
+              description={`More from ${track.artist_name}`}
+              action={(
+                <button
+                  onClick={() => router.push(`/artist/${track.artist_id}`)}
+                  style={{
+                    padding: "7px 14px", borderRadius: 999,
+                    border: "1px solid var(--border)", background: "transparent",
+                    color: "var(--foreground)", fontSize: 12, fontWeight: 600,
+                    cursor: "pointer",
+                  }}
+                >
+                  See artist
+                </button>
+              )}
+            />
             <TrackList tracks={popularTracks} />
           </section>
         ) : null}
@@ -731,15 +657,7 @@ export default function TrackPage() {
           <SectionSkeleton rows={3} />
         ) : recommended.length > 0 ? (
           <section style={{ marginBottom: 32 }} className="fade-in">
-            <div style={{ marginBottom: 14 }}>
-              <span style={{
-                fontSize: 12, fontWeight: 700, color: "var(--muted-foreground)",
-                textTransform: "uppercase", letterSpacing: "0.08em",
-              }}>
-                Based on this song
-              </span>
-              <h2 style={{ fontSize: 22, fontWeight: 800, margin: "2px 0 0" }}>Recommended</h2>
-            </div>
+            <SectionHeading title="Recommended" description="Based on this song" />
             <TrackList tracks={recommended} />
           </section>
         ) : null}
@@ -760,10 +678,7 @@ export default function TrackPage() {
           </div>
         ) : albums.length > 0 ? (
           <section style={{ marginBottom: 32 }} className="fade-in">
-            <span style={{ fontSize: 12, fontWeight: 700, color: "var(--muted-foreground)", textTransform: "uppercase", letterSpacing: "0.08em" }}>
-              The catalogue
-            </span>
-            <h2 style={{ fontFamily: "var(--font-display, Inter, sans-serif)", fontSize: 24, fontWeight: 700, letterSpacing: "-0.02em", margin: "2px 0 16px" }}>Popular Releases</h2>
+            <SectionHeading title="Popular releases" />
             <div className="track-album-scroll">
                 {albums.map((alb: any) => (
                   <div
@@ -800,12 +715,7 @@ export default function TrackPage() {
           if (!tracks || tracks.length === 0) return null
           return (
             <section key={c.id || c.artist_id || i} style={{ marginBottom: 32 }} className="fade-in">
-              <span style={{ fontSize: 12, fontWeight: 700, color: "var(--muted-foreground)", textTransform: "uppercase", letterSpacing: "0.08em" }}>
-                Keep digging
-              </span>
-              <h2 style={{ fontFamily: "var(--font-display, Inter, sans-serif)", fontSize: 24, fontWeight: 700, letterSpacing: "-0.02em", margin: "2px 0 16px" }}>
-                More from {c.stage_name}
-              </h2>
+              <SectionHeading title={`More from ${c.stage_name}`} />
               <TrackList tracks={tracks} />
             </section>
           )
@@ -960,12 +870,10 @@ function CommentsSection({ trackId }: { trackId: string }) {
 
   return (
     <section style={{ marginBottom: 40 }}>
-      <span style={{ fontSize: 12, fontWeight: 700, color: "var(--muted-foreground)", textTransform: "uppercase", letterSpacing: "0.08em" }}>
-        Join the conversation
-      </span>
-      <h2 style={{ fontFamily: "var(--font-display, Inter, sans-serif)", fontSize: 24, fontWeight: 700, letterSpacing: "-0.02em", margin: "2px 0 16px" }}>
-        Comments{comments.length > 0 ? ` (${comments.length})` : ""}
-      </h2>
+      <SectionHeading
+        title={`Comments${comments.length > 0 ? ` (${comments.length})` : ""}`}
+        description="Join the conversation"
+      />
 
       {user ? (
         <div style={{ display: "flex", gap: 10, marginBottom: 18 }}>
@@ -1003,7 +911,7 @@ function CommentsSection({ trackId }: { trackId: string }) {
         <button
           onClick={() => router.push("/login")}
           style={{
-            width: "100%", padding: "14px", borderRadius: 12, marginBottom: 18,
+            width: "100%", padding: "14px", borderRadius: 10, marginBottom: 18,
             border: "1px dashed var(--border)", background: "transparent",
             color: "var(--muted-foreground)", fontSize: 14, fontWeight: 600, cursor: "pointer",
           }}
@@ -1061,34 +969,37 @@ function LyricsSection({ title, artistName }: { title: string; artistName?: stri
         onClick={() => setCollapsed(!collapsed)}
         style={{
           background: "none", border: "none", cursor: "pointer", padding: 0,
-          display: "flex", alignItems: "center", gap: 6, marginBottom: collapsed ? 0 : 16,
+          display: "flex", alignItems: "center", justifyContent: "space-between",
+          marginBottom: collapsed ? 0 : 8,
           width: "100%",
         }}
       >
-        <h2 style={{ fontFamily: "var(--font-display, Inter, sans-serif)", fontSize: 24, fontWeight: 700, letterSpacing: "-0.02em", margin: 0, color: "var(--foreground)" }}>Lyrics</h2>
-        <svg
-          width="16" height="16" viewBox="0 0 24 24" fill="none"
-          stroke="var(--muted-foreground)" strokeWidth="2" strokeLinecap="round"
-          style={{ transform: collapsed ? "rotate(-90deg)" : "rotate(0)", transition: "transform 0.2s" }}
-        >
-          <path d="M6 9l6 6 6-6" />
-        </svg>
+        <span style={{ display: "flex", alignItems: "center", gap: 6 }}>
+          <h2 style={{ fontSize: 18, fontWeight: 700, letterSpacing: "-0.02em", margin: 0, color: "var(--foreground)" }}>Lyrics</h2>
+          <svg
+            width="16" height="16" viewBox="0 0 24 24" fill="none"
+            stroke="var(--muted-foreground)" strokeWidth="2" strokeLinecap="round"
+            style={{ transform: collapsed ? "rotate(-90deg)" : "rotate(0)", transition: "transform 0.2s" }}
+          >
+            <path d="M6 9l6 6 6-6" />
+          </svg>
+        </span>
+        {collapsed && (
+          <span style={{ fontSize: 11, fontWeight: 700, padding: "4px 10px", borderRadius: 999, background: "var(--hover-bg)", color: "var(--muted-foreground)" }}>
+            Coming soon
+          </span>
+        )}
       </button>
 
       {!collapsed && (
-        <div style={{
-          background: "var(--card-bg)", borderRadius: 14,
-          padding: "clamp(28px, 4vw, 44px) clamp(16px, 4vw, 32px)",
-          textAlign: "center", color: "var(--muted-foreground)",
-          border: "1px solid var(--border)",
-        }}>
+        <div style={{ padding: "28px 8px 32px", textAlign: "center", color: "var(--muted-foreground)" }}>
           <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.2" style={{ marginBottom: 14, opacity: 0.45 }}>
             <path d="M9 18V5l12-2v13" /><circle cx="6" cy="18" r="3" /><circle cx="18" cy="16" r="3" />
           </svg>
           <p style={{ fontSize: 15, fontWeight: 600, margin: "0 0 4px", color: "var(--foreground)" }}>
             Lyrics for &ldquo;{title}&rdquo;{artistName ? ` by ${artistName}` : ""}
           </p>
-          <p style={{ fontSize: 13, margin: 0 }}>Lyrics will be available soon.</p>
+          <p style={{ fontSize: 13, margin: 0 }}>Lyrics aren&apos;t available for this track yet.</p>
         </div>
       )}
     </section>

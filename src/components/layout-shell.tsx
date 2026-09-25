@@ -5,6 +5,7 @@ import { usePathname, useRouter } from "next/navigation"
 import { useUIStore } from "@/lib/ui-store"
 import { useThemeStore } from "@/lib/theme-store"
 import { Sidebar } from "@/components/sidebar"
+import { MobileMenu } from "@/components/mobile-menu"
 import { Footer } from "@/components/footer"
 
 export function LayoutShell({ children }: { children: React.ReactNode }) {
@@ -38,6 +39,7 @@ export function LayoutShell({ children }: { children: React.ReactNode }) {
   return (
     <div className={`app-shell${sidebarOpen ? " sidebar-open" : ""}`}>
       <Sidebar />
+      <MobileMenu />
 
       <button
         type="button"

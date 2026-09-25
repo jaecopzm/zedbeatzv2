@@ -6,6 +6,7 @@ import { api } from "@/lib/api"
 import { usePlayerStore } from "@/lib/store"
 import { ArtistLinks } from "@/components/artist-links"
 import { PremiumTrackMenu } from "@/components/track-menu"
+import { SectionHeading } from "@/components/artist/ui"
 import type { Album, Track } from "@/types"
 import { useState, useEffect } from "react"
 
@@ -129,44 +130,22 @@ export default function AlbumPage() {
             maxWidth: isMobile ? "100%" : 900,
             margin: isMobile ? 0 : "0 auto",
           }}>
-            <div className="skeleton" style={{ width: artSize, height: artSize, borderRadius: 8, flexShrink: 0 }} />
+            <div className="skeleton" style={{ width: artSize, height: artSize, borderRadius: 6, flexShrink: 0 }} />
             <div style={{ display: "flex", flexDirection: "column", alignItems: isMobile ? "center" : "flex-start", gap: 8, flex: 1 }}>
               <div className="skeleton" style={{ width: isMobile ? "30%" : 140, height: 14 }} />
               <div className="skeleton" style={{ width: isMobile ? "60%" : 280, height: 28 }} />
               <div className="skeleton" style={{ width: isMobile ? "40%" : 180, height: 14 }} />
               <div className="skeleton" style={{ width: isMobile ? "50%" : 220, height: 14, marginTop: 4 }} />
               <div style={{ display: "flex", gap: 12, marginTop: 8 }}>
-                <div className="skeleton" style={{ width: 110, height: 44, borderRadius: 22 }} />
-                <div className="skeleton" style={{ width: 44, height: 44, borderRadius: 22 }} />
+                <div className="skeleton" style={{ width: 110, height: 44, borderRadius: 999 }} />
+                <div className="skeleton" style={{ width: 44, height: 44, borderRadius: "50%" }} />
               </div>
             </div>
           </div>
         </div>
 
-        {/* Track list skeleton */}
+        {/* Track list skeleton (no column header — lists start straight into rows) */}
         <div style={{ padding: isMobile ? "16px 12px 48px" : "32px 40px 64px" }}>
-          <div style={{
-            display: "grid",
-            gridTemplateColumns: "40px 1fr 100px 60px 40px",
-            padding: "8px 16px",
-            fontSize: 11,
-            fontWeight: 700,
-            color: "var(--muted-foreground)",
-            textTransform: "uppercase",
-            letterSpacing: "0.1em",
-            borderBottom: "1px solid var(--border)",
-            marginBottom: 8,
-          }}>
-            <span>#</span>
-            <span>Title</span>
-            <span style={{ textAlign: "right" }}>Plays</span>
-            <span style={{ textAlign: "right" }}>
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" style={{ display: "inline-block", verticalAlign: "middle" }}>
-                <circle cx="12" cy="12" r="10" /><path d="M12 6v6l4 2" />
-              </svg>
-            </span>
-            <span />
-          </div>
           {Array.from({ length: 10 }).map((_, i) => (
             <div key={i} style={{ display: "grid", gridTemplateColumns: "40px 1fr 100px 60px 40px", alignItems: "center", padding: "10px 16px" }}>
               <div className="skeleton" style={{ width: 14, height: 14, borderRadius: 4 }} />
@@ -217,6 +196,13 @@ export default function AlbumPage() {
             ? "linear-gradient(to bottom, rgba(0,0,0,0.15) 0%, rgba(0,0,0,0.55) 100%)"
             : "linear-gradient(135deg, var(--brand) 0%, #1d1d1f 100%)",
         }} />
+        {/* bottom melt into page background */}
+        <div style={{
+          position: "absolute", left: 0, right: 0, bottom: 0, zIndex: 1,
+          height: isMobile ? 72 : 96,
+          background: "linear-gradient(to bottom, transparent 0%, var(--content-bg) 100%)",
+          opacity: 0.9,
+        }} />
 
         {/* Hero content */}
         <div style={{
@@ -226,14 +212,14 @@ export default function AlbumPage() {
           flexDirection: isMobile ? "column" : "row",
           alignItems: isMobile ? "center" : "flex-end",
           textAlign: isMobile ? "center" : "left",
-          padding: isMobile ? "40px 14px 14px" : "64px 40px 40px",
+          padding: isMobile ? "52px 14px 56px" : "64px 40px 72px",
           flexWrap: "wrap",
         }}>
           {/* Cover art */}
           <div style={{
             width: isMobile ? 120 : 260,
             height: isMobile ? 120 : 260,
-            borderRadius: 8,
+            borderRadius: 6,
             flexShrink: 0,
             overflow: "hidden",
             boxShadow: isMobile ? "0 8px 32px rgba(0,0,0,0.4)" : "0 24px 64px rgba(0,0,0,0.5), 0 4px 16px rgba(0,0,0,0.3)",
@@ -261,10 +247,10 @@ export default function AlbumPage() {
           <div style={{ flex: 1, minWidth: 0, width: isMobile ? "100%" : "auto" }}>
             {/* Type badge */}
             <span style={{
-              fontSize: 12,
-              fontWeight: 700,
-              color: "rgba(255,255,255,0.6)",
-              letterSpacing: "0.02em",
+              fontSize: 13,
+              fontWeight: 600,
+              color: "rgba(255,255,255,0.72)",
+              letterSpacing: "-0.01em",
               marginBottom: 8,
               display: "block",
             }}>
@@ -273,11 +259,11 @@ export default function AlbumPage() {
 
             <h1 style={{
               fontSize: isMobile ? "clamp(18px, 5vw, 22px)" : "clamp(28px, 4vw, 48px)",
-              fontWeight: 800,
+              fontWeight: 700,
               color: "#fff",
               margin: "0 0 4px",
               lineHeight: 1.1,
-              letterSpacing: "-0.5px",
+              letterSpacing: "-0.02em",
               textShadow: "0 2px 16px rgba(0,0,0,0.4)",
             }}>
               {album.title}
@@ -314,8 +300,8 @@ export default function AlbumPage() {
                   style={{
                     display: "flex", alignItems: "center", gap: 10,
                     padding: isMobile ? "8px 18px" : "12px 28px",
-                    borderRadius: 24,
-                    border: "none",
+                    borderRadius: 999,
+                    border: "1.5px solid #fff",
                     background: "rgba(255,255,255,0.95)",
                     color: "#1d1d1f",
                     fontSize: isMobile ? 13 : 15,
@@ -339,7 +325,7 @@ export default function AlbumPage() {
                 onClick={() => { navigator.clipboard.writeText(`${window.location.origin}/album/${album.id}`) }}
                 style={{
                   width: isMobile ? 36 : 48, height: isMobile ? 36 : 48, borderRadius: "50%",
-                  border: "1.5px solid rgba(255,255,255,0.4)",
+                  border: "1.5px solid rgba(255,255,255,0.55)",
                   background: "rgba(255,255,255,0.12)",
                   backdropFilter: "blur(8px)",
                   display: "flex", alignItems: "center", justifyContent: "center",
@@ -359,30 +345,6 @@ export default function AlbumPage() {
 
       {/* ══ TRACK LIST ══ */}
       <div style={{ padding: isMobile ? "16px 12px 48px" : "32px 40px 64px" }}>
-
-        {/* Column header */}
-        <div className="alb-tl-header" style={{
-          display: "grid",
-          gridTemplateColumns: "40px 1fr 100px 60px 40px",
-          padding: "8px 16px",
-          fontSize: 11,
-          fontWeight: 700,
-          color: "var(--muted-foreground)",
-          textTransform: "uppercase",
-          letterSpacing: "0.1em",
-          borderBottom: "1px solid var(--border)",
-          marginBottom: 8,
-        }}>
-          <span>#</span>
-          <span>Title</span>
-          <span className="alb-tl-plays" style={{ textAlign: "right" }}>Plays</span>
-          <span style={{ textAlign: "right" }}>
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" style={{ display: "inline-block", verticalAlign: "middle" }}>
-              <circle cx="12" cy="12" r="10" /><path d="M12 6v6l4 2" />
-            </svg>
-          </span>
-          <span />
-        </div>
 
         {/* Rows */}
         {tracks.map((track, index) => {
@@ -477,16 +439,14 @@ export default function AlbumPage() {
         {/* Featured artists — aggregated from all tracks */}
         {featuredArtists.length > 0 && (
           <div style={{ marginTop: 24 }}>
-            <h3 style={{ fontSize: 14, fontWeight: 700, color: "var(--foreground)", margin: "0 0 14px" }}>
-              Featured Artists
-            </h3>
+            <SectionHeading title="Featured artists" />
             <div className="album-featured-scroll" style={{ display: "flex", gap: 16, overflowX: "auto", paddingBottom: 8, scrollbarWidth: "none", msOverflowStyle: "none" }}>
               {featuredArtists.map((a) => (
                 <div key={a.artist_id} onClick={() => router.push(`/artist/${a.artist_id}`)}
                   className="album-featured-card"
-                  style={{ flexShrink: 0, width: 100, textAlign: "center", cursor: "pointer" }}
+                  style={{ flexShrink: 0, width: 100, display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center", cursor: "pointer" }}
                 >
-                  <div className="album-featured-avatar" style={{ width: 96, height: 96, borderRadius: "50%", margin: "0 auto 8px", overflow: "hidden", boxShadow: "0 4px 16px rgba(0,0,0,0.1)" }}>
+                  <div className="album-featured-avatar" style={{ width: 96, height: 96, borderRadius: "50%", margin: "0 0 8px", overflow: "hidden", boxShadow: "0 4px 16px rgba(0,0,0,0.1)" }}>
                     {a.photo_url ? (
                       <img src={a.photo_url} alt={a.stage_name} style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
                     ) : (
@@ -495,7 +455,7 @@ export default function AlbumPage() {
                       </div>
                     )}
                   </div>
-                  <p style={{ margin: 0, fontSize: 12, fontWeight: 600, color: "var(--foreground)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                  <p style={{ margin: 0, width: "100%", fontSize: 12, fontWeight: 600, color: "var(--foreground)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                     {a.stage_name}
                   </p>
                 </div>
@@ -507,11 +467,7 @@ export default function AlbumPage() {
         {/* More by this artist */}
         {otherAlbums.length > 0 && (
           <div style={{ marginTop: 24 }}>
-            <h3
-              style={{ fontSize: 14, fontWeight: 700, color: "var(--foreground)", margin: "0 0 14px" }}
-            >
-              More by {tracks[0]?.artist_name ?? "Artist"}
-            </h3>
+            <SectionHeading title={`More by ${tracks[0]?.artist_name ?? "Artist"}`} />
             <div className="album-more-scroll" style={{ display: "flex", gap: 16, overflowX: "auto", paddingBottom: 8, scrollbarWidth: "none", msOverflowStyle: "none" }}>
               {otherAlbums.map((alb: any) => (
                 <div key={alb.id} onClick={() => router.push(`/album/${alb.id}`)}
@@ -560,9 +516,16 @@ export default function AlbumPage() {
 
 function StatPill({ icon, value, compact }: { icon: React.ReactNode; value: string; compact?: boolean }) {
   return (
-    <div style={{ display: "flex", alignItems: "center", gap: compact ? 4 : 6, color: "rgba(255,255,255,0.75)", fontSize: compact ? 12 : 13 }}>
+    <div style={{
+      display: "inline-flex", alignItems: "center", gap: compact ? 4 : 6,
+      padding: compact ? "3px 8px" : "4px 10px", borderRadius: 20,
+      background: "rgba(255,255,255,0.12)",
+      backdropFilter: "blur(6px)",
+      color: "rgba(255,255,255,0.88)",
+      fontSize: compact ? 12 : 13,
+    }}>
       {icon}
-      <span style={{ fontWeight: 600, color: "rgba(255,255,255,0.95)" }}>{value}</span>
+      <span style={{ fontWeight: 600 }}>{value}</span>
     </div>
   )
 }
