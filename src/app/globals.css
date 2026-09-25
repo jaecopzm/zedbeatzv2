@@ -2207,6 +2207,7 @@ input[type="range"]::-webkit-slider-thumb:hover {
   border-radius: 8px;
   flex-shrink: 0;
   overflow: hidden;
+  position: relative;
   box-shadow: 0 12px 48px rgba(0,0,0,0.6);
 }
 .track-hero-art img {
