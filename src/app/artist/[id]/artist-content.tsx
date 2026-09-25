@@ -63,6 +63,7 @@ function TrackRow({
   onHover,
   onLeave,
   variant,
+  showRank = true,
 }: {
   track: Track
   index: number
@@ -73,6 +74,7 @@ function TrackRow({
   onHover: () => void
   onLeave: () => void
   variant?: "chart" | "default"
+  showRank?: boolean
 }) {
   const router = useRouter()
   const isActiveAndPlaying = isActive && isPlaying
@@ -96,7 +98,7 @@ function TrackRow({
         }} />
       )}
 
-      {isHovered ? (
+      {showRank && (isHovered ? (
         <div className="track-play-icon" style={{ display: "flex" }}>
           {isActiveAndPlaying
             ? <PauseBold size={14} color="currentColor" />
@@ -119,7 +121,7 @@ function TrackRow({
           index + 1
         )}
       </div>
-      )}
+      ))}
 
       <div className="track-cover-wrapper">
         {track.cover_url ? (
@@ -559,7 +561,7 @@ export default function ArtistContent({ artistId, initialArtist }: ArtistContent
             width: 28px;
           }
         }
-        /* top-3 podium cards */
+        /* top-3 podium (cardless) */
         .top3-grid {
           display: grid;
           grid-template-columns: repeat(3, 1fr);
@@ -567,25 +569,18 @@ export default function ArtistContent({ artistId, initialArtist }: ArtistContent
           margin-bottom: 20px;
         }
         .top3-card {
-          background: var(--card-bg);
-          border: 1px solid var(--border);
-          border-radius: 10px;
-          overflow: hidden;
+          background: transparent;
+          border: none;
           cursor: pointer;
-          transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
         }
-        .top3-card:hover {
-          transform: translateY(-2px);
-          box-shadow: 0 12px 32px rgba(18,18,28,0.16);
-        }
-        .top3-card.is-active {
-          border-color: var(--brand);
-          box-shadow: 0 0 0 1px var(--brand);
+        .top3-card.is-active .top3-art {
+          box-shadow: 0 0 0 2px var(--brand);
         }
         .top3-art {
           position: relative;
           aspect-ratio: 1 / 1;
           overflow: hidden;
+          border-radius: 6px;
           background: linear-gradient(135deg, #e0e0ea 0%, #c8c8d6 100%);
         }
         .top3-rank {
@@ -628,7 +623,7 @@ export default function ArtistContent({ artistId, initialArtist }: ArtistContent
           }
         }
         .top3-body {
-          padding: 10px 12px 12px;
+          padding: 10px 2px 0;
         }
         .top3-title {
           margin: 0;
@@ -1309,6 +1304,7 @@ export default function ArtistContent({ artistId, initialArtist }: ArtistContent
                         isActive={isActive}
                         isPlaying={isPlaying}
                         isHovered={isHovered}
+                        showRank={false}
                         onPlay={() => handlePlayCollabTrack(track)}
                         onHover={() => setHoveredTrackId(track.id)}
                         onLeave={() => setHoveredTrackId(null)}

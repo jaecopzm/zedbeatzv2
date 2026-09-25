@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect, useCallback } from "react"
+import { createPortal } from "react-dom"
 import { useRouter } from "next/navigation"
 import { useQuery } from "@tanstack/react-query"
 import { api } from "@/lib/api"
@@ -137,9 +138,9 @@ export function PremiumTrackMenu({ track, liked, onLikeToggle }: Props) {
         </svg>
       </button>
 
-      {open && (
+      {open && createPortal(
         <div
-          onClick={close}
+          onClick={(e) => { e.stopPropagation(); close() }}
           style={{
             position: "fixed", inset: 0, zIndex: 3000,
             background: "rgba(0,0,0,0.45)",
@@ -174,7 +175,7 @@ export function PremiumTrackMenu({ track, liked, onLikeToggle }: Props) {
               <>
                 {/* track header */}
                 <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "2px 12px 14px" }}>
-                  <div style={{ width: 52, height: 52, borderRadius: 8, overflow: "hidden", flexShrink: 0, background: "var(--hover-bg)" }}>
+                  <div style={{ position: "relative", width: 52, height: 52, borderRadius: 8, overflow: "hidden", flexShrink: 0, background: "var(--hover-bg)" }}>
                     {track.cover_url ? (
                       <CoverImage src={track.cover_url} alt="" sizes="120px" />
                     ) : (
@@ -326,7 +327,8 @@ export function PremiumTrackMenu({ track, liked, onLikeToggle }: Props) {
               to   { opacity: 1; transform: translateY(0); }
             }
           `}</style>
-        </div>
+        </div>,
+        document.body,
       )}
     </div>
   )

@@ -1,14 +1,23 @@
 "use client"
 
-import { useQuery, useQueries } from "@tanstack/react-query"
+import { useQuery, useQueries, useQueryClient } from "@tanstack/react-query"
 import { useParams, useRouter } from "next/navigation"
 import { useState, useEffect, useCallback } from "react"
 import { api } from "@/lib/api"
 import { usePlayerStore } from "@/lib/store"
+import { useAuthStore } from "@/lib/auth-store"
 import { useLikesStore } from "@/lib/likes-store"
 import { ArtistLinks } from "@/components/artist-links"
 import { TrackList, PlayIconSolid, PauseIcon } from "@/components/track-list"
 import { PremiumTrackMenu } from "@/components/track-menu"
+import { CoverImage } from "@/components/cover-image"
+import { PlayIcon as PlayBold } from "@solar-icons/react/bold/play"
+import { PauseIcon as PauseBold } from "@solar-icons/react/bold/pause"
+import { CheckCircleIcon as BadgeBold } from "@solar-icons/react/bold/check-circle"
+import { HeartIcon as HeartLinear } from "@solar-icons/react/linear/heart"
+import { HeartIcon as HeartBold } from "@solar-icons/react/bold/heart"
+import { ShareIcon as ShareLinear } from "@solar-icons/react/linear/share"
+import { CheckIcon as CheckLinear } from "@solar-icons/react/linear/check"
 
 function formatDuration(sec: number) {
   const m = Math.floor(sec / 60)
@@ -381,7 +390,7 @@ export default function TrackPage() {
           <div className="track-hero">
             <div className="track-hero-art">
                 {track.cover_url ? (
-                  <img src={track.cover_url} alt={track.title} fetchPriority="high" />
+                  <CoverImage src={track.cover_url} alt={track.title} sizes="(max-width: 768px) 40vw, 300px" priority />
               ) : (
                 <div style={{
                   width: "100%", height: "100%",
@@ -402,8 +411,9 @@ export default function TrackPage() {
                 Song
               </span>
               <h1 className="track-hero-title" style={{
-                fontSize: "clamp(28px, 5.5vw, 72px)", fontWeight: 900, color: "#fff",
-                margin: "0 0 16px", lineHeight: 1.1, letterSpacing: "-0.03em",
+                fontFamily: "var(--font-display, Inter, sans-serif)",
+                fontSize: "clamp(30px, 5.5vw, 72px)", fontWeight: 700, color: "#fff",
+                margin: "0 0 16px", lineHeight: 1.02, letterSpacing: "-0.02em",
                 textShadow: "0 2px 14px rgba(0,0,0,0.35)",
               }}>
                 {track.title}
@@ -470,9 +480,9 @@ export default function TrackPage() {
                   <circle cx="12" cy="12" r="10" strokeDasharray="31.4 31.4" strokeLinecap="round" />
                 </svg>
               ) : isCurrentlyPlaying ? (
-                <PauseIcon size={24} color="#fff" />
+                <PauseBold size={24} color="#fff" />
               ) : (
-                <PlayIconSolid size={24} color="#fff" />
+                <span style={{ marginLeft: "3px", display: "flex" }}><PlayBold size={24} color="#fff" /></span>
               )}
             </button>
             <button
@@ -496,7 +506,13 @@ export default function TrackPage() {
               }}
               title={liked ? "Unlike" : "Like"}
             >
-              <HeartIconBig filled={liked} />
+              <span key={liked ? "liked" : "plain"} className={liked ? "like-burst" : undefined} style={{ display: "flex" }}>
+                {liked ? (
+                  <HeartBold size={20} color="var(--like)" />
+                ) : (
+                  <HeartLinear size={20} color="currentColor" strokeWidth={2} />
+                )}
+              </span>
             </button>
             <button
               className="icon-btn-hero"
@@ -519,7 +535,7 @@ export default function TrackPage() {
               }}
               title={shareCopied ? "Link copied" : "Share"}
             >
-              {shareCopied ? <CheckIcon /> : <ShareIcon />}
+              {shareCopied ? <CheckLinear size={18} color="currentColor" strokeWidth={2.4} /> : <ShareLinear size={18} color="currentColor" strokeWidth={2} />}
             </button>
             <div className="track-hero-menu" style={{ color: "rgba(255,255,255,0.7)" }}>
               <PremiumTrackMenu track={playerTrack} liked={liked} onLikeToggle={setLiked} />
@@ -531,14 +547,23 @@ export default function TrackPage() {
       {/* Body */}
       <div className="track-body">
         {track.description && (
-          <div style={{ marginBottom: 28 }}>
-            <p style={{
-              fontSize: 15, lineHeight: 1.65, color: "var(--muted-foreground)",
-              margin: 0, whiteSpace: "pre-wrap",
+          <section style={{ marginBottom: 28 }}>
+            <div style={{
+              background: "var(--card-bg)", border: "1px solid var(--border)",
+              borderRadius: 16, padding: "20px 22px",
+              boxShadow: "0 1px 2px rgba(18,18,28,0.05), 0 16px 40px -16px rgba(18,18,28,0.2)",
             }}>
-              {track.description}
-            </p>
-          </div>
+              <p style={{ margin: "0 0 10px", fontSize: 11, fontWeight: 700, letterSpacing: "0.16em", textTransform: "uppercase", color: "var(--brand)" }}>
+                About this track
+              </p>
+              <p style={{
+                fontSize: 15, lineHeight: 1.7, color: "var(--foreground)",
+                margin: 0, whiteSpace: "pre-wrap", maxWidth: 680,
+              }}>
+                {track.description}
+              </p>
+            </div>
+          </section>
         )}
 
         {/* Artist */}
@@ -560,13 +585,13 @@ export default function TrackPage() {
                 width: 72, height: 72, borderRadius: "50%", overflow: "hidden", cursor: "pointer",
                 boxShadow: "0 4px 16px rgba(0,0,0,0.12)",
                 background: "linear-gradient(135deg, var(--brand), var(--brand-light))",
-                flexShrink: 0, transition: "transform 0.15s",
+                flexShrink: 0, transition: "transform 0.15s", position: "relative",
               }}
               onMouseEnter={(e) => { e.currentTarget.style.transform = "scale(1.04)" }}
               onMouseLeave={(e) => { e.currentTarget.style.transform = "scale(1)" }}
             >
               {artist.photo_url ? (
-                <img src={artist.photo_url} alt={artist.stage_name} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                <CoverImage src={artist.photo_url} alt={artist.stage_name} sizes="120px" />
               ) : (
                 <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center" }}>
                   <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="1.5">
@@ -586,7 +611,7 @@ export default function TrackPage() {
                 onMouseLeave={(e) => { e.currentTarget.style.textDecoration = "none" }}
               >
                 {artist.stage_name}
-                {artist.verified && <VerifiedIcon />}
+                {artist.verified && <BadgeBold size={16} color="var(--brand)" secondaryColor="#fff" secondaryOpacity={1} />}
               </h3>
               <div style={{ fontSize: 13, color: "var(--muted-foreground)", marginTop: 2 }}>
                 {formatCount(artist.follower_count ?? 0)} followers
@@ -623,6 +648,58 @@ export default function TrackPage() {
             ))}
           </div>
         )}
+
+        {/* Credits (Tidal-style) */}
+        <section style={{ marginBottom: 32 }}>
+          <div style={{
+            background: "var(--card-bg)", border: "1px solid var(--border)",
+            borderRadius: 16, padding: "20px 22px",
+          }}>
+            <p style={{ margin: "0 0 6px", fontSize: 11, fontWeight: 700, letterSpacing: "0.16em", textTransform: "uppercase", color: "var(--brand)" }}>
+              Credits
+            </p>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: "4px 24px" }}>
+              <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 16, padding: "10px 0", borderBottom: "1px solid var(--border)" }}>
+                <span style={{ fontSize: 12, color: "var(--muted-foreground)" }}>Performed by</span>
+                <button onClick={() => router.push(`/artist/${track.artist_id}`)} style={{ background: "none", border: "none", cursor: "pointer", padding: 0, fontSize: 14, fontWeight: 600, color: "var(--foreground)", textAlign: "right" }}>
+                  {track.artist_name}
+                </button>
+              </div>
+              {track.collaborators && track.collaborators.map((c: any) => (
+                <div key={c.artist_id || c.stage_name} style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 16, padding: "10px 0", borderBottom: "1px solid var(--border)" }}>
+                  <span style={{ fontSize: 12, color: "var(--muted-foreground)", textTransform: "capitalize" }}>{c.role || "Featuring"}</span>
+                  <button onClick={() => c.artist_id && router.push(`/artist/${c.artist_id}`)} style={{ background: "none", border: "none", cursor: c.artist_id ? "pointer" : "default", padding: 0, fontSize: 14, fontWeight: 600, color: "var(--foreground)", textAlign: "right" }}>
+                    {c.stage_name}
+                  </button>
+                </div>
+              ))}
+              {track.released_at && (
+                <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 16, padding: "10px 0", borderBottom: "1px solid var(--border)" }}>
+                  <span style={{ fontSize: 12, color: "var(--muted-foreground)" }}>Released</span>
+                  <span style={{ fontSize: 14, fontWeight: 600, color: "var(--foreground)" }}>
+                    {new Date(track.released_at).toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" })}
+                  </span>
+                </div>
+              )}
+              {track.genre_id && genreName && (
+                <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 16, padding: "10px 0", borderBottom: "1px solid var(--border)" }}>
+                  <span style={{ fontSize: 12, color: "var(--muted-foreground)" }}>Genre</span>
+                  <button onClick={() => router.push(`/genres/${track.genre_id}`)} style={{ background: "none", border: "none", cursor: "pointer", padding: 0, fontSize: 14, fontWeight: 600, color: "var(--foreground)" }}>
+                    {genreName}
+                  </button>
+                </div>
+              )}
+              <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 16, padding: "10px 0", borderBottom: "1px solid var(--border)" }}>
+                <span style={{ fontSize: 12, color: "var(--muted-foreground)" }}>Length</span>
+                <span style={{ fontSize: 14, fontWeight: 600, color: "var(--foreground)", fontVariantNumeric: "tabular-nums" }}>{formatDuration(track.duration_sec)}</span>
+              </div>
+              <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 16, padding: "10px 0", borderBottom: "1px solid var(--border)" }}>
+                <span style={{ fontSize: 12, color: "var(--muted-foreground)" }}>Plays</span>
+                <span style={{ fontSize: 14, fontWeight: 600, color: "var(--foreground)", fontVariantNumeric: "tabular-nums" }}>{formatCount(track.play_count)}</span>
+              </div>
+            </div>
+          </div>
+        </section>
 
         {/* Popular tracks */}
         {popularLoading ? (
@@ -683,27 +760,28 @@ export default function TrackPage() {
           </div>
         ) : albums.length > 0 ? (
           <section style={{ marginBottom: 32 }} className="fade-in">
-            <h2 style={{ fontSize: 22, fontWeight: 800, marginBottom: 16 }}>Popular Releases</h2>
+            <span style={{ fontSize: 12, fontWeight: 700, color: "var(--muted-foreground)", textTransform: "uppercase", letterSpacing: "0.08em" }}>
+              The catalogue
+            </span>
+            <h2 style={{ fontFamily: "var(--font-display, Inter, sans-serif)", fontSize: 24, fontWeight: 700, letterSpacing: "-0.02em", margin: "2px 0 16px" }}>Popular Releases</h2>
             <div className="track-album-scroll">
-              {albums.map((alb: any) => (
-                <div
-                  key={alb.id}
-                  className="track-album-card"
-                  onClick={() => router.push(`/album/${alb.id}`)}
-                >
-                  {alb.cover_url ? (
-                    <img
-                      src={alb.cover_url}
-                      alt={alb.title}
-                      className="track-album-art"
-                    />
-                  ) : (
-                    <div className="track-album-art track-album-art-ph">
-                      <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--muted-foreground)" strokeWidth="1.5">
-                        <rect x="3" y="3" width="18" height="18" rx="2" /><circle cx="8.5" cy="8.5" r="1.5" /><path d="M21 15l-5-5L5 21" />
-                      </svg>
+                {albums.map((alb: any) => (
+                  <div
+                    key={alb.id}
+                    className="track-album-card"
+                    onClick={() => router.push(`/album/${alb.id}`)}
+                  >
+                    <div className="track-album-art" style={{ position: "relative", overflow: "hidden" }}>
+                      {alb.cover_url ? (
+                        <CoverImage src={alb.cover_url} alt={alb.title} sizes="220px" />
+                      ) : (
+                        <div className="track-album-art-ph">
+                          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--muted-foreground)" strokeWidth="1.5">
+                            <rect x="3" y="3" width="18" height="18" rx="2" /><circle cx="8.5" cy="8.5" r="1.5" /><path d="M21 15l-5-5L5 21" />
+                          </svg>
+                        </div>
+                      )}
                     </div>
-                  )}
                   <h4 className="track-album-title">{alb.title}</h4>
                   <p className="track-album-year">
                     {alb.released_at ? new Date(alb.released_at).getFullYear() : "Album"}
@@ -722,7 +800,10 @@ export default function TrackPage() {
           if (!tracks || tracks.length === 0) return null
           return (
             <section key={c.id || c.artist_id || i} style={{ marginBottom: 32 }} className="fade-in">
-              <h2 style={{ fontSize: 22, fontWeight: 800, marginBottom: 16 }}>
+              <span style={{ fontSize: 12, fontWeight: 700, color: "var(--muted-foreground)", textTransform: "uppercase", letterSpacing: "0.08em" }}>
+                Keep digging
+              </span>
+              <h2 style={{ fontFamily: "var(--font-display, Inter, sans-serif)", fontSize: 24, fontWeight: 700, letterSpacing: "-0.02em", margin: "2px 0 16px" }}>
                 More from {c.stage_name}
               </h2>
               <TrackList tracks={tracks} />
@@ -730,6 +811,7 @@ export default function TrackPage() {
           )
         })}
 
+        <CommentsSection trackId={track.id} />
         <LyricsSection title={track.title} artistName={track.artist_name} />
       </div>
 
@@ -842,36 +924,131 @@ function CollaboratorRow({ collaborator }: { collaborator: any }) {
   )
 }
 
-function VerifiedIcon() {
-  return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="#3d91ff" style={{ flexShrink: 0 }}>
-      <path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10 10-4.5 10-10S17.5 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z" />
-    </svg>
-  )
+function timeAgo(iso: string) {
+  const s = Math.max(0, Math.floor((Date.now() - new Date(iso).getTime()) / 1000))
+  if (s < 60) return "just now"
+  if (s < 3600) return `${Math.floor(s / 60)}m ago`
+  if (s < 86400) return `${Math.floor(s / 3600)}h ago`
+  if (s < 86400 * 7) return `${Math.floor(s / 86400)}d ago`
+  return new Date(iso).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })
 }
 
-function HeartIconBig({ filled }: { filled: boolean }) {
-  return (
-    <svg width={20} height={20} viewBox="0 0 24 24" fill={filled ? "currentColor" : "none"} stroke="currentColor" strokeWidth="2">
-      <path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z" />
-    </svg>
-  )
-}
+function CommentsSection({ trackId }: { trackId: string }) {
+  const router = useRouter()
+  const user = useAuthStore((s) => s.user)
+  const queryClient = useQueryClient()
+  const [body, setBody] = useState("")
+  const [posting, setPosting] = useState(false)
 
-function ShareIcon() {
-  return (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <circle cx="18" cy="5" r="3" /><circle cx="6" cy="12" r="3" /><circle cx="18" cy="19" r="3" />
-      <line x1="8.59" y1="13.51" x2="15.42" y2="17.49" /><line x1="15.41" y1="6.51" x2="8.59" y2="10.49" />
-    </svg>
-  )
-}
+  const { data, isLoading } = useQuery({
+    queryKey: ["comments", trackId],
+    queryFn: () => api.getComments(trackId, 20),
+  })
+  const comments: any[] = data?.comments ?? []
 
-function CheckIcon() {
+  const post = async () => {
+    const text = body.trim()
+    if (!text || posting || !user) return
+    setPosting(true)
+    try {
+      await api.addComment(trackId, text)
+      setBody("")
+      queryClient.invalidateQueries({ queryKey: ["comments", trackId] })
+    } catch {}
+    setPosting(false)
+  }
+
   return (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M20 6L9 17l-5-5" />
-    </svg>
+    <section style={{ marginBottom: 40 }}>
+      <span style={{ fontSize: 12, fontWeight: 700, color: "var(--muted-foreground)", textTransform: "uppercase", letterSpacing: "0.08em" }}>
+        Join the conversation
+      </span>
+      <h2 style={{ fontFamily: "var(--font-display, Inter, sans-serif)", fontSize: 24, fontWeight: 700, letterSpacing: "-0.02em", margin: "2px 0 16px" }}>
+        Comments{comments.length > 0 ? ` (${comments.length})` : ""}
+      </h2>
+
+      {user ? (
+        <div style={{ display: "flex", gap: 10, marginBottom: 18 }}>
+          <div style={{ width: 36, height: 36, borderRadius: "50%", background: "linear-gradient(135deg, var(--brand), var(--brand-light))", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontSize: 14, fontWeight: 700, flexShrink: 0 }}>
+            {(user.email?.charAt(0) || "?").toUpperCase()}
+          </div>
+          <div style={{ flex: 1, display: "flex", gap: 8 }}>
+            <input
+              value={body}
+              onChange={(e) => setBody(e.target.value)}
+              onKeyDown={(e) => { if (e.key === "Enter") post() }}
+              placeholder="Share your thoughts on this track…"
+              maxLength={500}
+              style={{
+                flex: 1, minWidth: 0, padding: "10px 16px", borderRadius: 999,
+                border: "1px solid var(--border)", background: "var(--card-bg)",
+                color: "var(--foreground)", fontSize: 14, outline: "none",
+              }}
+            />
+            <button
+              onClick={post}
+              disabled={!body.trim() || posting}
+              style={{
+                padding: "10px 22px", borderRadius: 999, border: "none",
+                background: "var(--brand)", color: "#fff", fontSize: 14, fontWeight: 700,
+                cursor: body.trim() && !posting ? "pointer" : "default",
+                opacity: body.trim() && !posting ? 1 : 0.5, flexShrink: 0,
+              }}
+            >
+              {posting ? "Posting…" : "Post"}
+            </button>
+          </div>
+        </div>
+      ) : (
+        <button
+          onClick={() => router.push("/login")}
+          style={{
+            width: "100%", padding: "14px", borderRadius: 12, marginBottom: 18,
+            border: "1px dashed var(--border)", background: "transparent",
+            color: "var(--muted-foreground)", fontSize: 14, fontWeight: 600, cursor: "pointer",
+          }}
+        >
+          Sign in to join the conversation
+        </button>
+      )}
+
+      {isLoading ? (
+        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+          {Array.from({ length: 3 }).map((_, i) => (
+            <div key={i} style={{ display: "flex", gap: 10 }}>
+              <div className="skeleton" style={{ width: 36, height: 36, borderRadius: "50%", flexShrink: 0 }} />
+              <div style={{ flex: 1 }}>
+                <div className="skeleton" style={{ width: "30%", height: 12, marginBottom: 6 }} />
+                <div className="skeleton" style={{ width: "85%", height: 13 }} />
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : comments.length === 0 ? (
+        <p style={{ fontSize: 14, color: "var(--muted-foreground)", margin: 0 }}>
+          No comments yet — be the first to say something.
+        </p>
+      ) : (
+        <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+          {comments.map((c: any) => (
+            <div key={c.id} style={{ display: "flex", gap: 10 }}>
+              <div style={{ width: 36, height: 36, borderRadius: "50%", background: "linear-gradient(135deg, var(--brand), var(--brand-light))", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontSize: 14, fontWeight: 700, flexShrink: 0 }}>
+                {String(c.user_name || "?").charAt(0).toUpperCase()}
+              </div>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <p style={{ margin: 0, fontSize: 12, color: "var(--muted-foreground)" }}>
+                  <span style={{ fontWeight: 700, color: "var(--foreground)" }}>{c.user_name || "Listener"}</span>
+                  {" · "}{c.created_at ? timeAgo(c.created_at) : ""}
+                </p>
+                <p style={{ margin: "4px 0 0", fontSize: 14, lineHeight: 1.55, color: "var(--foreground)", overflowWrap: "anywhere" }}>
+                  {c.body}
+                </p>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </section>
   )
 }
 
@@ -888,7 +1065,7 @@ function LyricsSection({ title, artistName }: { title: string; artistName?: stri
           width: "100%",
         }}
       >
-        <h2 style={{ fontSize: 22, fontWeight: 800, margin: 0, color: "var(--foreground)" }}>Lyrics</h2>
+        <h2 style={{ fontFamily: "var(--font-display, Inter, sans-serif)", fontSize: 24, fontWeight: 700, letterSpacing: "-0.02em", margin: 0, color: "var(--foreground)" }}>Lyrics</h2>
         <svg
           width="16" height="16" viewBox="0 0 24 24" fill="none"
           stroke="var(--muted-foreground)" strokeWidth="2" strokeLinecap="round"
