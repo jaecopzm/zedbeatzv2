@@ -9,7 +9,6 @@ import { useLikesStore } from "@/lib/likes-store"
 import { ArtistLinks } from "@/components/artist-links"
 import { TrackList, PlayIconSolid, PauseIcon } from "@/components/track-list"
 import { PremiumTrackMenu } from "@/components/track-menu"
-import { useColorExtract } from "@/lib/use-color-extract"
 
 function formatDuration(sec: number) {
   const m = Math.floor(sec / 60)
@@ -129,11 +128,6 @@ export default function TrackPage() {
     queryFn: () => api.getTrack(id),
     enabled: !!id,
   })
-
-  const palette = useColorExtract(track?.cover_url)
-  const accentColor = palette.vibrant
-  const accentRgb = `${palette.r}, ${palette.g}, ${palette.b}`
-  const accentAlpha = (a: number) => `rgba(${accentRgb}, ${a})`
 
   const { data: album } = useQuery({
     queryKey: ["album", track?.album_id],
@@ -296,10 +290,10 @@ export default function TrackPage() {
       <div style={{
         position: "fixed", top: 0, left: 0, right: 0, zIndex: 300,
         height: 56,
-        background: `linear-gradient(180deg, ${accentAlpha(0.95)} 0%, ${accentAlpha(0.88)} 100%)`,
+        background: "color-mix(in srgb, var(--content-bg) 82%, transparent)",
         backdropFilter: "blur(16px) saturate(180%)",
         WebkitBackdropFilter: "blur(16px) saturate(180%)",
-        borderBottom: "1px solid rgba(255,255,255,0.06)",
+        borderBottom: "1px solid var(--border)",
         display: "flex",
         alignItems: "center",
         padding: "0 16px",
@@ -312,10 +306,10 @@ export default function TrackPage() {
           <img src={track.cover_url} alt="" style={{ width: 36, height: 36, borderRadius: 4, objectFit: "cover", flexShrink: 0 }} />
         )}
         <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontSize: 14, fontWeight: 700, color: "#fff", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", lineHeight: 1.3 }}>
+          <div style={{ fontSize: 14, fontWeight: 700, color: "var(--foreground)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", lineHeight: 1.3 }}>
             {track?.title}
           </div>
-          <div style={{ fontSize: 12, color: "rgba(255,255,255,0.65)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", lineHeight: 1.3 }}>
+          <div style={{ fontSize: 12, color: "var(--muted-foreground)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", lineHeight: 1.3 }}>
             {track?.artist_name}
           </div>
         </div>
@@ -323,7 +317,7 @@ export default function TrackPage() {
           onClick={handlePlay}
           style={{
             width: 34, height: 34, borderRadius: "50%", border: "none",
-            background: accentColor || "var(--brand)", color: "#fff",
+            background: "var(--brand)", color: "#fff",
             display: "flex", alignItems: "center", justifyContent: "center",
             cursor: loading ? "default" : "pointer",
             flexShrink: 0, padding: 0,
@@ -345,7 +339,7 @@ export default function TrackPage() {
       {/* Hero */}
       <div style={{
         position: "relative",
-        background: `linear-gradient(180deg, ${accentAlpha(0.88)} 0%, ${accentAlpha(0.35)} 45%, var(--content-bg) 100%)`,
+        background: "linear-gradient(180deg, rgba(0,0,0,0.45) 0%, rgba(0,0,0,0.25) 45%, var(--content-bg) 100%)",
         color: "#ffffff",
         overflow: "hidden",
       }}>
@@ -391,7 +385,7 @@ export default function TrackPage() {
               ) : (
                 <div style={{
                   width: "100%", height: "100%",
-                  background: `linear-gradient(135deg, ${accentColor} 0%, var(--brand-light) 100%)`,
+                  background: "linear-gradient(135deg, var(--brand) 0%, var(--brand-light) 100%)",
                   display: "flex", alignItems: "center", justifyContent: "center",
                 }}>
                   <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="1.2">
@@ -461,7 +455,7 @@ export default function TrackPage() {
               onClick={handlePlay}
               style={{
                 width: 56, height: 56, borderRadius: "50%", border: "none",
-                background: accentColor || "var(--brand)", color: "#fff",
+                background: "var(--brand)", color: "#fff",
                 display: "flex", alignItems: "center", justifyContent: "center",
                 cursor: "pointer", boxShadow: "0 6px 20px rgba(0,0,0,0.35)",
                 transition: "transform 0.15s", padding: 0,
@@ -565,7 +559,7 @@ export default function TrackPage() {
               style={{
                 width: 72, height: 72, borderRadius: "50%", overflow: "hidden", cursor: "pointer",
                 boxShadow: "0 4px 16px rgba(0,0,0,0.12)",
-                background: `linear-gradient(135deg, ${accentColor || "var(--brand)"}, var(--brand-light))`,
+                background: "linear-gradient(135deg, var(--brand), var(--brand-light))",
                 flexShrink: 0, transition: "transform 0.15s",
               }}
               onMouseEnter={(e) => { e.currentTarget.style.transform = "scale(1.04)" }}
@@ -651,7 +645,7 @@ export default function TrackPage() {
                 {track.artist_name}
               </h2>
             </div>
-            <TrackList tracks={popularTracks} accentColor={accentColor} />
+            <TrackList tracks={popularTracks} />
           </section>
         ) : null}
 
@@ -669,7 +663,7 @@ export default function TrackPage() {
               </span>
               <h2 style={{ fontSize: 22, fontWeight: 800, margin: "2px 0 0" }}>Recommended</h2>
             </div>
-            <TrackList tracks={recommended} accentColor={accentColor} />
+            <TrackList tracks={recommended} />
           </section>
         ) : null}
 
@@ -731,7 +725,7 @@ export default function TrackPage() {
               <h2 style={{ fontSize: 22, fontWeight: 800, marginBottom: 16 }}>
                 More from {c.stage_name}
               </h2>
-              <TrackList tracks={tracks} accentColor={accentColor} />
+              <TrackList tracks={tracks} />
             </section>
           )
         })}

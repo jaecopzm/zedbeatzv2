@@ -1,5 +1,5 @@
 import type { Metadata } from "next"
-import { Inter } from "next/font/google"
+import { Inter, Space_Grotesk } from "next/font/google"
 import "./globals.css"
 import { Providers } from "@/components/providers"
 import { ToastContainer } from "@/components/toast-container"
@@ -9,6 +9,7 @@ import { AppShell } from "@/components/app-shell"
 import { SITE_URL, SITE_NAME, SITE_DESCRIPTION, SITE_TITLE, SITE_KEYWORDS } from "@/lib/seo"
 
 const inter = Inter({ subsets: ["latin"], display: "swap" })
+const grotesk = Space_Grotesk({ subsets: ["latin"], weight: ["500", "600", "700"], display: "swap", variable: "--font-display" })
 
 const preInit = `(function(){try{var t=localStorage.getItem("zedbeatz_theme")||((window.matchMedia("(prefers-color-scheme:dark)").matches?"dark":"dark"));document.documentElement.setAttribute("data-theme",t)}catch(e){}})();`
 
@@ -93,7 +94,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   }
 
   return (
-    <html lang="en" className={inter.className} style={{ height: "100%", overflow: "hidden" }} suppressHydrationWarning>
+    <html lang="en" className={`${inter.className} ${grotesk.variable}`} style={{ height: "100%", overflow: "hidden" }} suppressHydrationWarning>
       <head>
         <link rel="dns-prefetch" href="https://fonts.gstatic.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />

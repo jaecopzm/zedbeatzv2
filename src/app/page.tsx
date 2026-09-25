@@ -1,6 +1,7 @@
 "use client"
 
 import { useQuery } from "@tanstack/react-query"
+import { useRouter } from "next/navigation"
 import { api } from "@/lib/api"
 import { useAuthStore } from "@/lib/auth-store"
 import { usePlayerStore, type TrackInfo } from "@/lib/store"
@@ -376,6 +377,33 @@ function BrowseSection({ sectionKey, label }: SectionDef) {
   )
 }
 
+function ExploreMore({ sections }: { sections: SectionDef[] }) {
+  const router = useRouter()
+  return (
+    <section className="hp-section">
+      <SectionHeader label="More to explore" size="sm" />
+      <div style={{ display: "flex", gap: 10, flexWrap: "wrap", padding: "4px 0 8px" }}>
+        {sections.map((s) => (
+          <button
+            key={s.sectionKey}
+            onClick={() => router.push(`/section/${s.sectionKey}`)}
+            style={{
+              padding: "12px 22px", borderRadius: 999, cursor: "pointer",
+              border: "1px solid var(--border)", background: "var(--card-bg)",
+              color: "var(--foreground)", fontSize: 14, fontWeight: 600,
+              transition: "background 0.15s ease, transform 0.15s ease",
+            }}
+            onMouseEnter={(e) => { e.currentTarget.style.background = "var(--hover-bg)" }}
+            onMouseLeave={(e) => { e.currentTarget.style.background = "var(--card-bg)" }}
+          >
+            {s.label} →
+          </button>
+        ))}
+      </div>
+    </section>
+  )
+}
+
 export default function HomePage() {
   return (
     <div className="fade-in hp-page">
@@ -387,9 +415,10 @@ export default function HomePage() {
       <NewThisWeekSection />
       <AlbumsSection />
       <FeaturedArtistsSection />
-      {browseSections.map((s) => (
+      {browseSections.slice(0, 4).map((s) => (
         <BrowseSection key={s.sectionKey} {...s} />
       ))}
+      {browseSections.length > 4 && <ExploreMore sections={browseSections.slice(4)} />}
     </div>
   )
 }

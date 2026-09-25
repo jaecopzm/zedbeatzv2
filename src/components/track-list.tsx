@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation"
 import { usePlayerStore } from "@/lib/store"
 import { ArtistLinks } from "@/components/artist-links"
 import { PremiumTrackMenu } from "@/components/track-menu"
+import { CoverImage } from "@/components/cover-image"
 
 function formatDuration(sec: number) {
   const m = Math.floor(sec / 60)
@@ -64,7 +65,9 @@ export function TrackList({ tracks, accentColor }: { tracks: any[]; accentColor?
             </div>
             <div style={{ display: "flex", alignItems: "center", gap: 12, minWidth: 0 }}>
               {t.cover_url ? (
-                <img src={t.cover_url} alt="" className="tl-thumb" style={{ width: 40, height: 40, borderRadius: 4, objectFit: "cover", boxShadow: "0 2px 8px rgba(0,0,0,0.05)", flexShrink: 0 }} />
+                <span style={{ position: "relative", width: 40, height: 40, borderRadius: 4, overflow: "hidden", boxShadow: "0 2px 8px rgba(0,0,0,0.05)", flexShrink: 0, display: "block" }}>
+                  <CoverImage src={t.cover_url} alt="" sizes="100px" />
+                </span>
               ) : (
                 <div className="tl-thumb" style={{ width: 40, height: 40, borderRadius: 4, background: "var(--hover-bg)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--muted-foreground)" strokeWidth="1.8"><path d="M9 18V5l12-2v13" /><circle cx="6" cy="18" r="3" /><circle cx="18" cy="16" r="3" /></svg>

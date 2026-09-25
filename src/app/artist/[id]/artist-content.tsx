@@ -569,10 +569,7 @@ export default function ArtistContent({ artistId, initialArtist }: ArtistContent
                       height: isDesktop ? 26 : 20,
                       borderRadius: "50%",
                       flexShrink: 0,
-                      backgroundImage: `
-                        linear-gradient(135deg, #facc15 25%, #eab308 25%, #eab308 50%, #facc15 50%, #facc15 75%, #eab308 75%)
-                      `,
-                      backgroundSize: isDesktop ? "7px 7px" : "5px 5px",
+                      background: "var(--brand)",
                       boxShadow: "0 2px 8px rgba(0,0,0,0.25)",
                     }}
                   >

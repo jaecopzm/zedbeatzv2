@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation"
 import type { Album } from "@/types"
+import { CoverImage } from "@/components/cover-image"
 
 export function AlbumCard({ album }: { album: Album }) {
   const router = useRouter()
@@ -10,7 +11,7 @@ export function AlbumCard({ album }: { album: Album }) {
     <div className="hp-card" onClick={() => router.push(`/album/${album.id}`)}>
       <div className="hp-card-art">
         {album.cover_url ? (
-          <img src={album.cover_url} alt={album.title} loading="lazy" />
+          <CoverImage src={album.cover_url} alt={album.title} sizes="220px" />
         ) : (
           <div className="hp-card-art-placeholder">
             <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.2">

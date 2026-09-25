@@ -35,6 +35,12 @@ export function NowPlayingScreen() {
   const { nowPlayingOpen, closeNowPlaying } = useUIStore()
   const { isLiked, toggleLike } = useLikesStore()
   const palette = useColorExtract(currentTrack?.cover_url)
+  const [tab, setTab] = useState<"now" | "queue" | "details">("now")
+  const queue = usePlayerStore((s) => s.queue)
+  const queueIndex = usePlayerStore((s) => s.queueIndex)
+  const removeFromQueue = usePlayerStore((s) => s.removeFromQueue)
+  const clearQueue = usePlayerStore((s) => s.clearQueue)
+  const playTrack = usePlayerStore((s) => s.play)
 
   const overlayRef = useRef<HTMLDivElement>(null)
   const scrubberRef = useRef<HTMLDivElement>(null)
@@ -74,6 +80,7 @@ export function NowPlayingScreen() {
   useEffect(() => {
     if (nowPlayingOpen) {
       document.body.style.overflow = "hidden"
+      setTab("now")
     } else {
       document.body.style.overflow = ""
     }
@@ -128,7 +135,7 @@ export function NowPlayingScreen() {
         {track?.cover_url && (
           <>
             <div style={{ position: "absolute", inset: 0, background: "#0a0a0f" }} />
-            <img src={track.cover_url} alt="" aria-hidden style={{ position: "absolute", inset: "-40px", width: "calc(100% + 80px)", height: "calc(100% + 80px)", objectFit: "cover", filter: "blur(80px) saturate(180%) brightness(0.55)", transform: "scale(1.05)" }} />
+            <img src={track.cover_url} alt="" aria-hidden key={`bg-${track?.id ?? "none"}`} className="np-bg-swap" style={{ position: "absolute", inset: "-40px", width: "calc(100% + 80px)", height: "calc(100% + 80px)", objectFit: "cover", filter: "blur(80px) saturate(180%) brightness(0.55)", transform: "scale(1.05)" }} />
             <div style={{ position: "absolute", inset: 0, background: "radial-gradient(ellipse 80% 80% at 50% 50%, transparent 30%, rgba(0,0,0,0.55) 100%)" }} />
           </>
         )}
@@ -144,6 +151,147 @@ export function NowPlayingScreen() {
         <div style={{ width: isMobile ? "32px" : "36px" }} />
       </div>
 
+      {/* Tabs */}
+      <div style={{ position: "relative", zIndex: 5, display: "flex", justifyContent: "center", flexShrink: 0, padding: "0 16px 4px" }}>
+        <div className="np-tabs" role="tablist" aria-label="Now playing views">
+          {([
+            ["now", "Now Playing"],
+            ["queue", `Up Next${queue.length > 1 ? ` · ${queue.length - queueIndex - 1}` : ""}`],
+            ["details", "Details"],
+          ] as Array<["now" | "queue" | "details", string]>).map(([id, label]) => (
+            <button
+              key={id}
+              role="tab"
+              aria-selected={tab === id}
+              onClick={() => setTab(id)}
+              className={`np-tab${tab === id ? " np-tab-active" : ""}`}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {tab !== "now" && (
+        <div className="np-panel" style={{ position: "absolute", inset: 0, zIndex: 6, display: "flex", flexDirection: "column", paddingTop: isMobile ? 128 : 148, background: "linear-gradient(180deg, rgba(8,8,12,0.66) 0%, rgba(8,8,12,0.9) 30%)" }}>
+          <div className="np-panel-scroll" style={{ width: "100%", maxWidth: isMobile ? "100%" : 460, margin: "0 auto", padding: isMobile ? "8px 16px 32px" : "12px 24px 40px", overflowY: "auto", flex: 1, minHeight: 0 }}>
+            {tab === "queue" ? (
+              <>
+                <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", marginBottom: 12 }}>
+                  <p style={{ margin: 0, fontSize: 12, fontWeight: 700, letterSpacing: "0.14em", textTransform: "uppercase", color: "rgba(255,255,255,0.5)" }}>
+                    Up Next{queue.length > 0 ? ` — ${Math.max(0, queue.length - queueIndex - 1)}` : ""}
+                  </p>
+                  {queue.length > 1 && (
+                    <button onClick={clearQueue} style={{ background: "none", border: "none", cursor: "pointer", fontSize: 12, fontWeight: 600, color: "rgba(255,255,255,0.55)", padding: "4px 0" }}>
+                      Clear
+                    </button>
+                  )}
+                </div>
+                {track && (
+                  <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 12px", borderRadius: 10, background: "rgba(255,255,255,0.08)", marginBottom: 8 }}>
+                    <span style={{ display: "flex", alignItems: "flex-end", gap: 2, height: 14 }}>
+                      {[0, 1, 2].map((i) => (
+                        <span key={i} className="eq-bar" style={{ width: 3, height: 14, background: "#fff", borderRadius: 2, animationDelay: `${i * 0.18}s`, animationPlayState: isPlaying ? "running" : "paused" }} />
+                      ))}
+                    </span>
+                    <div style={{ minWidth: 0, flex: 1 }}>
+                      <p style={{ margin: 0, fontSize: 13, fontWeight: 600, color: "#fff", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{track.title}</p>
+                      <p style={{ margin: 0, fontSize: 12, color: "rgba(255,255,255,0.55)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>Now playing</p>
+                    </div>
+                  </div>
+                )}
+                {queue.slice(queueIndex + 1).map((q, i) => {
+                  const idx = queueIndex + 1 + i
+                  return (
+                    <div
+                      key={`${q.id}-${idx}`}
+                      onClick={() => playTrack(q, { tracks: queue, index: idx })}
+                      style={{ display: "flex", alignItems: "center", gap: 12, padding: "8px 12px", borderRadius: 10, cursor: "pointer" }}
+                      className="np-qrow"
+                    >
+                      {q.cover_url ? (
+                        <img src={q.cover_url} alt="" style={{ width: 44, height: 44, borderRadius: 6, objectFit: "cover", flexShrink: 0 }} loading="lazy" />
+                      ) : (
+                        <div style={{ width: 44, height: 44, borderRadius: 6, background: "rgba(255,255,255,0.12)", flexShrink: 0 }} />
+                      )}
+                      <div style={{ minWidth: 0, flex: 1 }}>
+                        <p style={{ margin: 0, fontSize: 13, fontWeight: 600, color: "#fff", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{q.title}</p>
+                        <p style={{ margin: 0, fontSize: 12, color: "rgba(255,255,255,0.55)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{q.artist_name}</p>
+                      </div>
+                      {q.duration_sec > 0 && (
+                        <span style={{ fontSize: 12, color: "rgba(255,255,255,0.45)", fontVariantNumeric: "tabular-nums", flexShrink: 0 }}>{fmt(q.duration_sec)}</span>
+                      )}
+                      <button
+                        aria-label={`Remove ${q.title} from queue`}
+                        onClick={(e) => { e.stopPropagation(); removeFromQueue(idx) }}
+                        style={{ background: "none", border: "none", cursor: "pointer", color: "rgba(255,255,255,0.5)", padding: 6, display: "flex", flexShrink: 0 }}
+                      >
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M18 6L6 18M6 6l12 12" /></svg>
+                      </button>
+                    </div>
+                  )
+                })}
+                {queue.length - queueIndex - 1 <= 0 && (
+                  <p style={{ margin: "20px 0 0", fontSize: 13, color: "rgba(255,255,255,0.5)", textAlign: "center", lineHeight: 1.6 }}>
+                    Nothing queued —<br />anything you play lands here.
+                  </p>
+                )}
+              </>
+            ) : (
+              <>
+                <p style={{ margin: "0 0 12px", fontSize: 12, fontWeight: 700, letterSpacing: "0.14em", textTransform: "uppercase", color: "rgba(255,255,255,0.5)" }}>
+                  About this track
+                </p>
+                {track ? (
+                  <>
+                    {track.cover_url && (
+                      <img src={track.cover_url} alt={track.title} style={{ width: "100%", maxHeight: 220, objectFit: "cover", borderRadius: 12, display: "block", marginBottom: 16 }} />
+                    )}
+                    <div style={{ display: "flex", flexDirection: "column" }}>
+                      {([
+                        ["Title", track.title, null],
+                        ["Artist", track.artist_name, track.artist_id ? `/artist/${track.artist_id}` : null],
+                        ...(track.collaborators ?? []).map((c): [string, string, string | null] => [
+                          c.role === "producer" || c.role === "Producer" ? "Producer" : "Featuring",
+                          c.stage_name,
+                          c.artist_id ? `/artist/${c.artist_id}` : null,
+                        ]),
+                        ["Length", fmt(track.duration_sec || 0), null],
+                      ] as Array<[string, string, string | null]>).map(([label, value, href]) => (
+                        <div key={`${label}-${value}`} style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 16, padding: "12px 0", borderTop: "1px solid rgba(255,255,255,0.1)" }}>
+                          <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.14em", textTransform: "uppercase", color: "rgba(255,255,255,0.45)", flexShrink: 0 }}>{label}</span>
+                          {href ? (
+                            <button
+                              onClick={() => { closeNowPlaying(); window.location.href = href }}
+                              style={{ background: "none", border: "none", cursor: "pointer", padding: 0, fontSize: 14, fontWeight: 600, color: "#fff", textAlign: "right" }}
+                            >
+                              {value} →
+                            </button>
+                          ) : (
+                            <span style={{ fontSize: 14, fontWeight: 600, color: "#fff", textAlign: "right" }}>{value}</span>
+                          )}
+                        </div>
+                      ))}
+                      <div style={{ borderTop: "1px solid rgba(255,255,255,0.1)" }} />
+                    </div>
+                    <button
+                      onClick={() => { closeNowPlaying(); window.location.href = `/track/${track.id}` }}
+                      style={{ marginTop: 16, width: "100%", padding: "13px", borderRadius: 999, border: "1px solid rgba(255,255,255,0.2)", background: "rgba(255,255,255,0.08)", color: "#fff", fontSize: 14, fontWeight: 600, cursor: "pointer" }}
+                    >
+                      Open track page
+                    </button>
+                  </>
+                ) : (
+                  <p style={{ margin: "20px 0 0", fontSize: 13, color: "rgba(255,255,255,0.5)", textAlign: "center" }}>
+                    Play something to see the details.
+                  </p>
+                )}
+              </>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* Centered content */}
       <div className="np-content" style={{ position: "relative", zIndex: 5, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", flex: 1, width: "100%", maxWidth: isMobile ? "100%" : "440px", margin: "0 auto", padding: isMobile ? "8px 16px 24px" : "16px 24px 32px", gap: "0" }}>
         {/* Artwork */}
@@ -153,7 +301,7 @@ export function NowPlayingScreen() {
           )}
           <div style={{ position: "relative", width: isMobile ? "min(88vw, 380px)" : "260px", height: isMobile ? "min(88vw, 380px)" : "260px", borderRadius: isMobile ? "8px" : "4px", overflow: "hidden", boxShadow: "0 32px 80px rgba(0,0,0,0.6), 0 8px 24px rgba(0,0,0,0.4)", transform: isPlaying ? "scale(1)" : "scale(0.88)", transition: "transform 0.5s cubic-bezier(0.34,1.56,0.64,1), box-shadow 0.5s ease" }}>
             {track?.cover_url ? (
-              <img src={track.cover_url} alt={track?.title || "Now playing"} style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
+              <img key={track.id} src={track.cover_url} alt={track?.title || "Now playing"} className="np-art-swap" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
             ) : (
               <div style={{ width: "100%", height: "100%", background: "linear-gradient(135deg, var(--brand) 0%, var(--brand-light) 100%)", display: "flex", alignItems: "center", justifyContent: "center" }}>
                 <svg width="80" height="80" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.8)" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 18V5l12-2v13" /><circle cx="6" cy="18" r="3" /><circle cx="18" cy="16" r="3" /></svg>
@@ -177,9 +325,11 @@ export function NowPlayingScreen() {
           <button aria-label={liked ? "Unlike" : "Like"}
             onClick={() => { if (track) toggleLike(track.id) }}
             style={{ background: "none", border: "none", cursor: "pointer", padding: "8px", borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+            <span key={`${track?.id ?? "none"}-${liked ? "liked" : "plain"}`} className={liked ? "like-burst" : undefined} style={{ display: "flex" }}>
             <svg width="24" height="24" viewBox="0 0 24 24" fill={liked ? "var(--like)" : "none"} stroke={liked ? "var(--like)" : "rgba(255,255,255,0.6)"} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
               <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
             </svg>
+            </span>
           </button>
         </div>
 

@@ -2394,3 +2394,83 @@ input[type="range"]::-webkit-slider-thumb:hover {
   .radio-featured-card { width: 80px !important; }
   .radio-featured-avatar { width: 76px !important; height: 76px !important; }
 }
+
+/* ── Now Playing tabs + queue/details panels ── */
+.np-tabs {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 3px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+.np-tab {
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  padding: 7px 16px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.6);
+  transition: background 0.2s ease, color 0.2s ease;
+  white-space: nowrap;
+}
+.np-tab:hover { color: rgba(255, 255, 255, 0.9); }
+.np-tab-active {
+  background: rgba(255, 255, 255, 0.92);
+  color: #111 !important;
+}
+.np-panel { animation: np-fade-in 0.3s cubic-bezier(0.22, 1, 0.36, 1) both; }
+.np-panel-scroll { scrollbar-width: thin; scrollbar-color: rgba(255,255,255,0.25) transparent; }
+.np-panel-scroll::-webkit-scrollbar { width: 5px; }
+.np-panel-scroll::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.25); border-radius: 3px; }
+.np-panel-scroll::-webkit-scrollbar-track { background: transparent; }
+.np-qrow { transition: background 0.15s ease; }
+.np-qrow:hover { background: rgba(255, 255, 255, 0.08); }
+.np-qrow:active { transform: scale(0.99); }
+
+/* ── Like burst ── */
+@keyframes like-burst {
+  0% { transform: scale(0.6); }
+  45% { transform: scale(1.35); }
+  70% { transform: scale(0.92); }
+  100% { transform: scale(1); }
+}
+.like-burst { animation: like-burst 0.4s cubic-bezier(0.22, 1, 0.36, 1) both; transform-origin: center; }
+
+/* ── Artwork crossfade on track change ── */
+@keyframes np-art-in {
+  from { opacity: 0; transform: scale(1.05); }
+  to { opacity: 1; transform: scale(1); }
+}
+.np-art-swap { animation: np-art-in 0.5s cubic-bezier(0.22, 1, 0.36, 1) both; }
+.np-bg-swap { animation: np-fade-in 0.8s ease both; }
+
+/* ── Route transition ── */
+@keyframes route-fade {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.route-fade { animation: route-fade 0.32s cubic-bezier(0.22, 1, 0.36, 1) both; }
+
+@media (prefers-reduced-motion: reduce) {
+  .route-fade, .np-art-swap, .np-bg-swap, .like-burst, .np-panel { animation: none; }
+}
+
+/* ── next/image fill parents without intrinsic size ── */
+.hp-track-art { width: 44px; height: 44px; }
+@media (max-width: 640px) {
+  .hp-track-art { width: 38px; height: 38px; }
+}
+
+/* ── Display type (Space Grotesk) for headings ── */
+.hp-greeting h1,
+.hp-section-title,
+.hp-section-title-sm,
+.hp-hero-panel-title {
+  font-family: var(--font-display, "Inter", sans-serif);
+  letter-spacing: -0.02em;
+}

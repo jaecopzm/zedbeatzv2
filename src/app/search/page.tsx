@@ -9,13 +9,11 @@ import type { Track, Artist, Album, Genre } from "@/types"
 import { PremiumTrackMenu } from "@/components/track-menu"
 import { ArtistLinks } from "@/components/artist-links"
 
+// Brand-locked duotones — genre tiles stay inside the brand system
+// instead of clashing rainbow gradients.
 const GENRE_GRADIENTS: [string, string][] = [
-  ["#FF6B6B", "#FF8E53"], ["#4E54C8", "#8F94FB"], ["#11998E", "#38EF7D"],
-  ["#F953C6", "#B91D73"], ["#F7971E", "#FFD200"], ["#00B4DB", "#0083B0"],
-  ["#DA22FF", "#9733EE"], ["#56AB2F", "#A8E063"], ["#F2994A", "#F2C94C"],
-  ["#4FACFE", "#00F2FE"], ["#43E97B", "#38F9D7"], ["#FA709A", "#FEE140"],
-  ["#30CFD0", "#330867"], ["#A18CD1", "#FBC2EB"], ["#FD746C", "#FF9068"],
-  ["#764BA2", "#667EEA"],
+  ["#1E5BFF", "#0B2D8A"], ["#144AE0", "#101014"], ["#3B71FF", "#0E35A3"],
+  ["#0B2D8A", "#131318"], ["#2B62F0", "#0A2472"], ["#144AE0", "#1B1B22"],
 ]
 
 type Tab = "all" | "songs" | "artists" | "albums"

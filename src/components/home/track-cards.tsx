@@ -5,6 +5,7 @@ import type { Track } from "@/types"
 import { usePlayerStore } from "@/lib/store"
 import { ArtistLinks } from "@/components/artist-links"
 import { PremiumTrackMenu } from "@/components/track-menu"
+import { CoverImage } from "@/components/cover-image"
 
 const formatDuration = (sec: number) => {
   const m = Math.floor(sec / 60)
@@ -30,7 +31,9 @@ export function useIsCurrentTrack(trackId: string) {
 
 export function TrackArt({ track, size = 168 }: { track: Track; size?: number }) {
   return track.cover_url ? (
-    <img src={track.cover_url} alt={track.title} loading="lazy" style={{ width: size, height: size }} />
+    <div style={{ position: "relative", width: size, height: size }}>
+      <CoverImage src={track.cover_url} alt={track.title} sizes="220px" />
+    </div>
   ) : (
     <div className="hp-card-art-placeholder" style={{ width: size, height: size }}>
       <svg width={size * 0.26} height={size * 0.26} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.2">
@@ -177,7 +180,7 @@ export function TrackRow({ track, index, isLast }: { track: Track; index?: numbe
           )}
           <div className="hp-track-art">
           {track.cover_url ? (
-            <img src={track.cover_url} alt={track.title} loading="lazy" />
+            <CoverImage src={track.cover_url} alt={track.title} sizes="120px" />
           ) : (
             <div className="hp-track-art-placeholder">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">

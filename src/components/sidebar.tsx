@@ -111,7 +111,7 @@ export function Sidebar() {
                 alignItems: "center",
                 gap: "10px",
                 padding: "var(--sidebar-link-padding, 8px 10px)",
-                borderRadius: "2px",
+                borderRadius: "10px",
                 fontSize: "14px",
                 fontWeight: active ? 600 : 500,
                 color: active ? "var(--active-fg)" : "var(--foreground)",
@@ -187,7 +187,7 @@ export function Sidebar() {
                 alignItems: "center",
                 gap: "10px",
                 padding: "var(--sidebar-link-padding, 8px 10px)",
-                borderRadius: "2px",
+                borderRadius: "10px",
                 fontSize: "14px",
                 fontWeight: 500,
                 color: pathname === "/artist/register" ? "var(--active-fg)" : "var(--foreground)",
@@ -224,7 +224,7 @@ export function Sidebar() {
                 style={{
                   display: "block",
                 padding: "var(--sidebar-link-padding, 7px 10px)",
-                borderRadius: "2px",
+                borderRadius: "10px",
                 fontSize: "13px",
                 fontWeight: pathname === link.href ? 600 : 400,
                 color: pathname === link.href ? "var(--active-fg)" : "var(--foreground)",
@@ -249,7 +249,7 @@ export function Sidebar() {
               style={{
                 display: "flex", alignItems: "center", gap: 10,
                 padding: "var(--sidebar-link-padding, 8px 10px)",
-                borderRadius: 2, fontSize: 13, fontWeight: 600,
+                borderRadius: 10, fontSize: 13, fontWeight: 600,
                 color: pathname.startsWith("/artist/dashboard") ? "var(--active-fg)" : "var(--foreground)",
                 background: "transparent",
                 textDecoration: "none",
@@ -274,7 +274,7 @@ export function Sidebar() {
               style={{
                 display: "flex", alignItems: "center", gap: 10,
                 padding: "var(--sidebar-link-padding, 8px 10px)",
-                borderRadius: 2, fontSize: 13, fontWeight: 600,
+                borderRadius: 10, fontSize: 13, fontWeight: 600,
                 color: pathname.startsWith("/admin") ? "var(--active-fg)" : "var(--foreground)",
                 background: "transparent",
                 textDecoration: "none",
@@ -300,7 +300,7 @@ export function Sidebar() {
           title={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
           style={{
             display: "flex", alignItems: "center", gap: 10, padding: "6px 10px",
-            borderRadius: 2, border: "none", background: "transparent",
+            borderRadius: 10, border: "none", background: "transparent",
             cursor: "pointer", color: "var(--foreground)", fontSize: 13, fontWeight: 500,
             width: "100%", marginBottom: 10, transition: "background 0.12s",
           }}

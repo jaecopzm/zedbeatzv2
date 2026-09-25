@@ -237,6 +237,19 @@ export default function StationPage() {
           {/* Meta */}
           <div style={{ flex: 1, minWidth: 0, width: isMobile ? "100%" : "auto" }}>
             <span style={{
+              display: "inline-flex", alignItems: "center", gap: 7,
+              fontSize: 11, fontWeight: 800, letterSpacing: "0.16em",
+              color: "#fff", background: "rgba(255,45,85,0.9)",
+              padding: "5px 12px 5px 10px", borderRadius: 999, marginBottom: 10,
+              boxShadow: "0 4px 16px rgba(255,45,85,0.45)",
+            }}>
+              <span style={{ position: "relative", display: "flex", width: 7, height: 7 }}>
+                <span style={{ position: "absolute", inset: 0, borderRadius: "50%", background: "#fff", opacity: 0.7, animation: "eq-bar 1.2s ease-in-out infinite" }} />
+                <span style={{ position: "relative", width: 7, height: 7, borderRadius: "50%", background: "#fff" }} />
+              </span>
+              ON AIR
+            </span>
+            <span style={{
               fontSize: 12,
               fontWeight: 700,
               color: "rgba(255,255,255,0.6)",

@@ -2,10 +2,10 @@
 
 import { useQuery } from "@tanstack/react-query"
 import { useParams, useRouter } from "next/navigation"
-import Link from "next/link"
+import { useState, useEffect } from "react"
 import { api } from "@/lib/api"
 import { usePlayerStore } from "@/lib/store"
-import { ArtistLinks } from "@/components/artist-links"
+import { TrackList } from "@/components/track-list"
 
 function SkeletonRow() {
   return (
@@ -23,7 +23,16 @@ function SkeletonRow() {
 export default function GenrePage() {
   const { id } = useParams<{ id: string }>()
   const router = useRouter()
-  const play = usePlayerStore((s) => s.play)
+  const { playQueue, currentTrack, isPlaying, togglePlay } = usePlayerStore()
+  const [isMobile, setIsMobile] = useState(false)
+
+  useEffect(() => {
+    const mq = window.matchMedia("(max-width: 768px)")
+    setIsMobile(mq.matches)
+    const handler = (e: MediaQueryListEvent) => setIsMobile(e.matches)
+    mq.addEventListener("change", handler)
+    return () => mq.removeEventListener("change", handler)
+  }, [])
 
   const { data: genresData } = useQuery({
     queryKey: ["genres"],
@@ -40,6 +49,26 @@ export default function GenrePage() {
   })
 
   const tracks = data?.tracks ?? []
+  const queueTracks = tracks.map((t: any) => ({
+    id: t.id,
+    artist_id: t.artist_id,
+    title: t.title,
+    artist_name: t.artist_name ?? "",
+    cover_url: t.cover_url ?? null,
+    duration_sec: t.duration_sec,
+    collaborators: t.collaborators,
+  }))
+  const trackIds = new Set(tracks.map((t: any) => t.id))
+  const anyPlaying = tracks.length > 0 && currentTrack && trackIds.has(currentTrack.id) && isPlaying
+
+  function handlePlayAll() {
+    if (tracks.length === 0) return
+    if (currentTrack && trackIds.has(currentTrack.id)) {
+      togglePlay()
+    } else {
+      playQueue(queueTracks, 0)
+    }
+  }
 
   if (isLoading || !genresData) {
     return (
@@ -51,78 +80,63 @@ export default function GenrePage() {
   }
 
   return (
-    <div className="fade-in" style={{ padding: "32px 32px 40px", minHeight: "100%", background: "var(--content-bg)" }}>
-      <style>{`
-        @media (max-width: 640px) {
-          .genre-page { padding: 16px 12px 24px !important; }
-        }
-      `}</style>
-
-      <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 24 }}>
-        <button
-          onClick={() => router.back()}
-          style={{ width: 36, height: 36, borderRadius: "50%", border: "1.5px solid var(--border)", background: "transparent", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", color: "var(--foreground)", transition: "background 0.12s" }}
-          onMouseEnter={(e) => (e.currentTarget.style.background = "var(--hover-bg)")}
-          onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
-        >
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M15 18l-6-6 6-6" /></svg>
-        </button>
-        <h1 style={{ fontSize: 28, fontWeight: 700, color: "var(--foreground)", margin: 0, letterSpacing: "-0.5px" }}>
-          {genre?.name || "Genre"}
-        </h1>
+    <div className="fade-in" style={{ minHeight: "100%", background: "var(--content-bg)" }}>
+      {/* ── Hero ── */}
+      <div style={{ position: "relative", overflow: "hidden", background: "linear-gradient(135deg, var(--brand) 0%, #0B2D8A 60%, #131318 130%)" }}>
+        <div style={{ position: "absolute", inset: 0, background: "radial-gradient(ellipse 70% 90% at 85% 10%, rgba(255,255,255,0.14) 0%, transparent 60%)", pointerEvents: "none" }} />
+        <div style={{
+          position: "relative",
+          display: "flex",
+          gap: isMobile ? 12 : 24,
+          flexDirection: isMobile ? "column" : "row",
+          alignItems: isMobile ? "flex-start" : "flex-end",
+          padding: isMobile ? "40px 16px 24px" : "64px 40px 40px",
+          color: "#fff",
+        }}>
+          <button
+            onClick={() => router.back()}
+            aria-label="Go back"
+            style={{ width: 36, height: 36, borderRadius: "50%", border: "1.5px solid rgba(255,255,255,0.35)", background: "transparent", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", flexShrink: 0 }}
+          >
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M15 18l-6-6 6-6" /></svg>
+          </button>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.18em", textTransform: "uppercase", opacity: 0.75 }}>
+              Genre
+            </span>
+            <h1 style={{ fontFamily: "var(--font-display, Inter, sans-serif)", fontSize: "clamp(32px, 5vw, 60px)", fontWeight: 700, margin: "6px 0 8px", letterSpacing: "-0.02em", lineHeight: 1.02 }}>
+              {genre?.name || "Genre"}
+            </h1>
+            <p style={{ margin: 0, fontSize: 13, fontWeight: 600, opacity: 0.8 }}>
+              {tracks.length} track{tracks.length === 1 ? "" : "s"}
+            </p>
+            <button
+              onClick={handlePlayAll}
+              disabled={tracks.length === 0}
+              style={{ display: "inline-flex", alignItems: "center", gap: 8, marginTop: 16, padding: "12px 28px", borderRadius: 999, border: "none", background: "#fff", color: "#111", fontSize: 14, fontWeight: 700, cursor: tracks.length ? "pointer" : "default", opacity: tracks.length ? 1 : 0.5, boxShadow: "0 8px 24px rgba(0,0,0,0.25)" }}
+            >
+              {anyPlaying ? (
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="4" width="4" height="16" /><rect x="14" y="4" width="4" height="16" /></svg>
+              ) : (
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor" style={{ marginLeft: 2 }}><polygon points="6,4 20,12 6,20" /></svg>
+              )}
+              {anyPlaying ? "Pause" : "Play All"}
+            </button>
+          </div>
+        </div>
       </div>
 
-      {tracks.length === 0 ? (
-        <div style={{ textAlign: "center", padding: "60px 0", color: "var(--muted-foreground)" }}>
-          <p style={{ fontSize: 18, fontWeight: 600, margin: "0 0 8px" }}>No tracks yet</p>
-          <p style={{ fontSize: 14, margin: 0 }}>This genre doesn't have any tracks yet.</p>
-        </div>
-      ) : (
-        <div style={{ background: "var(--card-bg)", borderRadius: 12, overflow: "hidden" }}>
-          {tracks.map((track: any, idx: number) => (
-            <div
-              key={track.id}
-              onClick={() => play({
-                id: track.id,
-                artist_id: track.artist_id,
-                title: track.title,
-                artist_name: track.artist_name ?? "",
-                cover_url: track.cover_url,
-                duration_sec: track.duration_sec,
-                collaborators: track.collaborators,
-              })}
-              className="track-row"
-              style={{
-                display: "flex", alignItems: "center", gap: 12, padding: "8px 12px",
-                cursor: "pointer", borderBottom: idx < tracks.length - 1 ? "1px solid var(--border)" : "none",
-                transition: "background 0.12s",
-              }}
-            >
-              <span style={{ width: 30, textAlign: "center", fontSize: 14, color: "var(--muted-foreground)", fontWeight: 500, flexShrink: 0 }}>
-                {idx + 1}
-              </span>
-              {track.cover_url ? (
-                <img src={track.cover_url} alt="" style={{ width: 44, height: 44, borderRadius: 6, objectFit: "cover", flexShrink: 0 }} />
-              ) : (
-                <div style={{ width: 44, height: 44, borderRadius: 6, background: "linear-gradient(135deg, #e8e8ec, #d0d0d8)", flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center" }}>
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#86868b" strokeWidth="1.5"><path d="M9 18V5l12-2v13" /><circle cx="6" cy="18" r="3" /><circle cx="18" cy="16" r="3" /></svg>
-                </div>
-              )}
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <Link href={`/track/${track.id}`} style={{ textDecoration: "none" }}>
-                  <p style={{ margin: 0, fontSize: 14, fontWeight: 500, color: "var(--foreground)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{track.title}</p>
-                </Link>
-                <p style={{ margin: "2px 0 0", fontSize: 12, color: "var(--muted-foreground)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                  <ArtistLinks track={track} />
-                </p>
-              </div>
-              <span style={{ fontSize: 12, color: "var(--muted-foreground)", flexShrink: 0, fontVariantNumeric: "tabular-nums" }}>
-                {Math.floor((track.duration_sec || 0) / 60)}:{String(Math.floor((track.duration_sec || 0) % 60)).padStart(2, "0")}
-              </span>
-            </div>
-          ))}
-        </div>
-      )}
+      {/* Tracks */}
+      <div style={{ padding: isMobile ? "16px 12px 32px" : "32px 40px 64px" }}>
+        {tracks.length === 0 ? (
+          <div style={{ textAlign: "center", padding: "60px 0", color: "var(--muted-foreground)" }}>
+            <p style={{ fontSize: 18, fontWeight: 600, margin: "0 0 8px" }}>No tracks yet</p>
+            <p style={{ fontSize: 14, margin: 0 }}>This genre doesn&rsquo;t have any tracks yet.</p>
+          </div>
+        ) : (
+          <TrackList tracks={tracks} />
+        )}
+      </div>
     </div>
   )
 }

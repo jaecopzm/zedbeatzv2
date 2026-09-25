@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation"
 import type { RecommendedTrack } from "@/types"
 import { usePlayerStore } from "@/lib/store"
 import { useIsTrackPlaying, useIsCurrentTrack } from "@/components/home/track-cards"
+import { CoverImage } from "@/components/cover-image"
 
 export function RecommendedCard({ track }: { track: RecommendedTrack }) {
   const router = useRouter()
@@ -42,7 +43,7 @@ export function RecommendedCard({ track }: { track: RecommendedTrack }) {
     >
       <div className="hp-card-art">
         {track.cover_url ? (
-          <img src={track.cover_url} alt={track.title} loading="lazy" />
+          <CoverImage src={track.cover_url} alt={track.title} sizes="220px" />
         ) : (
           <div className="hp-card-art-placeholder" style={{ background: "linear-gradient(135deg, var(--brand), var(--brand-light))" }}>
             <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.75)" strokeWidth="1.4">

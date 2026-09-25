@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation"
 import { useState } from "react"
 import type { Artist } from "@/types"
 import { api } from "@/lib/api"
+import { CoverImage } from "@/components/cover-image"
 import { useAuthStore } from "@/lib/auth-store"
 
 export function ArtistCard({ artist }: { artist: Artist }) {
@@ -38,7 +39,7 @@ export function ArtistCard({ artist }: { artist: Artist }) {
     >
       <div className="hp-artist-avatar-wrap">
         {artist.photo_url ? (
-          <img src={artist.photo_url} alt={artist.stage_name} loading="lazy" />
+          <CoverImage src={artist.photo_url} alt={artist.stage_name} sizes="160px" />
         ) : (
           <div className="hp-artist-placeholder">
             {artist.stage_name?.charAt(0).toUpperCase()}
