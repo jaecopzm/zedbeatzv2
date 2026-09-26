@@ -7,28 +7,40 @@ interface Props {
   children: React.ReactNode
 }
 
-async function getTrack(id: string) {
+type TrackSEO = {
+  id: string
+  title: string
+  artist_name: string
+  artist_id: string
+  cover_url: string | null
+  duration_sec: number
+  album_name?: string
+  album_id?: string | null
+  play_count?: number
+  description?: string | null
+  genre_id?: string | null
+  released_at?: string | null
+  collaborators?: { artist_id: string; stage_name: string; role?: string }[]
+}
+
+async function fetchJSON<T>(url: string): Promise<T | null> {
   try {
-    const res = await fetch(`${SERVER_API_BASE}/tracks/${id}`, {
-      next: { revalidate: 60 },
+    const controller = new AbortController()
+    const timeout = setTimeout(() => controller.abort(), 8000)
+    const res = await fetch(url, {
+      signal: controller.signal,
+      next: { revalidate: 300 },
     })
+    clearTimeout(timeout)
     if (!res.ok) return null
-    return res.json() as Promise<{
-      id: string
-      title: string
-      artist_name: string
-      artist_id: string
-      cover_url: string | null
-      duration_sec: number
-      album_name?: string
-      album_id?: string | null
-      play_count?: number
-      description?: string | null
-      collaborators?: { artist_id: string; stage_name: string; role?: string }[]
-    }>
+    return (await res.json()) as T
   } catch {
     return null
   }
+}
+
+async function getTrack(id: string) {
+  return fetchJSON<TrackSEO>(`${SERVER_API_BASE}/tracks/${id}`)
 }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
@@ -63,6 +75,29 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 export default async function TrackLayout({ params, children }: Props) {
   const { id } = await params
   const track = await getTrack(id)
+
+  // Best-effort related links so crawlers see real HTML + internal links
+  // even before the client player hydrates. Never blocks rendering.
+  const [artistTracks, radio] = track
+    ? await Promise.all([
+        track.artist_id
+          ? fetchJSON<{ tracks: { id: string; title: string; artist_name?: string }[] }>(
+              `${SERVER_API_BASE}/artists/${track.artist_id}/tracks`
+            )
+          : Promise.resolve(null),
+        fetchJSON<{ queue: { id: string; title: string; artist_name?: string }[] }>(
+          `${SERVER_API_BASE}/tracks/${id}/radio?limit=10`
+        ),
+      ])
+    : [null, null]
+
+  const related = [
+    ...(artistTracks?.tracks ?? []),
+    ...(radio?.queue ?? []),
+  ]
+    .filter((t) => t?.id && t.id !== id)
+    .filter((t, i, arr) => arr.findIndex((x) => x.id === t.id) === i)
+    .slice(0, 10)
 
   const collaboratorNames = track?.collaborators?.map((c) => c.stage_name) ?? []
 
@@ -117,6 +152,34 @@ export default async function TrackLayout({ params, children }: Props) {
             ]} />
           </div>
         </div>
+      )}
+      {track && (
+        <nav aria-label="Related tracks" className="seo-link-list">
+          <a href={`/track/${id}`}>
+            {track.title} by {track.artist_name}
+          </a>
+          <a href={`/artist/${track.artist_id}`}>{track.artist_name}</a>
+          {track.album_id && (
+            <a href={`/album/${track.album_id}`}>{track.album_name ?? "Album"}</a>
+          )}
+          {track.genre_id && (
+            <a href={`/genres/${track.genre_id}`}>More in this genre</a>
+          )}
+          {(track.collaborators ?? []).map((c) => (
+            <a key={c.artist_id} href={`/artist/${c.artist_id}`}>
+              {c.stage_name}
+            </a>
+          ))}
+          {related.map((t) => (
+            <a key={t.id} href={`/track/${t.id}`}>
+              {t.title} by {t.artist_name ?? track.artist_name}
+            </a>
+          ))}
+          <span>
+            {track.description ||
+              `Listen to "${track.title}" by ${track.artist_name} on ${SITE_NAME}. Stream Zambian music online.`}
+          </span>
+        </nav>
       )}
       {children}
     </div>

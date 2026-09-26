@@ -65,8 +65,27 @@ export default async function AlbumLayout({ params, children }: Props) {
   const album = await getAlbum(id)
   const artistName = album?.artist_name || album?.tracks?.[0]?.artist_name
 
+  const trackLinks = (album?.tracks ?? []).slice(0, 20)
+
   return (
     <div style={{ position: "relative" }}>
+      {album && (
+        <nav aria-label="Album tracks" className="seo-link-list">
+          <a href={`/album/${id}`}>{album.title}</a>
+          {album.artist_id && (
+            <a href={`/artist/${album.artist_id}`}>{artistName ?? "Artist"}</a>
+          )}
+          {trackLinks.map((t) => (
+            <a key={t.id} href={`/track/${t.id}`}>
+              {t.title} by {t.artist_name ?? artistName ?? "Unknown Artist"}
+            </a>
+          ))}
+          <span>
+            Stream &quot;{album.title}&quot; by {artistName ?? "Unknown Artist"} on {SITE_NAME}.{" "}
+            {trackLinks.length} tracks.
+          </span>
+        </nav>
+      )}
       {album && (
         <script
           type="application/ld+json"

@@ -13,16 +13,24 @@ const SERVER_API_BASE = process.env.NEXT_PUBLIC_API_URL
   ? process.env.NEXT_PUBLIC_API_URL.replace(/\/+$/, "")
   : "http://localhost:8080/api/v1"
 
-async function fetchArtist(id: string) {
+async function fetchJSON<T>(url: string): Promise<T | null> {
   try {
-    const res = await fetch(`${SERVER_API_BASE}/artists/${id}`, {
-      next: { revalidate: 60 },
+    const controller = new AbortController()
+    const timeout = setTimeout(() => controller.abort(), 8000)
+    const res = await fetch(url, {
+      signal: controller.signal,
+      next: { revalidate: 300 },
     })
+    clearTimeout(timeout)
     if (!res.ok) return null
-    return res.json() as Promise<import("@/types").Artist>
+    return (await res.json()) as T
   } catch {
     return null
   }
+}
+
+async function fetchArtist(id: string) {
+  return fetchJSON<import("@/types").Artist>(`${SERVER_API_BASE}/artists/${id}`)
 }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
@@ -57,6 +65,17 @@ export default async function ArtistPage({ params }: Props) {
   const { id } = await params
   const artist = await fetchArtist(id)
   if (!artist) notFound()
+
+  const [tracksData, albumsData] = await Promise.all([
+    fetchJSON<{ tracks: { id: string; title: string }[] }>(
+      `${SERVER_API_BASE}/artists/${id}/tracks`
+    ),
+    fetchJSON<{ albums: { id: string; title: string }[] }>(
+      `${SERVER_API_BASE}/artists/${id}/albums`
+    ),
+  ])
+  const seoTracks = (tracksData?.tracks ?? []).slice(0, 20)
+  const seoAlbums = (albumsData?.albums ?? []).slice(0, 10)
 
   const jsonLd = {
     "@context": "https://schema.org",
@@ -95,6 +114,20 @@ export default async function ArtistPage({ params }: Props) {
           ]} />
         </div>
       </div>
+      <nav aria-label="Artist catalogue" className="seo-link-list">
+        <a href={`/artist/${id}`}>{artist.stage_name}</a>
+        {seoTracks.map((t) => (
+          <a key={t.id} href={`/track/${t.id}`}>
+            {t.title} by {artist.stage_name}
+          </a>
+        ))}
+        {seoAlbums.map((a) => (
+          <a key={a.id} href={`/album/${a.id}`}>
+            {a.title} by {artist.stage_name}
+          </a>
+        ))}
+        <span>{artist.bio || `Listen to ${artist.stage_name} on ZedBeatz.`}</span>
+      </nav>
       <ArtistContent artistId={id} initialArtist={artist} />
     </div>
   )
