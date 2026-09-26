@@ -119,10 +119,13 @@ for (let i = 0; i < slice.length; i++) {
       break;
     }
   } else {
-    const indexed = result.indexStatus === "PASS" || result.coverageState?.includes("indexed");
-    if (indexed) ok++; else notIndexed++;
+    const cov = result.coverageState || "";
+    const isIndexed = /indexed/i.test(cov) && !/not indexed/i.test(cov);
+    const isDiscovered = /discovered/i.test(cov);
+    const label = isIndexed ? "INDEXED " : isDiscovered ? "DISCOVRD" : "UNKNOWN ";
+    if (isIndexed) ok++; else notIndexed++;
     console.log(
-      `[${OFFSET + i + 1}/${urls.length}] ${indexed ? "INDEXED " : "NOT-IDX "} ${url} :: ${result.coverageState || result.indexStatus} / fetch=${result.pageFetchState}`
+      `[${OFFSET + i + 1}/${urls.length}] ${label} ${url} :: ${result.coverageState || result.indexStatus} / fetch=${result.pageFetchState}`
     );
   }
   await sleep(DELAY_MS);
