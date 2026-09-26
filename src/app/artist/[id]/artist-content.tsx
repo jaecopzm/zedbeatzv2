@@ -282,10 +282,13 @@ export default function ArtistContent({ artistId, initialArtist }: ArtistContent
       : null,
   )
   const [followLoading, setFollowLoading] = useState(false)
-  const [isDesktop, setIsDesktop] = useState(() => {
-    if (typeof window === "undefined") return true
-    return window.matchMedia("(min-width: 768px)").matches
-  })
+  // Server prerenders the desktop layout; the real viewport is applied in
+  // an effect after hydration so server HTML and the first client render
+  // always agree (reading matchMedia during render breaks hydration on
+  // mobile, forcing a full client re-render). Tablets in portrait (<= 1024px,
+  // e.g. 12.9" tablets report exactly 1024px) use the mobile layout,
+  // matching the app shell breakpoint.
+  const [isDesktop, setIsDesktop] = useState(true)
   const [hoveredTrackId, setHoveredTrackId] = useState<string | null>(null)
   const [showAllSongs, setShowAllSongs] = useState(false)
   const [bioOpen, setBioOpen] = useState(false)
@@ -411,7 +414,8 @@ export default function ArtistContent({ artistId, initialArtist }: ArtistContent
   const [claimDismissed, setClaimDismissed] = useState(false)
 
   useEffect(() => {
-    const mq = window.matchMedia("(min-width: 768px)")
+    const mq = window.matchMedia("(min-width: 1025px)")
+    setIsDesktop(mq.matches)
     const handler = (e: MediaQueryListEvent) => setIsDesktop(e.matches)
     mq.addEventListener("change", handler)
     return () => mq.removeEventListener("change", handler)
@@ -484,9 +488,6 @@ export default function ArtistContent({ artistId, initialArtist }: ArtistContent
   const isFirstPlaying =
     tracks.length > 0 && currentTrack?.id === tracks[0].id && isPlaying
 
-  const photoSize = isDesktop ? 180 : 100
-  const heroPad = isDesktop ? "84px 44px 88px" : "52px 14px 64px"
-
   return (
     <>
       <style jsx global>{`
@@ -540,7 +541,7 @@ export default function ArtistContent({ artistId, initialArtist }: ArtistContent
           align-items: center;
         }
         .artist-hero-body { padding: 40px 40px 64px; }
-        @media (max-width: 768px) {
+        @media (max-width: 1024px) {
           .artist-hero-inner {
             gap: 16px;
             padding: 48px 14px 20px;

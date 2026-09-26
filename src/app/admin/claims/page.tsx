@@ -49,14 +49,13 @@ export default function AdminClaimsPage() {
 
   return (
     <div className="fade-in">
-      <div style={{ marginBottom: "24px" }}>
-        <h1 style={{ fontSize: "24px", fontWeight: 700, color: "var(--foreground)", letterSpacing: "-0.5px", margin: 0 }}>
-          Artist Profile Claims
-        </h1>
-        <p style={{ fontSize: "14px", color: "var(--muted-foreground)", margin: "4px 0 0 0" }}>
-          Review and approve verification claims from artists asserting ownership
-        </p>
-      </div>
+      <header className="admin-header">
+        <div className="admin-header-text">
+          <span className="admin-eyebrow"><span className="admin-eyebrow-dot" aria-hidden />Verification queue</span>
+          <h1 className="admin-title">Claims</h1>
+          <p className="admin-sub">Review ownership proofs and approve or reject verification requests.</p>
+        </div>
+      </header>
 
       {error && (
         <div style={{
@@ -86,9 +85,9 @@ export default function AdminClaimsPage() {
       )}
 
       {data && data.claims.length > 0 && (
-        <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
-          <p style={{ fontSize: "13px", fontWeight: 600, color: "var(--muted-foreground)", margin: 0 }}>
-            {data.total} verification request{data.total !== 1 ? "s" : ""} pending review
+        <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+          <p style={{ fontSize: "12.5px", fontWeight: 650, color: "var(--muted-foreground)", margin: 0, fontVariantNumeric: "tabular-nums" }}>
+            {data.total} request{data.total !== 1 ? "s" : ""} pending review
           </p>
           {data.claims.map((claim) => (
             <ClaimCard
@@ -247,62 +246,54 @@ function ClaimCard({
   const methodLabel = isSocial ? "Social Verification" : "Manual Document Upload"
 
   return (
-    <div
-      style={{
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "space-between",
-        gap: "16px",
-        background: "var(--card-bg)",
-        border: "1px solid var(--border)",
-        borderRadius: "12px",
-        padding: "16px 20px",
-        boxShadow: "0 2px 8px rgba(0,0,0,0.02)",
-      }}
+    <article
+      className="admin-card"
+      style={{ padding: "14px 15px" }}
     >
-      <div style={{ minWidth: 0, flex: 1 }}>
-        <div style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
-          <span style={{ color: "var(--active-fg)", display: "flex", alignItems: "center" }}>
-            {methodIcon}
-          </span>
-          <span style={{ fontSize: "13px", fontWeight: 650, color: "var(--foreground)" }}>
-            {methodLabel}
-          </span>
-          <span style={{
-            background: "var(--brand-bg)",
-            color: "var(--active-fg)",
-            fontSize: "10px", fontWeight: 700, textTransform: "uppercase",
-            padding: "2px 8px", borderRadius: "8px",
-          }}>
-            {claim.status.replace("_", " ")}
-          </span>
+      <div className="admin-list-row" style={{ alignItems: "flex-start" }}>
+        <span aria-hidden style={{
+          width: 36, height: 36, borderRadius: 11, flexShrink: 0,
+          background: "var(--brand-bg)", color: "var(--brand)",
+          display: "flex", alignItems: "center", justifyContent: "center",
+        }}>
+          {methodIcon}
+        </span>
+        <div style={{ minWidth: 0, flex: "1 1 200px" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+            <span style={{ fontSize: "13.5px", fontWeight: 800, letterSpacing: "-0.01em", color: "var(--foreground)" }}>
+              {methodLabel}
+            </span>
+            <span className="admin-pill" style={{ background: "var(--brand-bg)", color: "var(--brand)" }}>
+              {claim.status.replace("_", " ")}
+            </span>
+          </div>
+
+          <div style={{ marginTop: 7, display: "flex", flexDirection: "column", gap: 3, fontSize: "12.5px", color: "var(--muted-foreground)" }}>
+            {claim.verification_code && (
+              <div>
+                Code: <span style={{ fontFamily: "monospace", fontWeight: 700, color: "var(--foreground)" }}>{claim.verification_code}</span>
+              </div>
+            )}
+            {claim.social_platform && (
+              <div>
+                Platform: <span style={{ textTransform: "capitalize", fontWeight: 600, color: "var(--foreground)" }}>{claim.social_platform}</span>
+              </div>
+            )}
+            {claim.social_post_url && (
+              <div style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                <a href={claim.social_post_url} target="_blank" rel="noopener noreferrer" style={{ color: "var(--brand)", fontWeight: 600 }}>{claim.social_post_url}</a>
+              </div>
+            )}
+          </div>
+          <div style={{ fontSize: "11.5px", color: "var(--muted-foreground)", marginTop: 6 }}>
+            Submitted {new Date(claim.created_at).toLocaleString()}
+          </div>
         </div>
 
-        <div style={{ marginTop: "8px", display: "flex", flexDirection: "column", gap: "2px", fontSize: "12px", color: "var(--muted-foreground)" }}>
-          {claim.verification_code && (
-            <div>
-              Code: <span style={{ fontFamily: "monospace", fontWeight: 600, color: "var(--foreground)" }}>{claim.verification_code}</span>
-            </div>
-          )}
-          {claim.social_platform && (
-            <div>
-              Platform: <span style={{ textTransform: "capitalize", fontWeight: 500, color: "var(--foreground)" }}>{claim.social_platform}</span>
-            </div>
-          )}
-          {claim.social_post_url && (
-            <div style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-              Post URL: <a href={claim.social_post_url} target="_blank" rel="noopener noreferrer" style={{ color: "var(--active-fg)", textDecoration: "underline" }}>{claim.social_post_url}</a>
-            </div>
-          )}
-        </div>
-        <div style={{ fontSize: "11px", color: "var(--muted-foreground)", marginTop: "6px" }}>
-          Submitted: {new Date(claim.created_at).toLocaleString()}
-        </div>
+        <button onClick={onReview} className="admin-btn-primary admin-btn-sm" style={{ flexShrink: 0 }}>
+          Review
+        </button>
       </div>
-
-      <button onClick={onReview} className="admin-btn-primary" style={{ padding: "8px 16px", fontSize: 12, flexShrink: 0 }}>
-        Review Claim
-      </button>
-    </div>
+    </article>
   )
 }

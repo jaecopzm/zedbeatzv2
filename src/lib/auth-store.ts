@@ -11,7 +11,6 @@ export interface UserInfo {
 interface AuthState {
   token: string | null
   user: UserInfo | null
-  login: () => Promise<void>
   logout: () => void
   setToken: (token: string) => void
 }
@@ -41,20 +40,6 @@ function loadFromStorage() {
 
 export const useAuthStore = create<AuthState>((set, get) => ({
   ...loadFromStorage(),
-
-  login: async () => {
-    try {
-      const res = await api.devLogin()
-      const { access_token } = res as any
-      if (access_token) {
-        localStorage.setItem("access_token", access_token)
-        const user = decodeToken(access_token)
-        if (user) set({ token: access_token, user })
-      }
-    } catch (error) {
-      console.error("Login failed:", error)
-    }
-  },
 
   logout: async () => {
     try { await api.logout() } catch { /* ignore */ }

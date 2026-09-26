@@ -406,17 +406,17 @@ function MobileMiniPlayer({
           minHeight: "64px",
         }}
       >
-        <div
-          onClick={() => { if (track) onOpenNowPlaying() }}
-          style={{
-            flexShrink: 0,
-            position: "relative",
-            cursor: track ? "pointer" : "default",
-            borderRadius: "12px",
-            overflow: "visible",
-          }}
-        >
-          {track?.cover_url && (
+        {track?.cover_url && (
+          <div
+            onClick={() => onOpenNowPlaying()}
+            style={{
+              flexShrink: 0,
+              position: "relative",
+              cursor: "pointer",
+              borderRadius: "4px",
+              overflow: "visible",
+            }}
+          >
             <img
               src={track.cover_url}
               alt=""
@@ -427,7 +427,7 @@ function MobileMiniPlayer({
                 inset: "-8px",
                 width: "calc(100% + 16px)",
                 height: "calc(100% + 16px)",
-                borderRadius: "16px",
+                borderRadius: "8px",
                 objectFit: "cover",
                 filter: "blur(14px) saturate(200%) brightness(0.85)",
                 opacity: isPlaying ? 0.55 : 0.2,
@@ -436,36 +436,17 @@ function MobileMiniPlayer({
                 transition: "opacity 0.6s ease",
               }}
             />
-          )}
-          <div style={{
-            position: "relative", zIndex: 1, width: "48px", height: "48px",
-            borderRadius: "10px", overflow: "hidden",
-            boxShadow: "0 4px 16px rgba(0,0,0,0.3)",
-            transform: isPlaying ? "scale(1)" : "scale(0.94)",
-            transition: "transform 0.4s cubic-bezier(0.34,1.56,0.64,1), box-shadow 0.4s ease",
-          }}>
-            {track?.cover_url ? (
+            <div style={{
+              position: "relative", zIndex: 1, width: "48px", height: "48px",
+              borderRadius: "4px", overflow: "hidden",
+              boxShadow: "0 4px 16px rgba(0,0,0,0.3)",
+              transform: isPlaying ? "scale(1)" : "scale(0.94)",
+              transition: "transform 0.4s cubic-bezier(0.34,1.56,0.64,1), box-shadow 0.4s ease",
+            }}>
               <CoverImage src={track.cover_url} alt={track.title} sizes="120px" />
-            ) : (
-              <div
-                style={{
-                  width: "48px",
-                  height: "48px",
-                  borderRadius: "10px",
-                  background: "linear-gradient(135deg, var(--brand) 0%, var(--brand-light) 100%)",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  boxShadow: "0 4px 16px var(--brand-shadow)",
-                }}
-              >
-                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M9 18V5l12-2v13" /><circle cx="6" cy="18" r="3" /><circle cx="18" cy="16" r="3" />
-                </svg>
-              </div>
-            )}
+            </div>
           </div>
-        </div>
+        )}
 
         {track && (
           <div

@@ -43,33 +43,34 @@ export default function AdminSectionsPage() {
 
   return (
     <div className="fade-in">
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "20px", flexWrap: "wrap", gap: 12 }}>
-        <div>
-          <h1 style={{ fontSize: "20px", fontWeight: 700, color: "var(--foreground)", letterSpacing: "-0.4px", margin: 0 }}>Sections Manager</h1>
-          <p style={{ fontSize: "13px", color: "var(--muted-foreground)", margin: "2px 0 0" }}>Assign tracks to home page sections</p>
+      <header className="admin-header">
+        <div className="admin-header-text">
+          <span className="admin-eyebrow"><span className="admin-eyebrow-dot" aria-hidden />Curation</span>
+          <h1 className="admin-title">Sections</h1>
+          <p className="admin-sub">Assign tracks to home page rails. Changes go live immediately.</p>
         </div>
+      </header>
+
+      <div className="admin-toolbar">
+        <input
+          type="search"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          placeholder="Search title or artist…"
+          className="admin-search"
+          aria-label="Search tracks"
+        />
         <select
           value={filterSection}
           onChange={(e) => setFilterSection(e.target.value)}
           className="admin-input"
-          style={{ padding: "8px 12px", maxWidth: 200, cursor: "pointer" }}
+          aria-label="Filter by section"
         >
           <option value="">All sections</option>
           {SECTIONS.filter((s) => s.key).map((s) => (
             <option key={s.key} value={s.key}>{s.label}</option>
           ))}
         </select>
-      </div>
-
-      <div style={{ marginBottom: "16px" }}>
-        <input
-          type="text"
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          placeholder="Search tracks by title or artist..."
-          className="admin-search"
-          style={{ maxWidth: 400 }}
-        />
       </div>
 
       {isLoading ? (
@@ -86,32 +87,21 @@ export default function AdminSectionsPage() {
           </p>
         </div>
       ) : (
-        <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
           {filtered.map((track) => (
-            <div
-              key={track.id}
-              style={{
-                display: "flex", alignItems: "center", gap: "12px",
-                padding: "8px 12px", borderRadius: "8px",
-                border: "1px solid var(--border)", background: "var(--card-bg)",
-                flexWrap: "wrap",
-              }}
-            >
+            <div key={track.id} className="admin-card admin-manage-row" style={{ padding: "10px 12px" }}>
               {track.cover_url ? (
-                <img src={track.cover_url} alt="" style={{ width: "40px", height: "40px", borderRadius: "6px", objectFit: "cover", flexShrink: 0 }} />
+                <img src={track.cover_url} alt="" loading="lazy" style={{ width: 42, height: 42, borderRadius: 9, objectFit: "cover", flexShrink: 0 }} />
               ) : (
-                <div style={{ width: "40px", height: "40px", borderRadius: "6px", background: "var(--border)", flexShrink: 0 }} />
+                <div style={{ width: 42, height: 42, borderRadius: 9, background: "var(--hover-bg)", flexShrink: 0 }} />
               )}
-              <div style={{ flex: 1, minWidth: 160 }}>
-                <div style={{ fontSize: "13px", fontWeight: 600, color: "var(--foreground)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+              <div className="admin-row-grow" style={{ flex: "1 1 160px", minWidth: 0 }}>
+                <div style={{ fontSize: "13.5px", fontWeight: 700, letterSpacing: "-0.01em", color: "var(--foreground)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                   {track.title}
                 </div>
-                <div style={{ fontSize: "11px", color: "var(--muted-foreground)" }}>
-                  {track.artist_name}
+                <div style={{ fontSize: "12px", color: "var(--muted-foreground)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                  {track.artist_name} · {track.section ? getSectionLabel(track.section) : "No section"}
                 </div>
-              </div>
-              <div style={{ fontSize: "11px", color: "var(--muted-foreground)", flexShrink: 0, minWidth: "110px", textAlign: "right" }}>
-                {track.section ? getSectionLabel(track.section) : <span style={{ opacity: 0.4 }}>None</span>}
               </div>
               <SectionSelect
                 value={track.section || ""}
@@ -119,7 +109,7 @@ export default function AdminSectionsPage() {
               />
             </div>
           ))}
-          <p style={{ textAlign: "center", color: "var(--muted-foreground)", fontSize: 12, margin: "12px 0 0" }}>
+          <p style={{ textAlign: "center", color: "var(--muted-foreground)", fontSize: 12.5, margin: "10px 0 0", fontVariantNumeric: "tabular-nums" }}>
             Showing {filtered.length} track{filtered.length === 1 ? "" : "s"}
           </p>
         </div>

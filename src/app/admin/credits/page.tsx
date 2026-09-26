@@ -138,51 +138,51 @@ export default function AdminCreditsPage() {
 
   return (
     <div className="fade-in">
-      <div style={{ marginBottom: 28 }}>
-        <h1 style={{ fontSize: 24, fontWeight: 700, color: "var(--foreground)", letterSpacing: "-0.5px", margin: 0 }}>
-          Manage Credits
-        </h1>
-        <p style={{ fontSize: 14, color: "var(--muted-foreground)", margin: "4px 0 0" }}>
-          Select an artist to view balance, transaction history, and manage credits
-        </p>
-      </div>
+      <header className="admin-header">
+        <div className="admin-header-text">
+          <span className="admin-eyebrow"><span className="admin-eyebrow-dot" aria-hidden />Ledger</span>
+          <h1 className="admin-title">Credits</h1>
+          <p className="admin-sub">
+            {selectedArtist ? "Balance, grants, revokes and full history." : "Pick an artist to manage their credit balance."}
+          </p>
+        </div>
+      </header>
 
       {!selectedArtist ? (
         <>
           {/* Search */}
-          <div style={{ marginBottom: 20 }}>
+          <div className="admin-toolbar">
             <input
-              type="text"
+              type="search"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search artist by name or email..."
+              placeholder="Search artist…"
               className="admin-search"
-              style={{ maxWidth: 420 }}
+              aria-label="Search artists"
             />
           </div>
 
           {/* Artist Grid */}
           {artistsLoading ? (
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))", gap: 16 }}>
+            <div className="admin-grid-stats">
               {Array.from({ length: 6 }).map((_, i) => (
-                <div key={i} className="skeleton" style={{ height: 120, borderRadius: 14 }} />
+                <div key={i} className="skeleton" style={{ height: 76, borderRadius: 14 }} />
               ))}
             </div>
           ) : filteredArtists.length === 0 ? (
-            <div className="admin-empty" style={{ padding: "48px 24px", fontSize: 14 }}>
+            <div className="admin-empty" style={{ fontSize: 14 }}>
               {search.trim() ? "No matching artists found." : "No artists registered yet."}
             </div>
           ) : (
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))", gap: 16 }}>
+            <div className="admin-grid-stats" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(min(100%, 220px), 1fr))" }}>
               {filteredArtists.map((artist: any) => (
                 <button
                   key={artist.id}
                   onClick={() => setSelectedArtist(artist.id)}
-                  className="admin-card-lift"
+                  className="admin-card admin-card-lift"
                   style={{
-                    display: "flex", alignItems: "center", gap: 14,
-                    background: "var(--card-bg)", border: "1.5px solid var(--border)", borderRadius: 14,
-                    padding: "16px 18px", cursor: "pointer", textAlign: "left",
+                    display: "flex", alignItems: "center", gap: 12,
+                    borderRadius: 14, padding: "13px 14px", cursor: "pointer", textAlign: "left",
                     width: "100%", fontFamily: "inherit",
                   }}
                 >
@@ -190,21 +190,22 @@ export default function AdminCreditsPage() {
                     <img
                       src={artist.photo_url}
                       alt=""
-                      style={{ width: 44, height: 44, borderRadius: "50%", objectFit: "cover", flexShrink: 0, border: "1px solid var(--border)" }}
+                      loading="lazy"
+                      style={{ width: 42, height: 42, borderRadius: "50%", objectFit: "cover", flexShrink: 0, border: "1px solid var(--border)" }}
                     />
                   ) : (
-                    <div style={{
-                      width: 44, height: 44, borderRadius: "50%", flexShrink: 0,
+                    <div aria-hidden style={{
+                      width: 42, height: 42, borderRadius: "50%", flexShrink: 0,
                       background: "linear-gradient(135deg, var(--brand) 0%, var(--brand-light) 100%)",
                       display: "flex", alignItems: "center", justifyContent: "center",
-                      color: "#fff", fontSize: 15, fontWeight: 700,
+                      color: "#fff", fontSize: 15, fontWeight: 800,
                     }}>
                       {artist.stage_name?.charAt(0).toUpperCase() ?? "?"}
                     </div>
                   )}
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <p style={{
-                      margin: 0, fontSize: 14, fontWeight: 600, color: "var(--foreground)",
+                      margin: 0, fontSize: 13.5, fontWeight: 750, letterSpacing: "-0.01em", color: "var(--foreground)",
                       overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
                     }}>
                       {artist.stage_name}
@@ -213,20 +214,16 @@ export default function AdminCreditsPage() {
                       {artist.verified ? "Verified" : "Artist"}
                     </p>
                   </div>
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--muted-foreground)" strokeWidth="2" strokeLinecap="round"><polyline points="9 18 15 12 9 6" /></svg>
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--muted-foreground)" strokeWidth="2.2" strokeLinecap="round" style={{ flexShrink: 0 }}><polyline points="9 18 15 12 9 6" /></svg>
                 </button>
               ))}
             </div>
           )}
         </>
       ) : (
-        <div className="fade-in">
+        <div className="fade-in" style={{ display: "flex", flexDirection: "column", gap: 18 }}>
           {/* Artist Header */}
-          <div style={{
-            display: "flex", alignItems: "center", gap: 16, marginBottom: 24,
-            background: "var(--card-bg)", border: "1px solid var(--border)", borderRadius: 16,
-            padding: "20px 24px", flexWrap: "wrap",
-          }}>
+          <div className="admin-card admin-list-row" style={{ padding: "16px 18px" }}>
             {selectedArtistData?.photo_url ? (
               <img
                 src={selectedArtistData.photo_url}
@@ -263,22 +260,24 @@ export default function AdminCreditsPage() {
 
           {/* Balance Card */}
           {creditsLoading ? (
-            <div className="skeleton" style={{ height: 160, borderRadius: 16, marginBottom: 24 }} />
+            <div className="skeleton" style={{ height: 150, borderRadius: 18 }} />
           ) : bal ? (
             <div style={{
-              background: "linear-gradient(135deg, var(--brand) 0%, var(--brand-light) 100%)",
-              borderRadius: 16, padding: "28px 32px", marginBottom: 24,
-              color: "#fff", boxShadow: "0 8px 24px var(--brand-shadow)",
+              background: "linear-gradient(140deg, var(--brand) 0%, var(--brand-light) 100%)",
+              borderRadius: 18, padding: "clamp(18px, 4vw, 28px)", position: "relative", overflow: "hidden",
+              color: "#fff", boxShadow: "0 12px 32px var(--brand-shadow)",
             }}>
-              <p style={{ margin: "0 0 4px", fontSize: 13, fontWeight: 600, opacity: 0.85 }}>Available Credits</p>
-              <p style={{ margin: 0, fontSize: 48, fontWeight: 900, lineHeight: 1.1, fontVariantNumeric: "tabular-nums" }}>
+              <div aria-hidden style={{ position: "absolute", right: -60, top: -60, width: 200, height: 200, borderRadius: "50%", background: "rgba(255,255,255,0.12)" }} />
+              <div aria-hidden style={{ position: "absolute", right: 30, bottom: -90, width: 160, height: 160, borderRadius: "50%", background: "rgba(255,255,255,0.08)" }} />
+              <p style={{ margin: "0 0 2px", fontSize: 12, fontWeight: 700, letterSpacing: "0.07em", textTransform: "uppercase", opacity: 0.85 }}>Available credits</p>
+              <p style={{ margin: 0, fontSize: "clamp(38px, 9vw, 52px)", fontWeight: 900, letterSpacing: "-0.04em", lineHeight: 1.05, fontVariantNumeric: "tabular-nums" }}>
                 {formatNumber(bal.balance)}
               </p>
-              <div style={{ display: "flex", gap: 24, marginTop: 16, opacity: 0.9, fontSize: 13, flexWrap: "wrap" }}>
-                <span>Granted: {formatNumber(bal.lifetime_granted)}</span>
-                <span>Purchased: {formatNumber(bal.lifetime_purchased)}</span>
-                <span>Spent: {formatNumber(bal.lifetime_spent)}</span>
-                <span>Refunded: {formatNumber(bal.lifetime_refunded ?? 0)}</span>
+              <div style={{ display: "flex", gap: "8px 20px", marginTop: 14, fontSize: 12.5, flexWrap: "wrap", fontVariantNumeric: "tabular-nums" }}>
+                <span style={{ opacity: 0.92 }}>Granted <strong>{formatNumber(bal.lifetime_granted)}</strong></span>
+                <span style={{ opacity: 0.92 }}>Purchased <strong>{formatNumber(bal.lifetime_purchased)}</strong></span>
+                <span style={{ opacity: 0.92 }}>Spent <strong>{formatNumber(bal.lifetime_spent)}</strong></span>
+                <span style={{ opacity: 0.92 }}>Refunded <strong>{formatNumber(bal.lifetime_refunded ?? 0)}</strong></span>
               </div>
             </div>
           ) : (
@@ -292,21 +291,18 @@ export default function AdminCreditsPage() {
 
           {/* Stats Row */}
           {bal && (
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))", gap: 16, marginBottom: 24 }}>
+            <div className="admin-grid-stats" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 140px), 1fr))" }}>
               {[
                 { label: "Granted", value: bal.lifetime_granted, color: "rgb(16,185,129)" },
                 { label: "Purchased", value: bal.lifetime_purchased, color: "rgb(59,130,246)" },
                 { label: "Spent", value: bal.lifetime_spent, color: "rgb(239,68,68)" },
                 { label: "Refunded", value: bal.lifetime_refunded ?? 0, color: "rgb(168,85,247)" },
               ].map((stat) => (
-                <div key={stat.label} style={{
-                  background: "var(--card-bg)", border: "1px solid var(--border)", borderRadius: 14,
-                  padding: "18px 20px",
-                }}>
-                  <p style={{ margin: "0 0 4px", fontSize: 12, fontWeight: 600, color: "var(--muted-foreground)", textTransform: "uppercase", letterSpacing: "0.06em" }}>
+                <div key={stat.label} className="admin-card" style={{ padding: "14px 16px" }}>
+                  <p style={{ margin: "0 0 4px", fontSize: 11, fontWeight: 800, color: "var(--muted-foreground)", textTransform: "uppercase", letterSpacing: "0.07em" }}>
                     {stat.label}
                   </p>
-                  <p style={{ margin: 0, fontSize: 22, fontWeight: 800, color: stat.color, fontVariantNumeric: "tabular-nums" }}>
+                  <p style={{ margin: 0, fontSize: 22, fontWeight: 850, letterSpacing: "-0.02em", color: stat.color, fontVariantNumeric: "tabular-nums" }}>
                     {formatNumber(stat.value)}
                   </p>
                 </div>
@@ -315,107 +311,97 @@ export default function AdminCreditsPage() {
           )}
 
           {/* Grant + Revoke */}
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))", gap: 20, marginBottom: 24 }}>
+          <div className="admin-grid-2" style={{ marginBottom: 4 }}>
             {/* Grant form */}
-            <div style={{ background: "var(--card-bg)", borderRadius: 16, border: "1px solid var(--border)", padding: "24px 28px" }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 16 }}>
-                <div style={{
-                  width: 32, height: 32, borderRadius: 8, background: "rgba(16,185,129,0.12)",
-                  display: "flex", alignItems: "center", justifyContent: "center",
+            <div className="admin-panel">
+              <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 14 }}>
+                <div aria-hidden style={{
+                  width: 34, height: 34, borderRadius: 11, background: "rgba(34,197,94,0.14)",
+                  display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0,
                 }}>
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="rgb(16,185,129)" strokeWidth="2.2" strokeLinecap="round"><polyline points="17 11 12 6 7 11" /><polyline points="17 18 12 13 7 18" /></svg>
+                  <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#22c55e" strokeWidth="2.4" strokeLinecap="round"><polyline points="17 11 12 6 7 11" /><polyline points="17 18 12 13 7 18" /></svg>
                 </div>
-                <h3 style={{ margin: 0, fontSize: 15, fontWeight: 700, color: "var(--foreground)" }}>Grant Credits</h3>
+                <h3 style={{ margin: 0, fontSize: 15, fontWeight: 800, letterSpacing: "-0.01em", color: "var(--foreground)" }}>Grant credits</h3>
               </div>
               <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-                <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-                  {GRANT_OPTIONS.map((n) => (
-                    <button key={n} type="button" onClick={() => { setGrantAmount(n); setCustomGrant("") }}
-                      style={{
-                        padding: "7px 16px", borderRadius: 999, fontFamily: "inherit", fontSize: 13, fontWeight: 600,
-                        border: grantAmount === n && !isGrantCustom ? "2px solid rgb(16,185,129)" : "1.5px solid var(--border)",
-                        background: grantAmount === n && !isGrantCustom ? "rgba(16,185,129,0.08)" : "transparent",
-                        color: grantAmount === n && !isGrantCustom ? "rgb(16,185,129)" : "var(--foreground)",
-                        cursor: "pointer", transition: "all 0.12s ease",
-                      }}>
-                      {n}
-                    </button>
-                  ))}
+                <div className="admin-chip-row" role="group" aria-label="Grant amount">
+                  {GRANT_OPTIONS.map((n) => {
+                    const selected = grantAmount === n && !isGrantCustom
+                    return (
+                      <button key={n} type="button" aria-pressed={selected} onClick={() => { setGrantAmount(n); setCustomGrant("") }}
+                        className="admin-chip"
+                        style={selected ? { borderColor: "#22c55e", background: "rgba(34,197,94,0.1)", color: "#16a34a" } : undefined}>
+                        {n}
+                      </button>
+                    )
+                  })}
                   <input
                     type="number"
                     min="1"
                     value={customGrant}
                     onChange={(e) => handleGrantCustom(e.target.value)}
                     placeholder="Custom"
+                    aria-label="Custom grant amount"
                     className="admin-input"
-                    style={{ width: 85, padding: "7px 10px", borderRadius: 999, border: isGrantCustom ? "2px solid rgb(16,185,129)" : "1.5px solid var(--border)", background: isGrantCustom ? "rgba(16,185,129,0.08)" : "transparent", color: isGrantCustom ? "rgb(16,185,129)" : "var(--foreground)", textAlign: "center" }}
+                    style={{ width: 96, minHeight: 38, borderRadius: 999, textAlign: "center", fontVariantNumeric: "tabular-nums" }}
                   />
                 </div>
-                <input value={grantReason} onChange={(e) => setGrantReason(e.target.value)} placeholder="Reason for grant" className="admin-input" />
+                <input value={grantReason} onChange={(e) => setGrantReason(e.target.value)} placeholder="Reason for grant" aria-label="Reason for grant" className="admin-input" />
                 <button type="button" onClick={() => setConfirmAction("grant")} disabled={grantMut.isPending || !selectedArtist}
-                  style={{
-                    padding: "11px 20px", borderRadius: 999, border: "none",
-                    background: grantMut.isPending ? "var(--border)" : "rgb(16,185,129)", color: "#fff",
-                    fontSize: 14, fontWeight: 600, cursor: grantMut.isPending ? "default" : "pointer", fontFamily: "inherit",
-                  }}>
-                  {grantMut.isPending ? "Granting..." : `Grant ${formatNumber(grantAmount)} Credit${grantAmount === 1 ? "" : "s"}`}
+                  className="admin-btn-success admin-btn-block">
+                  {grantMut.isPending ? "Granting…" : `Grant ${formatNumber(grantAmount)} credit${grantAmount === 1 ? "" : "s"}`}
                 </button>
               </div>
             </div>
 
             {/* Revoke form */}
-            <div style={{ background: "var(--card-bg)", borderRadius: 16, border: "1px solid var(--border)", padding: "24px 28px" }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 16 }}>
-                <div style={{
-                  width: 32, height: 32, borderRadius: 8, background: "rgba(239,68,68,0.12)",
-                  display: "flex", alignItems: "center", justifyContent: "center",
+            <div className="admin-panel">
+              <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 14 }}>
+                <div aria-hidden style={{
+                  width: 34, height: 34, borderRadius: 11, background: "rgba(239,68,68,0.12)",
+                  display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0,
                 }}>
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="rgb(239,68,68)" strokeWidth="2.2" strokeLinecap="round"><polyline points="7 13 12 18 17 13" /><polyline points="7 6 12 11 17 6" /></svg>
+                  <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#ef4444" strokeWidth="2.4" strokeLinecap="round"><polyline points="7 13 12 18 17 13" /><polyline points="7 6 12 11 17 6" /></svg>
                 </div>
-                <h3 style={{ margin: 0, fontSize: 15, fontWeight: 700, color: "var(--foreground)" }}>Revoke Credits</h3>
+                <h3 style={{ margin: 0, fontSize: 15, fontWeight: 800, letterSpacing: "-0.01em", color: "var(--foreground)" }}>Revoke credits</h3>
               </div>
               <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-                <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-                  {REVOKE_OPTIONS.map((n) => (
-                    <button key={n} type="button" onClick={() => { setRevokeAmount(n); setCustomRevoke("") }}
-                      style={{
-                        padding: "7px 16px", borderRadius: 999, fontFamily: "inherit", fontSize: 13, fontWeight: 600,
-                        border: revokeAmount === n && !isRevokeCustom ? "2px solid rgb(239,68,68)" : "1.5px solid var(--border)",
-                        background: revokeAmount === n && !isRevokeCustom ? "rgba(239,68,68,0.08)" : "transparent",
-                        color: revokeAmount === n && !isRevokeCustom ? "rgb(239,68,68)" : "var(--foreground)",
-                        cursor: "pointer", transition: "all 0.12s ease",
-                      }}>
-                      {n}
-                    </button>
-                  ))}
+                <div className="admin-chip-row" role="group" aria-label="Revoke amount">
+                  {REVOKE_OPTIONS.map((n) => {
+                    const selected = revokeAmount === n && !isRevokeCustom
+                    return (
+                      <button key={n} type="button" aria-pressed={selected} onClick={() => { setRevokeAmount(n); setCustomRevoke("") }}
+                        className="admin-chip"
+                        style={selected ? { borderColor: "#ef4444", background: "rgba(239,68,68,0.08)", color: "#ef4444" } : undefined}>
+                        {n}
+                      </button>
+                    )
+                  })}
                   <input
                     type="number"
                     min="1"
                     value={customRevoke}
                     onChange={(e) => handleRevokeCustom(e.target.value)}
                     placeholder="Custom"
+                    aria-label="Custom revoke amount"
                     className="admin-input"
-                    style={{ width: 85, padding: "7px 10px", borderRadius: 999, border: isRevokeCustom ? "2px solid rgb(239,68,68)" : "1.5px solid var(--border)", background: isRevokeCustom ? "rgba(239,68,68,0.08)" : "transparent", color: isRevokeCustom ? "rgb(239,68,68)" : "var(--foreground)", textAlign: "center" }}
+                    style={{ width: 96, minHeight: 38, borderRadius: 999, textAlign: "center", fontVariantNumeric: "tabular-nums" }}
                   />
                 </div>
-                <input value={revokeReason} onChange={(e) => setRevokeReason(e.target.value)} placeholder="Reason for revoke" className="admin-input" />
+                <input value={revokeReason} onChange={(e) => setRevokeReason(e.target.value)} placeholder="Reason for revoke" aria-label="Reason for revoke" className="admin-input" />
                 <button type="button" onClick={() => setConfirmAction("revoke")} disabled={revokeMut.isPending || !selectedArtist}
-                  style={{
-                    padding: "11px 20px", borderRadius: 999, border: "none",
-                    background: revokeMut.isPending ? "var(--border)" : "rgb(239,68,68)", color: "#fff",
-                    fontSize: 14, fontWeight: 600, cursor: revokeMut.isPending ? "default" : "pointer", fontFamily: "inherit",
-                  }}>
-                  {revokeMut.isPending ? "Revoking..." : `Revoke ${formatNumber(revokeAmount)} Credit${revokeAmount === 1 ? "" : "s"}`}
+                  className="admin-btn-danger admin-btn-block">
+                  {revokeMut.isPending ? "Revoking…" : `Revoke ${formatNumber(revokeAmount)} credit${revokeAmount === 1 ? "" : "s"}`}
                 </button>
               </div>
             </div>
           </div>
 
           {/* Transaction history */}
-          <div style={{ background: "var(--card-bg)", borderRadius: 16, border: "1px solid var(--border)", padding: "24px 28px" }}>
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16, flexWrap: "wrap", gap: 12 }}>
-              <h3 style={{ margin: 0, fontSize: 15, fontWeight: 700, color: "var(--foreground)" }}>Transaction History</h3>
-              <div style={{ display: "flex", gap: 6, background: "var(--background)", borderRadius: 999, padding: 3, flexWrap: "wrap" }}>
+          <div className="admin-panel">
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 14, flexWrap: "wrap", gap: 10 }}>
+              <h3 style={{ margin: 0, fontSize: 15, fontWeight: 800, letterSpacing: "-0.01em", color: "var(--foreground)" }}>History</h3>
+              <div className="admin-chip-row" role="group" aria-label="Filter transactions">
                 {([
                   { key: "all", label: "All" },
                   { key: "grant", label: "Grants" },
@@ -425,12 +411,8 @@ export default function AdminCreditsPage() {
                   <button
                     key={f.key}
                     onClick={() => { setTxFilter(f.key); setTxPage(1) }}
-                    style={{
-                      padding: "5px 14px", borderRadius: 999, border: "none", fontFamily: "inherit", fontSize: 12, fontWeight: 600,
-                      background: txFilter === f.key ? "var(--brand-bg)" : "transparent",
-                      color: txFilter === f.key ? "var(--brand)" : "var(--muted-foreground)",
-                      cursor: "pointer", transition: "all 0.12s",
-                    }}
+                    aria-pressed={txFilter === f.key}
+                    className={`admin-chip${txFilter === f.key ? " admin-chip-active" : ""}`}
                   >
                     {f.label}
                   </button>
@@ -441,7 +423,7 @@ export default function AdminCreditsPage() {
             {creditsLoading ? (
               <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
                 {Array.from({ length: 4 }).map((_, i) => (
-                  <div key={i} className="skeleton" style={{ height: 36, borderRadius: 8 }} />
+                  <div key={i} className="skeleton" style={{ height: 38, borderRadius: 10 }} />
                 ))}
               </div>
             ) : filteredTxs.length === 0 ? (
@@ -452,7 +434,7 @@ export default function AdminCreditsPage() {
               </div>
             ) : (
               <>
-                <div style={{ overflowX: "auto" }}>
+                <div className="admin-table-wrap">
                   <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
                     <caption style={{ position: "absolute", width: 1, height: 1, overflow: "hidden", clip: "rect(0 0 0 0)" }}>
                       Credit transactions for {selectedArtistData?.stage_name}

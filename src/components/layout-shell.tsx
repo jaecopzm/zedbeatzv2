@@ -31,7 +31,7 @@ export function LayoutShell({ children }: { children: React.ReactNode }) {
       document.body.style.overflow = ""
       return
     }
-    const mq = window.matchMedia("(max-width: 1023px)")
+    const mq = window.matchMedia("(max-width: 1024px)")
     if (mq.matches) document.body.style.overflow = "hidden"
     return () => { document.body.style.overflow = "" }
   }, [sidebarOpen])

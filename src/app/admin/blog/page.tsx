@@ -62,32 +62,30 @@ export default function AdminBlogPage() {
 
   return (
     <div className="fade-in">
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 20, flexWrap: "wrap", gap: 12 }}>
-        <div>
-          <h1 style={{ fontSize: 20, fontWeight: 700, margin: 0, letterSpacing: "-0.4px" }}>Blog</h1>
-          <p style={{ fontSize: 13, color: "var(--muted-foreground)", margin: "2px 0 0" }}>
-            Review queue{reviewCount > 0 ? ` — ${reviewCount} waiting for review` : ""} · only Published posts appear on the site
+      <header className="admin-header">
+        <div className="admin-header-text">
+          <span className="admin-eyebrow"><span className="admin-eyebrow-dot" aria-hidden />Editorial</span>
+          <h1 className="admin-title">Blog</h1>
+          <p className="admin-sub">
+            Review queue{reviewCount > 0 ? ` — ${reviewCount} waiting` : ""} · only Published posts appear on the site
           </p>
         </div>
-        <button
-          onClick={() => router.push("/admin/blog/new")}
-          style={{ padding: "10px 20px", borderRadius: 999, border: "none", background: "var(--brand)", color: "#fff", fontWeight: 700, fontSize: 13, cursor: "pointer" }}
-        >
-          + New post
-        </button>
-      </div>
+        <div className="admin-header-actions">
+          <button onClick={() => router.push("/admin/blog/new")} className="admin-btn-primary">
+            + New post
+          </button>
+        </div>
+      </header>
 
-      <div style={{ display: "flex", gap: 8, marginBottom: 16, flexWrap: "wrap" }}>
+      <div className="admin-chip-row" role="tablist" aria-label="Filter posts">
         {FILTERS.map(([v, l]) => (
           <button
             key={v}
+            role="tab"
+            aria-selected={filter === v}
+            aria-pressed={filter === v}
             onClick={() => setFilter(v)}
-            style={{
-              padding: "8px 16px", borderRadius: 999, cursor: "pointer", fontSize: 13, fontWeight: 600,
-              border: filter === v ? "none" : "1px solid var(--border)",
-              background: filter === v ? "var(--foreground)" : "transparent",
-              color: filter === v ? "var(--content-bg)" : "var(--foreground)",
-            }}
+            className={`admin-chip${filter === v ? " admin-chip-active" : ""}`}
           >
             {l}
           </button>
@@ -95,54 +93,57 @@ export default function AdminBlogPage() {
       </div>
 
       {isLoading ? (
-        <p style={{ color: "var(--muted-foreground)", fontSize: 14 }}>Loading posts…</p>
+        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+          {[0, 1, 2].map((i) => <div key={i} className="skeleton" style={{ height: 76, borderRadius: 14 }} />)}
+        </div>
       ) : posts.length === 0 ? (
-        <div style={{ textAlign: "center", padding: "60px 0", color: "var(--muted-foreground)" }}>
-          <p style={{ fontSize: 16, fontWeight: 600, margin: "0 0 8px" }}>No posts here yet</p>
-          <p style={{ fontSize: 14, margin: "0 0 16px" }}>Write the first story to kick off the blog.</p>
-          <button onClick={() => router.push("/admin/blog/new")} style={{ padding: "10px 20px", borderRadius: 999, border: "none", background: "var(--brand)", color: "#fff", fontWeight: 700, fontSize: 13, cursor: "pointer" }}>
+        <div className="admin-empty">
+          <div className="admin-empty-icon" aria-hidden>
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z" /></svg>
+          </div>
+          <p style={{ fontSize: 15, fontWeight: 700, margin: "0 0 6px", color: "var(--foreground)" }}>No posts here yet</p>
+          <p style={{ fontSize: 13.5, margin: "0 0 16px" }}>Write the first story to kick off the blog.</p>
+          <button onClick={() => router.push("/admin/blog/new")} className="admin-btn-primary">
             + New post
           </button>
         </div>
       ) : (
-        <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
           {posts.map((p) => (
-            <div key={p.id} style={{ display: "flex", alignItems: "center", gap: 14, padding: 12, background: "var(--card-bg)", border: "1px solid var(--border)", borderRadius: 10 }}>
-              <div style={{ width: 72, height: 48, borderRadius: 6, overflow: "hidden", flexShrink: 0, background: "linear-gradient(135deg, var(--brand), var(--brand-light))" }}>
-                {p.cover_url && <img src={p.cover_url} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />}
+            <article key={p.id} className="admin-card admin-list-row" style={{ padding: 12, alignItems: "center" }}>
+              <div style={{ width: 76, height: 52, borderRadius: 9, overflow: "hidden", flexShrink: 0, background: "linear-gradient(135deg, var(--brand), var(--brand-light))" }}>
+                {p.cover_url && <img src={p.cover_url} alt="" loading="lazy" style={{ width: "100%", height: "100%", objectFit: "cover" }} />}
               </div>
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <Link href={`/admin/blog/${p.id}`} style={{ fontSize: 14, fontWeight: 700, color: "var(--foreground)", textDecoration: "none", display: "block", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+              <div style={{ flex: "1 1 180px", minWidth: 0 }}>
+                <Link href={`/admin/blog/${p.id}`} style={{ fontSize: 14, fontWeight: 800, letterSpacing: "-0.01em", color: "var(--foreground)", textDecoration: "none", display: "block", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                   {p.title}
                 </Link>
-                <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 4, fontSize: 12, color: "var(--muted-foreground)" }}>
-                  <span style={{ fontWeight: 700, color: STATUS_COLORS[p.status] ?? "var(--muted-foreground)", textTransform: "uppercase", fontSize: 10, letterSpacing: "0.08em" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 7, marginTop: 4, fontSize: 12, color: "var(--muted-foreground)", minWidth: 0 }}>
+                  <span style={{ fontWeight: 800, color: STATUS_COLORS[p.status] ?? "var(--muted-foreground)", textTransform: "uppercase", fontSize: 10, letterSpacing: "0.08em", flexShrink: 0 }}>
                     {p.status}
                   </span>
-                  <span>·</span>
-                  <span>{p.post_type}</span>
-                  <span>·</span>
-                  <span>/blog/{p.slug}</span>
+                  <span aria-hidden>·</span>
+                  <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{p.post_type} · /blog/{p.slug}</span>
                 </div>
               </div>
-              <div style={{ display: "flex", gap: 8, flexShrink: 0 }}>
+              <div style={{ display: "flex", gap: 6, flexShrink: 0, flexWrap: "wrap" }}>
                 {p.status !== "published" ? (
-                  <button onClick={() => statusMutation.mutate({ id: p.id, status: "published" })} style={{ padding: "7px 14px", borderRadius: 999, border: "none", background: "var(--brand)", color: "#fff", fontSize: 12, fontWeight: 700, cursor: "pointer" }}>
+                  <button onClick={() => statusMutation.mutate({ id: p.id, status: "published" })} className="admin-btn-primary admin-btn-sm">
                     Publish
                   </button>
                 ) : (
-                  <button onClick={() => statusMutation.mutate({ id: p.id, status: "draft" })} style={{ padding: "7px 14px", borderRadius: 999, border: "1px solid var(--border)", background: "transparent", color: "var(--foreground)", fontSize: 12, fontWeight: 600, cursor: "pointer" }}>
+                  <button onClick={() => statusMutation.mutate({ id: p.id, status: "draft" })} className="admin-btn-secondary admin-btn-sm">
                     Unpublish
                   </button>
                 )}
-                <button onClick={() => router.push(`/admin/blog/${p.id}`)} style={{ padding: "7px 14px", borderRadius: 999, border: "1px solid var(--border)", background: "transparent", color: "var(--foreground)", fontSize: 12, fontWeight: 600, cursor: "pointer" }}>
+                <button onClick={() => router.push(`/admin/blog/${p.id}`)} className="admin-btn-secondary admin-btn-sm">
                   Edit
                 </button>
-                <button onClick={() => confirmDelete(p)} style={{ padding: "7px 14px", borderRadius: 999, border: "1px solid var(--border)", background: "transparent", color: "#ef4444", fontSize: 12, fontWeight: 600, cursor: "pointer" }}>
-                  Delete
+                <button onClick={() => confirmDelete(p)} className="admin-btn-secondary admin-btn-sm" style={{ color: "#ef4444" }} aria-label={`Delete ${p.title}`}>
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M3 6h18" /><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6" /></svg>
                 </button>
               </div>
-            </div>
+            </article>
           ))}
         </div>
       )}

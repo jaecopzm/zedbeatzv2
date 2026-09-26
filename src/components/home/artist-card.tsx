@@ -71,6 +71,7 @@ export function ArtistCard({ artist }: { artist: Artist }) {
       </p>
       {user && (
         <button
+          className="hp-artist-follow"
           onClick={handleFollow}
           style={{
             marginTop: 6,

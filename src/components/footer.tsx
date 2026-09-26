@@ -1,14 +1,22 @@
 "use client"
 
-"use client"
-
 import Link from "next/link"
 
-const links = [
-  { label: "Become an Artist", href: "/become-an-artist" },
-  { label: "Privacy Policy", href: "/privacy" },
-  { label: "Terms of Service", href: "/terms" },
-  { label: "Contact Us", href: "/contact" },
+const columns = [
+  {
+    title: "Company",
+    links: [
+      { label: "Become an Artist", href: "/become-an-artist" },
+      { label: "Contact Us", href: "/contact" },
+    ],
+  },
+  {
+    title: "Legal",
+    links: [
+      { label: "Privacy Policy", href: "/privacy" },
+      { label: "Terms of Service", href: "/terms" },
+    ],
+  },
 ]
 
 const socials = [
@@ -34,64 +42,46 @@ const socials = [
 
 export function Footer() {
   return (
-    <footer
-      className="app-footer"
-      style={{
-        borderTop: "1px solid var(--border)",
-        padding: "24px 28px",
-        marginTop: "48px",
-        display: "flex",
-        flexWrap: "wrap",
-        alignItems: "center",
-        justifyContent: "space-between",
-        gap: "16px",
-        fontSize: "12px",
-        color: "var(--muted-foreground)",
-      }}
-    >
-      <div className="footer-links" style={{ display: "flex", gap: "16px", flexWrap: "wrap" }}>
-        {links.map((link) => (
-          <Link
-            key={link.href}
-            href={link.href}
-            style={{
-              color: "var(--muted-foreground)",
-              textDecoration: "none",
-              transition: "color 0.12s",
-              fontWeight: 500,
-            }}
-            onMouseEnter={(e) => (e.currentTarget.style.color = "var(--foreground)")}
-            onMouseLeave={(e) => (e.currentTarget.style.color = "var(--muted-foreground)")}
-          >
-            {link.label}
-          </Link>
-        ))}
-      </div>
-      <div className="footer-right" style={{ display: "flex", gap: "12px", alignItems: "center" }}>
-        <div className="footer-socials" style={{ display: "flex", gap: "12px", alignItems: "center" }}>
-          {socials.map((s) => (
-            <a
-              key={s.label}
-              href={s.href}
-              target="_blank"
-              rel="noopener noreferrer"
-              aria-label={s.label}
-              style={{
-                color: "var(--muted-foreground)",
-                transition: "color 0.12s",
-                display: "flex",
-                alignItems: "center",
-              }}
-              onMouseEnter={(e) => (e.currentTarget.style.color = s.color)}
-              onMouseLeave={(e) => (e.currentTarget.style.color = "var(--muted-foreground)")}
-            >
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
-                <path d={s.path} />
-              </svg>
-            </a>
-          ))}
+    <footer className="app-footer">
+      <div className="footer-top">
+        <div className="footer-brand">
+          <p className="footer-wordmark">ZedBeatz</p>
+          <p className="footer-tagline">Zambia&rsquo;s home for new music.</p>
+          <div className="footer-socials">
+            {socials.map((s) => (
+              <a
+                key={s.label}
+                href={s.href}
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label={s.label}
+                title={s.label}
+                className="footer-social-btn"
+                style={{ ["--social-hover" as string]: s.color }}
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
+                  <path d={s.path} />
+                </svg>
+              </a>
+            ))}
+          </div>
         </div>
+        <nav className="footer-cols" aria-label="Footer">
+          {columns.map((col) => (
+            <div key={col.title} className="footer-col">
+              <p className="footer-col-title">{col.title}</p>
+              {col.links.map((link) => (
+                <Link key={link.href} href={link.href} className="footer-link">
+                  {link.label}
+                </Link>
+              ))}
+            </div>
+          ))}
+        </nav>
+      </div>
+      <div className="footer-bottom">
         <span className="footer-copy">&copy; {new Date().getFullYear()} ZedBeatz. All rights reserved.</span>
+        <span className="footer-made">Made in Zambia</span>
       </div>
     </footer>
   )

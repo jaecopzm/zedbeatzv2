@@ -68,9 +68,16 @@ function autoGenreId(t: SearchResultTrack, genres: { slug: string; name: string 
 
 // ── Micro components ─────────────────────────────────────────────────────────
 
-function Field({ title, children }: { title: string; children: React.ReactNode }) {
-  return <div><label className="admin-label">{title}</label>{children}</div>
+function Field({ title, children, wide }: { title: string; children: React.ReactNode; wide?: boolean }) {
+  return (
+    <div className="admin-field" style={wide ? { gridColumn: "1 / -1" } : undefined}>
+      <label className="admin-label">{title}</label>
+      {children}
+    </div>
+  )
 }
+
+const COMPACT_INPUT: React.CSSProperties = { minHeight: 40, padding: "8px 12px", fontSize: 13.5 }
 
 function Spinner() {
   return (
@@ -330,35 +337,38 @@ export default function AdminImportPage() {
       <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
 
       {/* Header */}
-      <div style={{ display: "flex", alignItems: "center", gap: "10px", margin: "0 0 20px" }}>
-        <div style={{ width: 36, height: 36, borderRadius: "50%", background: "#1DB954", display: "flex", alignItems: "center", justifyContent: "center", color: "white", flexShrink: 0 }}>
-          <svg width="18" height="18" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2C6.477 2 2 6.477 2 12s4.477 10 10 10 10-4.477 10-10S17.523 2 12 2zm4.586 14.424c-.18.295-.565.387-.86.207-2.377-1.454-5.37-1.783-8.892-.982-.336.076-.67-.135-.746-.472-.076-.336.135-.67.472-.746 3.847-.88 7.143-.5 9.816 1.134.296.18.388.564.21.859zm1.223-2.72c-.227.367-.707.487-1.074.26-2.72-1.672-6.87-2.157-10.078-1.182-.413.125-.847-.107-.972-.52-.125-.413.108-.847.52-.972 3.666-1.112 8.243-.574 11.345 1.337.367.226.488.707.26 1.076zm.105-2.81c-3.26-1.937-8.643-2.12-11.758-1.173-.5.152-1.025-.133-1.177-.633-.15-.5.133-1.025.633-1.177 3.616-1.1 9.544-.89 13.3 1.343.45.267.6.845.333 1.295-.267.45-.845.6-1.297.332z"/></svg>
+      <header className="admin-header" style={{ marginBottom: 2 }}>
+        <div className="admin-header-text">
+          <span className="admin-eyebrow">
+            <span aria-hidden style={{ width: 22, height: 22, borderRadius: "50%", background: "#1DB954", display: "inline-flex", alignItems: "center", justifyContent: "center", color: "white" }}>
+              <svg width="12" height="12" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2C6.477 2 2 6.477 2 12s4.477 10 10 10 10-4.477 10-10S17.523 2 12 2zm4.586 14.424c-.18.295-.565.387-.86.207-2.377-1.454-5.37-1.783-8.892-.982-.336.076-.67-.135-.746-.472-.076-.336.135-.67.472-.746 3.847-.88 7.143-.5 9.816 1.134.296.18.388.564.21.859zm1.223-2.72c-.227.367-.707.487-1.074.26-2.72-1.672-6.87-2.157-10.078-1.182-.413.125-.847-.107-.972-.52-.125-.413.108-.847.52-.972 3.666-1.112 8.243-.574 11.345 1.337.367.226.488.707.26 1.076zm.105-2.81c-3.26-1.937-8.643-2.12-11.758-1.173-.5.152-1.025-.133-1.177-.633-.15-.5.133-1.025.633-1.177 3.616-1.1 9.544-.89 13.3 1.343.45.267.6.845.333 1.295-.267.45-.845.6-1.297.332z" /></svg>
+            </span>
+            Bulk import
+          </span>
+          <h1 className="admin-title">Spotify Import</h1>
+          <p className="admin-sub">Search, configure metadata, bulk-import to the catalog.</p>
         </div>
-        <div>
-          <h1 style={{ fontSize: "20px", fontWeight: 700, color: "var(--foreground)", letterSpacing: "-0.4px", margin: 0 }}>Spotify Import</h1>
-          <p style={{ fontSize: "13px", color: "var(--muted-foreground)", margin: "2px 0 0" }}>Search, configure metadata, bulk-import to catalog</p>
-        </div>
-      </div>
+      </header>
 
       {/* Search bar */}
-      <div style={{ display: "flex", gap: "8px", marginBottom: "20px" }}>
-        <div style={{ position: "relative", flex: 1 }}>
-          <span style={{ position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)", color: "var(--muted-foreground)", pointerEvents: "none" }}>
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <div className="admin-toolbar" style={{ marginBottom: 16 }}>
+        <div style={{ position: "relative", flex: "1 1 240px", minWidth: 0 }}>
+          <span style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", color: "var(--muted-foreground)", pointerEvents: "none" }}>
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" /></svg>
           </span>
           <input
             type="text"
             value={searchInput}
             onChange={(e) => handleSearchInput(e.target.value)}
             onKeyDown={(e) => { if (e.key === "Enter") runSearchNow() }}
-            placeholder="Song name, artist, or paste a Spotify track URL / ID..."
+            placeholder="Song, artist, or Spotify URL / ID…"
             className="admin-search"
-            style={{ padding: "10px 30px 10px 34px" }}
+            style={{ paddingLeft: 36, maxWidth: "none" }}
             aria-label="Search Spotify"
           />
           {searchInput && (
-            <button onClick={() => { setSearchInput(""); setSearchQuery("") }} aria-label="Clear search" className="admin-icon-btn" style={{ position: "absolute", right: 6, top: "50%", transform: "translateY(-50%)", width: 24, height: 24 }}>
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.8" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            <button onClick={() => { setSearchInput(""); setSearchQuery("") }} aria-label="Clear search" className="admin-icon-btn admin-icon-btn-sm" style={{ position: "absolute", right: 6, top: "50%", transform: "translateY(-50%)" }}>
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.8" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
             </button>
           )}
         </div>
@@ -366,7 +376,7 @@ export default function AdminImportPage() {
           onClick={runSearchNow}
           disabled={!searchInput.trim() || search.isFetching}
           className="admin-btn-primary"
-          style={{ whiteSpace: "nowrap" }}
+          style={{ whiteSpace: "nowrap", flex: "0 0 auto" }}
         >
           {search.isFetching ? "Searching…" : "Search"}
         </button>
@@ -401,7 +411,7 @@ export default function AdminImportPage() {
       )}
 
       {searchResults.length > 0 && !search.isFetching && (
-        <div style={{ background: "var(--card-bg)", border: "1px solid var(--border)", borderRadius: "14px", padding: "20px", boxShadow: "0 4px 16px rgba(0,0,0,0.03)", marginBottom: "24px" }}>
+        <div className="admin-panel" style={{ marginBottom: 20 }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "12px" }}>
             <span style={{ fontSize: "13px", fontWeight: 700, color: "var(--foreground)" }}>
               Results <span style={{ color: "var(--muted-foreground)", fontWeight: 400 }}>({searchResults.length})</span>
@@ -453,7 +463,7 @@ export default function AdminImportPage() {
 
       {/* Metadata editor */}
       {selected.length > 0 && (
-        <div style={{ background: "var(--card-bg)", border: "1px solid var(--border)", borderRadius: "14px", padding: "20px", boxShadow: "0 4px 16px rgba(0,0,0,0.03)" }}>
+        <div className="admin-panel">
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "12px", flexWrap: "wrap", gap: 10 }}>
             <div style={{ fontSize: "13px", fontWeight: 700, color: "var(--foreground)" }}>
               Configure — {selected.length} track{selected.length > 1 ? "s" : ""}
@@ -491,13 +501,13 @@ export default function AdminImportPage() {
               const expanded = expandedId === item.spotify_id
               const isDup = catalogKeys.has(catalogKey(orig?.artists[0] || item.override_artist || "", orig?.title || item.override_title || ""))
               return (
-                <div key={item.spotify_id} style={{ border: "1px solid var(--border)", borderRadius: "8px", padding: expanded ? "12px" : "8px 12px", background: "var(--background)" }}>
+                <div key={item.spotify_id} style={{ border: "1px solid var(--border)", borderRadius: 12, padding: expanded ? 12 : "10px 12px", background: "var(--background)" }}>
                   {/* Compact row */}
-                  <div style={{ display: "flex", alignItems: "center", gap: "10px", flexWrap: "wrap" }}>
-                    {orig?.cover_url && <img src={orig.cover_url} alt="" style={{ width: 36, height: 36, borderRadius: "5px", objectFit: "cover", flexShrink: 0 }} />}
-                    <div style={{ flex: "1 1 140px", minWidth: 0 }}>
-                      <div style={{ fontSize: "12px", fontWeight: 600, color: "var(--foreground)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{orig?.title ?? item.override_title ?? item.spotify_id}</div>
-                      <div style={{ fontSize: "11px", color: "var(--muted-foreground)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{orig?.artists.join(", ") || item.override_artist}{isDup ? "  ·  already in catalog" : ""}</div>
+                  <div className="admin-manage-row">
+                    {orig?.cover_url && <img src={orig.cover_url} alt="" style={{ width: 38, height: 38, borderRadius: 8, objectFit: "cover", flexShrink: 0 }} />}
+                    <div className="admin-row-grow" style={{ flex: "1 1 140px", minWidth: 0 }}>
+                      <div style={{ fontSize: "12.5px", fontWeight: 700, color: "var(--foreground)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{orig?.title ?? item.override_title ?? item.spotify_id}</div>
+                      <div style={{ fontSize: "11.5px", color: "var(--muted-foreground)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{orig?.artists.join(", ") || item.override_artist}{isDup ? "  ·  already in catalog" : ""}</div>
                     </div>
                     {/* Inline quick controls */}
                     <select
@@ -506,7 +516,7 @@ export default function AdminImportPage() {
                       className="admin-input"
                       aria-label={`Genre for ${orig?.title ?? item.spotify_id}`}
                       title={genreName(item.genre_id)}
-                      style={{ width: "auto", maxWidth: 150, padding: "5px 8px", fontSize: "12px", cursor: "pointer" }}
+                      style={{ minHeight: 38, padding: "6px 10px", fontSize: "12.5px", cursor: "pointer" }}
                     >
                       <option value="">Auto</option>
                       {genres?.genres.map((g) => <option key={g.id} value={g.slug}>{g.name}</option>)}
@@ -516,7 +526,7 @@ export default function AdminImportPage() {
                       onChange={(e) => updateTrack(item.spotify_id!, "section", e.target.value)}
                       className="admin-input"
                       aria-label={`Section for ${orig?.title ?? item.spotify_id}`}
-                      style={{ width: "auto", maxWidth: 160, padding: "5px 8px", fontSize: "12px", cursor: "pointer" }}
+                      style={{ minHeight: 38, padding: "6px 10px", fontSize: "12.5px", cursor: "pointer" }}
                     >
                       <option value="">Section…</option>
                       {SECTIONS.map((s) => <option key={s.key} value={s.key}>{s.label}</option>)}
@@ -543,21 +553,21 @@ export default function AdminImportPage() {
 
                   {/* Expanded full metadata */}
                   {expanded && (
-                    <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: "8px", marginTop: "12px", paddingTop: "12px", borderTop: "1px dashed var(--border)" }}>
+                    <div className="admin-form-grid admin-form-grid-2" style={{ gap: 10, marginTop: 12, paddingTop: 12, borderTop: "1px dashed var(--border)" }}>
                       <Field title="Title">
-                        <input type="text" value={item.override_title ?? ""} onChange={(e) => updateTrack(item.spotify_id!, "override_title", e.target.value)} className="admin-input" style={{ padding: "7px 10px", fontSize: "13px" }} />
+                        <input type="text" value={item.override_title ?? ""} onChange={(e) => updateTrack(item.spotify_id!, "override_title", e.target.value)} className="admin-input" style={COMPACT_INPUT} />
                       </Field>
                       <Field title="Primary Artist">
-                        <input type="text" value={item.override_artist ?? ""} onChange={(e) => updateTrack(item.spotify_id!, "override_artist", e.target.value)} className="admin-input" style={{ padding: "7px 10px", fontSize: "13px" }} />
+                        <input type="text" value={item.override_artist ?? ""} onChange={(e) => updateTrack(item.spotify_id!, "override_artist", e.target.value)} className="admin-input" style={COMPACT_INPUT} />
                       </Field>
                       <Field title="Collaborators">
-                        <input type="text" value={item.featured_artists ?? ""} onChange={(e) => updateTrack(item.spotify_id!, "featured_artists", e.target.value)} placeholder="e.g. Slapdee, Chef 187" className="admin-input" style={{ padding: "7px 10px", fontSize: "13px" }} />
+                        <input type="text" value={item.featured_artists ?? ""} onChange={(e) => updateTrack(item.spotify_id!, "featured_artists", e.target.value)} placeholder="e.g. Slapdee, Chef 187" className="admin-input" style={COMPACT_INPUT} />
                       </Field>
                       <Field title="Album">
-                        <input type="text" value={item.album_title ?? ""} onChange={(e) => updateTrack(item.spotify_id!, "album_title", e.target.value)} placeholder="Single / Album" className="admin-input" style={{ padding: "7px 10px", fontSize: "13px" }} />
+                        <input type="text" value={item.album_title ?? ""} onChange={(e) => updateTrack(item.spotify_id!, "album_title", e.target.value)} placeholder="Single / Album" className="admin-input" style={COMPACT_INPUT} />
                       </Field>
-                      <Field title="Description">
-                        <textarea rows={3} value={item.description ?? ""} onChange={(e) => updateTrack(item.spotify_id!, "description", e.target.value)} placeholder="SEO description — tell the story behind the track" className="admin-input" style={{ padding: "7px 10px", fontSize: "13px", resize: "vertical", gridColumn: "1 / -1" }} />
+                      <Field title="Description" wide>
+                        <textarea rows={3} value={item.description ?? ""} onChange={(e) => updateTrack(item.spotify_id!, "description", e.target.value)} placeholder="SEO description — tell the story behind the track" className="admin-input" style={{ ...COMPACT_INPUT, resize: "vertical" }} />
                       </Field>
                     </div>
                   )}
@@ -567,12 +577,12 @@ export default function AdminImportPage() {
           </div>
 
           {/* Import button row */}
-          <div style={{ marginTop: "16px", display: "flex", gap: "8px", flexWrap: "wrap" }}>
+          <div className="admin-sticky-bar">
             <button onClick={startImport} disabled={importing}
               className="admin-btn-primary"
-              style={{ flex: 1, minWidth: 200 }}
+              style={{ flex: 1, minWidth: 0 }}
             >
-              {importing ? `Importing… (${doneCount + errorCount} / ${logs.length})` : `Import ${selected.length} Track${selected.length > 1 ? "s" : ""}`}
+              {importing ? `Importing… (${doneCount + errorCount}/${logs.length})` : `Import ${selected.length} track${selected.length > 1 ? "s" : ""}`}
             </button>
             {importing && (
               <button onClick={() => { abortRef.current?.abort(); setImporting(false) }} className="admin-btn-secondary">
@@ -581,7 +591,7 @@ export default function AdminImportPage() {
             )}
             {importDone && (
               <button onClick={clearAll} className="admin-btn-secondary">
-                Clear & start over
+                Clear
               </button>
             )}
           </div>

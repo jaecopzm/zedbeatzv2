@@ -1,10 +1,11 @@
 "use client"
 
-import { useMemo, useRef, useState } from "react"
+import { useRef, useState } from "react"
 import { useRouter } from "next/navigation"
 import { api } from "@/lib/api"
 import { toast } from "@/lib/toast-store"
 import { BlogBody } from "@/components/blog-body"
+import { BlogEditor, countWordsFromHtml } from "@/components/admin/blog-editor"
 
 export interface BlogPostForm {
   id?: string
@@ -67,9 +68,8 @@ export function BlogEditForm({ initial }: { initial: BlogPostForm | null }) {
   const [artistResults, setArtistResults] = useState<any[]>([])
   const [showPreview, setShowPreview] = useState(false)
   const [saving, setSaving] = useState(false)
+  const [wordCount, setWordCount] = useState(() => countWordsFromHtml(initial?.body ?? ""))
   const fileRef = useRef<HTMLInputElement>(null)
-
-  const wordCount = useMemo(() => body.trim().split(/\s+/).filter(Boolean).length, [body])
 
   function onTitleChange(v: string) {
     setTitle(v)
@@ -157,10 +157,13 @@ export function BlogEditForm({ initial }: { initial: BlogPostForm | null }) {
   const labelStyle: React.CSSProperties = { display: "block", fontSize: 12, fontWeight: 700, marginBottom: 6, color: "var(--muted-foreground)", textTransform: "uppercase", letterSpacing: "0.08em" }
 
   return (
-    <div style={{ display: "grid", gridTemplateColumns: "1fr 340px", gap: 20, alignItems: "start" }}>
-      <style>{`@media (max-width: 1024px) { .blog-edit-grid { grid-template-columns: 1fr !important; } }`}</style>
-      <div className="blog-edit-grid" style={{ display: "contents" }}>
-        <div style={{ display: "flex", flexDirection: "column", gap: 16, minWidth: 0 }}>
+    <div className="blog-edit-wrap">
+      <style>{`
+        .blog-edit-wrap { display: grid; grid-template-columns: minmax(0, 1fr); gap: 16px; align-items: start; }
+        @media (min-width: 1024px) { .blog-edit-wrap { grid-template-columns: minmax(0, 1fr) 320px; gap: 20px; } }
+        @media (max-width: 1023px) { .blog-edit-aside { position: static !important; } }
+      `}</style>
+        <div style={{ display: "flex", flexDirection: "column", gap: 14, minWidth: 0 }}>
           <div>
             <label style={labelStyle}>Title</label>
             <input value={title} onChange={(e) => onTitleChange(e.target.value)} placeholder="10 Hottest Zambian Songs This Week" style={{ ...inputStyle, fontSize: 18, fontWeight: 700 }} />
@@ -180,18 +183,35 @@ export function BlogEditForm({ initial }: { initial: BlogPostForm | null }) {
             <textarea value={excerpt} onChange={(e) => setExcerpt(e.target.value)} rows={2} maxLength={300} placeholder="One or two sentences…" style={{ ...inputStyle, resize: "vertical" }} />
           </div>
           <div>
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 6 }}>
-              <label style={{ ...labelStyle, marginBottom: 0 }}>Body (markdown-lite: ## headings, - lists, **bold**)</label>
-              <span style={{ fontSize: 12, color: "var(--muted-foreground)" }}>{wordCount} words</span>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 6, gap: 8, flexWrap: "wrap" }}>
+              <label style={{ ...labelStyle, marginBottom: 0 }}>Body</label>
+              <span style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                <span style={{ fontSize: 12, color: "var(--muted-foreground)", fontVariantNumeric: "tabular-nums" }}>{wordCount} words</span>
+                <button
+                  type="button"
+                  onClick={() => setShowPreview((v) => !v)}
+                  aria-pressed={showPreview}
+                  className={`admin-chip${showPreview ? " admin-chip-active" : ""}`}
+                  style={{ minHeight: 32, padding: "4px 12px", fontSize: 12 }}
+                >
+                  {showPreview ? "Editing" : "Preview"}
+                </button>
+              </span>
             </div>
-            <textarea value={body} onChange={(e) => setBody(e.target.value)} rows={18} placeholder={"## Intro\n\nWrite the story here…\n\n- Point one\n- Point two"} style={{ ...inputStyle, resize: "vertical", fontFamily: "monospace", lineHeight: 1.6 }} />
-            <button onClick={() => setShowPreview((v) => !v)} style={{ marginTop: 8, background: "none", border: "none", cursor: "pointer", color: "var(--brand)", fontSize: 13, fontWeight: 700, padding: 0 }}>
-              {showPreview ? "Hide preview" : "Show preview"}
-            </button>
-            {showPreview && (
-              <div style={{ marginTop: 12, padding: 20, border: "1px dashed var(--border)", borderRadius: 10, background: "var(--card-bg)" }}>
-                <BlogBody markdown={body || "*Nothing to preview yet*"} />
+            {showPreview ? (
+              <div className="admin-card" style={{ padding: "clamp(16px, 3vw, 24px)" }}>
+                {body.trim() ? (
+                  <BlogBody markdown={body} />
+                ) : (
+                  <p style={{ color: "var(--muted-foreground)", fontSize: 14, margin: 0 }}>Nothing to preview yet — switch back to Editing and write the story.</p>
+                )}
               </div>
+            ) : (
+              <BlogEditor
+                value={body}
+                onChange={setBody}
+                onWordCount={setWordCount}
+              />
             )}
           </div>
           <div>
@@ -251,7 +271,7 @@ export function BlogEditForm({ initial }: { initial: BlogPostForm | null }) {
           </div>
         </div>
 
-        <aside style={{ position: "sticky", top: 16, display: "flex", flexDirection: "column", gap: 16, background: "var(--card-bg)", border: "1px solid var(--border)", borderRadius: 12, padding: 18 }}>
+        <aside className="blog-edit-aside" style={{ position: "sticky", top: 16, display: "flex", flexDirection: "column", gap: 14, background: "var(--card-bg)", border: "1px solid var(--border)", borderRadius: 16, padding: 18 }}>
           <div>
             <label style={labelStyle}>Status</label>
             <select value={status} onChange={(e) => setStatus(e.target.value)} style={{ ...inputStyle, cursor: "pointer" }}>
@@ -284,21 +304,22 @@ export function BlogEditForm({ initial }: { initial: BlogPostForm | null }) {
             )}
             <input ref={fileRef} type="file" accept="image/*" onChange={(e) => onCoverFile(e.target.files?.[0])} style={{ display: "none" }} />
           </div>
-          <button onClick={() => save()} disabled={saving} style={{ padding: "12px", borderRadius: 8, border: "none", background: "var(--foreground)", color: "var(--content-bg)", fontWeight: 700, fontSize: 14, cursor: saving ? "default" : "pointer", opacity: saving ? 0.6 : 1 }}>
-            {saving ? "Saving…" : isNew ? "Create post" : "Save changes"}
-          </button>
-          {!isNew && status !== "published" && (
-            <button onClick={() => save("published")} disabled={saving} style={{ padding: "12px", borderRadius: 8, border: "none", background: "var(--brand)", color: "#fff", fontWeight: 700, fontSize: 14, cursor: "pointer" }}>
-              Save & publish
+          <div className="admin-sticky-bar" style={{ flexDirection: "column" }}>
+            <button onClick={() => save()} disabled={saving} className="admin-btn-secondary admin-btn-block">
+              {saving ? "Saving…" : isNew ? "Create post" : "Save changes"}
             </button>
-          )}
-          {!isNew && status === "published" && (
-            <button onClick={() => save("draft")} disabled={saving} style={{ padding: "12px", borderRadius: 8, border: "1px solid var(--border)", background: "transparent", color: "var(--foreground)", fontWeight: 600, fontSize: 14, cursor: "pointer" }}>
-              Unpublish to draft
-            </button>
-          )}
+            {!isNew && status !== "published" && (
+              <button onClick={() => save("published")} disabled={saving} className="admin-btn-primary admin-btn-block">
+                Save & publish
+              </button>
+            )}
+            {!isNew && status === "published" && (
+              <button onClick={() => save("draft")} disabled={saving} className="admin-btn-secondary admin-btn-block">
+                Unpublish to draft
+              </button>
+            )}
+          </div>
         </aside>
-      </div>
     </div>
   )
 }

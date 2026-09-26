@@ -6,12 +6,14 @@ import { BlogEditForm } from "../edit-form"
 export default function AdminBlogNewPage() {
   return (
     <div className="fade-in">
-      <div style={{ marginBottom: 20 }}>
-        <Link href="/admin/blog" style={{ fontSize: 13, color: "var(--muted-foreground)", textDecoration: "none" }}>
-          ← Back to blog
-        </Link>
-        <h1 style={{ fontSize: 20, fontWeight: 700, margin: "4px 0 0", letterSpacing: "-0.4px" }}>New post</h1>
-      </div>
+      <header className="admin-header">
+        <div className="admin-header-text">
+          <Link href="/admin/blog" style={{ fontSize: 13, fontWeight: 600, color: "var(--muted-foreground)", textDecoration: "none" }}>
+            ← Blog
+          </Link>
+          <h1 className="admin-title" style={{ marginTop: 4 }}>New post</h1>
+        </div>
+      </header>
       <BlogEditForm initial={null} />
     </div>
   )

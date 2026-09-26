@@ -1,7 +1,8 @@
-// Server-safe markdown-lite renderer for blog posts.
-// Supports: ## / ### headings, - bullet lists, paragraphs,
-// **bold**, and [text](url) links. Everything else is plain text.
+// Blog body renderer — supports rich HTML (from the visual editor,
+// sanitized server-safe) with a legacy fallback for the old markdown-lite
+// dialect (## / ### headings, - lists, **bold**, [text](url) links).
 import React from "react"
+import DOMPurify from "isomorphic-dompurify"
 
 function renderInline(text: string, keyPrefix: string): React.ReactNode[] {
   const out: React.ReactNode[] = []
@@ -40,7 +41,7 @@ function renderInline(text: string, keyPrefix: string): React.ReactNode[] {
   return out
 }
 
-export function BlogBody({ markdown }: { markdown: string }) {
+function renderMarkdownLite(markdown: string): React.ReactNode {
   const blocks = markdown.split(/\n{2,}/)
   const nodes: React.ReactNode[] = []
   let listBuf: string[] = []
@@ -89,4 +90,24 @@ export function BlogBody({ markdown }: { markdown: string }) {
   flushList()
 
   return <>{nodes}</>
+}
+
+const ALLOWED_TAGS = [
+  "p", "br", "h2", "h3", "strong", "em", "u", "s",
+  "ul", "ol", "li", "blockquote", "a", "img", "hr",
+]
+
+const ALLOWED_ATTR = ["href", "src", "alt", "title", "target", "rel"]
+
+export function BlogBody({ markdown }: { markdown: string }) {
+  const source = markdown ?? ""
+  if (/^\s*</.test(source)) {
+    const clean = DOMPurify.sanitize(source, {
+      ALLOWED_TAGS,
+      ALLOWED_ATTR,
+      ALLOW_DATA_ATTR: false,
+    })
+    return <div className="blog-rich" dangerouslySetInnerHTML={{ __html: clean }} />
+  }
+  return <>{renderMarkdownLite(source)}</>
 }

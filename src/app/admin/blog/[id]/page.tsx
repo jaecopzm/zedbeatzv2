@@ -45,19 +45,21 @@ export default function AdminBlogEditPage() {
 
   return (
     <div className="fade-in">
-      <div style={{ marginBottom: 20, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-        <div>
-          <Link href="/admin/blog" style={{ fontSize: 13, color: "var(--muted-foreground)", textDecoration: "none" }}>
-            ← Back to blog
+      <header className="admin-header">
+        <div className="admin-header-text">
+          <Link href="/admin/blog" style={{ fontSize: 13, fontWeight: 600, color: "var(--muted-foreground)", textDecoration: "none" }}>
+            ← Blog
           </Link>
-          <h1 style={{ fontSize: 20, fontWeight: 700, margin: "4px 0 0", letterSpacing: "-0.4px" }}>Edit post</h1>
+          <h1 className="admin-title" style={{ marginTop: 4 }}>Edit post</h1>
         </div>
         {data.status === "published" && (
-          <Link href={`/blog/${data.slug}`} target="_blank" style={{ fontSize: 13, fontWeight: 600, color: "var(--brand)", textDecoration: "none" }}>
-            View live →
-          </Link>
+          <div className="admin-header-actions">
+            <Link href={`/blog/${data.slug}`} target="_blank" className="admin-btn-secondary admin-btn-sm" style={{ textDecoration: "none" }}>
+              View live →
+            </Link>
+          </div>
         )}
-      </div>
+      </header>
       <BlogEditForm key={data.id + (data.updated_at ?? "")} initial={initial} />
     </div>
   )

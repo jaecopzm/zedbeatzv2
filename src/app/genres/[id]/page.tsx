@@ -1,38 +1,55 @@
 "use client"
 
+import { useMemo, type CSSProperties } from "react"
 import { useQuery } from "@tanstack/react-query"
-import { useParams, useRouter } from "next/navigation"
-import { useState, useEffect } from "react"
+import { useParams } from "next/navigation"
+import Link from "next/link"
 import { api } from "@/lib/api"
 import { usePlayerStore } from "@/lib/store"
+import { genreArt, genreAccent } from "@/lib/genre-art"
 import { TrackList } from "@/components/track-list"
+import { GenreRail } from "@/components/home/rails"
+import { HorizontalScroller, ScrollRegion, ScrollChevrons } from "@/components/home/horizontal-scroller"
+import { SectionHeader } from "@/components/home/section-utils"
 
-function SkeletonRow() {
+function formatCount(n: number) {
+  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`
+  if (n >= 1_000) return `${(n / 1_000).toFixed(1)}K`
+  return String(n)
+}
+
+function GenreSkeleton() {
   return (
-    <div style={{ display: "flex", alignItems: "center", gap: "12px", padding: "10px 12px" }}>
-      <div className="skeleton" style={{ width: 44, height: 44, borderRadius: 6, flexShrink: 0 }} />
-      <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 6 }}>
-        <div className="skeleton" style={{ width: "60%", height: 13 }} />
-        <div className="skeleton" style={{ width: "40%", height: 11 }} />
+    <div className="genre-page" aria-hidden>
+      <div className="genre-hero">
+        <div className="skeleton genre-hero-bg-skel" />
+        <div className="genre-hero-inner">
+          <div className="skeleton" style={{ width: 36, height: 36, borderRadius: "50%" }} />
+          <div className="skeleton" style={{ width: 90, height: 11, marginTop: 18 }} />
+          <div className="skeleton" style={{ width: "55%", height: 34, marginTop: 8 }} />
+          <div className="skeleton" style={{ width: 140, height: 12, marginTop: 10 }} />
+          <div className="skeleton" style={{ width: 128, height: 40, borderRadius: 999, marginTop: 16 }} />
+        </div>
       </div>
-      <div className="skeleton" style={{ width: 32, height: 11 }} />
+      <div className="genre-body">
+        {Array.from({ length: 8 }).map((_, i) => (
+          <div key={i} className="genre-skel-row">
+            <div className="skeleton genre-skel-num" />
+            <div className="skeleton genre-skel-thumb" />
+            <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 6 }}>
+              <div className="skeleton" style={{ width: "55%", height: 13 }} />
+              <div className="skeleton" style={{ width: "35%", height: 11 }} />
+            </div>
+          </div>
+        ))}
+      </div>
     </div>
   )
 }
 
 export default function GenrePage() {
   const { id } = useParams<{ id: string }>()
-  const router = useRouter()
   const { playQueue, currentTrack, isPlaying, togglePlay } = usePlayerStore()
-  const [isMobile, setIsMobile] = useState(false)
-
-  useEffect(() => {
-    const mq = window.matchMedia("(max-width: 768px)")
-    setIsMobile(mq.matches)
-    const handler = (e: MediaQueryListEvent) => setIsMobile(e.matches)
-    mq.addEventListener("change", handler)
-    return () => mq.removeEventListener("change", handler)
-  }, [])
 
   const { data: genresData } = useQuery({
     queryKey: ["genres"],
@@ -41,6 +58,8 @@ export default function GenrePage() {
   })
 
   const genre = genresData?.genres?.find((g: any) => g.id === id)
+  const art = genreArt(genre, 0)
+  const accent = genreAccent(genre, 0)
 
   const { data, isLoading } = useQuery({
     queryKey: ["genre-tracks", id],
@@ -60,6 +79,7 @@ export default function GenrePage() {
   }))
   const trackIds = new Set(tracks.map((t: any) => t.id))
   const anyPlaying = tracks.length > 0 && currentTrack && trackIds.has(currentTrack.id) && isPlaying
+  const totalPlays = tracks.reduce((sum: number, t: any) => sum + (t.play_count ?? 0), 0)
 
   function handlePlayAll() {
     if (tracks.length === 0) return
@@ -70,72 +90,126 @@ export default function GenrePage() {
     }
   }
 
-  if (isLoading || !genresData) {
-    return (
-      <div style={{ padding: "32px 32px 40px", minHeight: "100%", background: "var(--content-bg)" }}>
-        <div className="skeleton" style={{ width: "30%", height: 28, marginBottom: 24 }} />
-        {Array.from({ length: 8 }).map((_, i) => <SkeletonRow key={i} />)}
-      </div>
-    )
-  }
+  const topArtists = useMemo(() => {
+    const byId = new Map<string, { id: string; name: string; cover: string | null; count: number; plays: number }>()
+    for (const t of tracks) {
+      const key = t.artist_id ?? t.artist_name ?? "unknown"
+      const prev = byId.get(key)
+      if (prev) {
+        prev.count += 1
+        prev.plays += t.play_count ?? 0
+        if (!prev.cover && t.cover_url) prev.cover = t.cover_url
+      } else {
+        byId.set(key, {
+          id: t.artist_id,
+          name: t.artist_name ?? "Unknown Artist",
+          cover: t.cover_url ?? null,
+          count: 1,
+          plays: t.play_count ?? 0,
+        })
+      }
+    }
+    return [...byId.values()].sort((a, b) => b.plays - a.plays || b.count - a.count).slice(0, 8)
+  }, [tracks])
+
+  if (isLoading || !genresData) return <GenreSkeleton />
 
   return (
-    <div className="fade-in" style={{ minHeight: "100%", background: "var(--content-bg)" }}>
-      {/* ── Hero ── */}
-      <div style={{ position: "relative", overflow: "hidden", background: "linear-gradient(135deg, var(--brand) 0%, #0B2D8A 60%, #131318 130%)" }}>
-        <div style={{ position: "absolute", inset: 0, background: "radial-gradient(ellipse 70% 90% at 85% 10%, rgba(255,255,255,0.14) 0%, transparent 60%)", pointerEvents: "none" }} />
-        <div style={{
-          position: "relative",
-          display: "flex",
-          gap: isMobile ? 12 : 24,
-          flexDirection: isMobile ? "column" : "row",
-          alignItems: isMobile ? "flex-start" : "flex-end",
-          padding: isMobile ? "40px 16px 24px" : "64px 40px 40px",
-          color: "#fff",
-        }}>
+    <div
+      className="fade-in genre-page"
+      style={{ "--genre-accent": accent } as CSSProperties}
+    >
+      {/* ── Hero — the home card, expanded ── */}
+      <header className="genre-hero">
+        <img className="genre-hero-bg" src={art} alt="" draggable={false} />
+        <div className="genre-hero-scrim" aria-hidden />
+        <div className="genre-hero-inner">
+          <p className="genre-eyebrow">Genre</p>
+          <h1 className="genre-title">{genre?.name || "Genre"}</h1>
+          <p className="genre-meta">
+            {tracks.length} track{tracks.length === 1 ? "" : "s"}
+            {totalPlays > 0 && <> · {formatCount(totalPlays)} plays</>}
+          </p>
           <button
-            onClick={() => router.back()}
-            aria-label="Go back"
-            style={{ width: 36, height: 36, borderRadius: "50%", border: "1.5px solid rgba(255,255,255,0.35)", background: "transparent", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", flexShrink: 0 }}
+            type="button"
+            onClick={handlePlayAll}
+            disabled={tracks.length === 0}
+            className="genre-play"
           >
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M15 18l-6-6 6-6" /></svg>
+            {anyPlaying ? (
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
+                <rect x="6" y="4" width="4" height="16" />
+                <rect x="14" y="4" width="4" height="16" />
+              </svg>
+            ) : (
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor" style={{ marginLeft: 2 }} aria-hidden>
+                <polygon points="6,4 20,12 6,20" />
+              </svg>
+            )}
+            {anyPlaying ? "Pause" : "Play All"}
           </button>
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.18em", textTransform: "uppercase", opacity: 0.75 }}>
-              Genre
-            </span>
-            <h1 style={{ fontFamily: "var(--font-display, Inter, sans-serif)", fontSize: "clamp(32px, 5vw, 60px)", fontWeight: 700, margin: "6px 0 8px", letterSpacing: "-0.02em", lineHeight: 1.02 }}>
-              {genre?.name || "Genre"}
-            </h1>
-            <p style={{ margin: 0, fontSize: 13, fontWeight: 600, opacity: 0.8 }}>
-              {tracks.length} track{tracks.length === 1 ? "" : "s"}
-            </p>
-            <button
-              onClick={handlePlayAll}
-              disabled={tracks.length === 0}
-              style={{ display: "inline-flex", alignItems: "center", gap: 8, marginTop: 16, padding: "12px 28px", borderRadius: 999, border: "none", background: "#fff", color: "#111", fontSize: 14, fontWeight: 700, cursor: tracks.length ? "pointer" : "default", opacity: tracks.length ? 1 : 0.5, boxShadow: "0 8px 24px rgba(0,0,0,0.25)" }}
-            >
-              {anyPlaying ? (
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="4" width="4" height="16" /><rect x="14" y="4" width="4" height="16" /></svg>
-              ) : (
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor" style={{ marginLeft: 2 }}><polygon points="6,4 20,12 6,20" /></svg>
-              )}
-              {anyPlaying ? "Pause" : "Play All"}
-            </button>
-          </div>
         </div>
-      </div>
+      </header>
 
-      {/* Tracks */}
-      <div style={{ padding: isMobile ? "16px 12px 32px" : "32px 40px 64px" }}>
+      {/* ── Top artists in this genre ── */}
+      {topArtists.length > 1 && (
+        <section className="genre-section">
+          <ScrollRegion>
+            <div className="genre-section-head">
+              <SectionHeader label="Top artists" size="sm" actions={<ScrollChevrons />} />
+            </div>
+            <HorizontalScroller>
+              {topArtists.map((a) => {
+                const inner = (
+                  <>
+                    <span className="genre-artist-avatar">
+                      {a.cover ? (
+                        <img src={a.cover} alt={a.name} loading="lazy" draggable={false} />
+                      ) : (
+                        <span className="genre-artist-ph">{a.name.charAt(0).toUpperCase()}</span>
+                      )}
+                    </span>
+                    <p className="genre-artist-name">{a.name}</p>
+                    <p className="genre-artist-meta">
+                      {a.count} track{a.count === 1 ? "" : "s"}
+                    </p>
+                  </>
+                )
+                return a.id ? (
+                  <Link
+                    key={a.id}
+                    href={`/artist/${a.id}`}
+                    className="genre-artist"
+                    aria-label={`${a.name} — artist page`}
+                  >
+                    {inner}
+                  </Link>
+                ) : (
+                  <div key={a.name} className="genre-artist">
+                    {inner}
+                  </div>
+                )
+              })}
+            </HorizontalScroller>
+          </ScrollRegion>
+        </section>
+      )}
+
+      {/* ── Tracks ── */}
+      <div className="genre-body">
         {tracks.length === 0 ? (
-          <div style={{ textAlign: "center", padding: "60px 0", color: "var(--muted-foreground)" }}>
-            <p style={{ fontSize: 18, fontWeight: 600, margin: "0 0 8px" }}>No tracks yet</p>
-            <p style={{ fontSize: 14, margin: 0 }}>This genre doesn&rsquo;t have any tracks yet.</p>
+          <div className="genre-empty">
+            <p className="genre-empty-title">No tracks yet</p>
+            <p className="genre-empty-sub">This genre doesn&rsquo;t have any tracks yet.</p>
           </div>
         ) : (
-          <TrackList tracks={tracks} />
+          <TrackList tracks={tracks} accentColor={accent} />
         )}
+      </div>
+
+      {/* ── Endless: more genres ── */}
+      <div className="genre-more">
+        <GenreRail label="More genres" />
       </div>
     </div>
   )

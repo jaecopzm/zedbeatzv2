@@ -76,51 +76,54 @@ export default function AdminArtistsPage() {
 
   return (
     <div className="fade-in">
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 28, flexWrap: "wrap", gap: 16 }}>
-        <div>
-          <h1 style={{ fontSize: 24, fontWeight: 700, color: "var(--foreground)", letterSpacing: "-0.5px", margin: 0 }}>
-            Manage Artists
-          </h1>
-          <p style={{ fontSize: 14, color: "var(--muted-foreground)", margin: "4px 0 0" }}>
+      <header className="admin-header">
+        <div className="admin-header-text">
+          <span className="admin-eyebrow"><span className="admin-eyebrow-dot" aria-hidden />Catalog</span>
+          <h1 className="admin-title">Artists</h1>
+          <p className="admin-sub">
             {artists.length} artist{artists.length === 1 ? "" : "s"} registered
           </p>
         </div>
-      </div>
+      </header>
 
       {/* Search */}
-      <div style={{ marginBottom: 24 }}>
+      <div className="admin-toolbar">
         <input
-          type="text"
+          type="search"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          placeholder="Search by name, email, or bio..."
+          placeholder="Search name, email, or bio…"
           className="admin-search"
+          aria-label="Search artists"
         />
       </div>
 
       {/* Artists Grid */}
       {isLoading ? (
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: 20 }}>
+        <div className="admin-skel-grid">
           {Array.from({ length: 6 }).map((_, i) => (
-            <div key={i} style={{ display: "flex", flexDirection: "column", gap: 12, padding: 16 }}>
+            <div key={i} className="admin-card" style={{ display: "flex", flexDirection: "column", gap: 10, padding: 12 }}>
               <div className="skeleton" style={{ width: "100%", aspectRatio: "1.2", borderRadius: 12 }} />
-              <div className="skeleton" style={{ width: "70%", height: 16 }} />
+              <div className="skeleton" style={{ width: "70%", height: 15 }} />
               <div className="skeleton" style={{ width: "50%", height: 12 }} />
             </div>
           ))}
         </div>
       ) : filteredArtists.length === 0 ? (
         <div className="admin-empty">
-          <p style={{ fontSize: 15, fontWeight: 600, margin: "0 0 8px" }}>
-            {search.trim() ? "No matching artists" : "No artists registered yet"}
+          <div className="admin-empty-icon" aria-hidden>
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" /></svg>
+          </div>
+          <p style={{ fontSize: 15, fontWeight: 700, margin: "0 0 6px", color: "var(--foreground)" }}>
+            {search.trim() ? "No matching artists" : "No artists yet"}
           </p>
-          <p style={{ fontSize: 14, margin: 0 }}>
+          <p style={{ fontSize: 13.5, margin: 0 }}>
             {search.trim() ? "Try a different search term." : "Artists will appear here once they register."}
           </p>
         </div>
       ) : (
         <>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: 20 }}>
+          <div className="admin-tiles">
             {pageArtists.map((artist) => (
               <ArtistCard
                 key={artist.id}
@@ -163,41 +166,38 @@ function ArtistCard({ artist, onEdit, onDelete }: {
   artist: Artist; onEdit: () => void; onDelete: () => void
 }) {
   return (
-    <div className="admin-card-lift" style={{
-      background: "var(--card-bg)", border: "1px solid var(--border)", borderRadius: 16,
-      overflow: "hidden",
-    }}>
-      <div style={{ position: "relative", aspectRatio: "1.2", overflow: "hidden", background: "linear-gradient(135deg, var(--brand-bg), var(--hover-bg))" }}>
+    <article className="admin-card admin-card-lift" style={{ overflow: "hidden" }}>
+      <div style={{ position: "relative", aspectRatio: "1.35", overflow: "hidden", background: "linear-gradient(135deg, var(--brand-bg), var(--hover-bg))" }}>
         {artist.cover_url ? (
-          <img src={artist.cover_url} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
+          <img src={artist.cover_url} alt="" loading="lazy" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
         ) : (
           <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", color: "var(--muted-foreground)", opacity: 0.5 }}>
-            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.2">
+            <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.2">
               <rect x="3" y="3" width="18" height="18" rx="3" /><path d="M9 18V9l8-1.5v9" /><circle cx="7" cy="18" r="2" /><circle cx="15" cy="16.5" r="2" />
             </svg>
           </div>
         )}
-        <div style={{ position: "absolute", top: 10, right: 10, display: "flex", gap: 6 }}>
-          {artist.verified && (
-            <span className="admin-pill" style={{
-              background: "rgba(59,130,246,0.15)", color: "rgb(59,130,246)",
-            }}>
-              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-                <polyline points="20 6 9 17 4 12" />
-              </svg>
-              Verified
-            </span>
-          )}
-        </div>
+        {artist.verified && (
+          <span className="admin-pill" style={{
+            position: "absolute", top: 8, right: 8,
+            background: "rgba(10,14,30,0.55)", color: "#fff",
+            backdropFilter: "blur(6px)", WebkitBackdropFilter: "blur(6px)",
+          }}>
+            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3.2" strokeLinecap="round" strokeLinejoin="round">
+              <polyline points="20 6 9 17 4 12" />
+            </svg>
+            Verified
+          </span>
+        )}
       </div>
 
-      <div style={{ padding: "16px 18px", position: "relative" }}>
-        <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 8 }}>
+      <div className="admin-tile-body" style={{ position: "relative" }}>
+        <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 6 }}>
           <div style={{ flex: 1, minWidth: 0 }}>
-            <h3 style={{ margin: 0, fontSize: 15, fontWeight: 700, color: "var(--foreground)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+            <h3 style={{ margin: 0, fontSize: 14, fontWeight: 800, letterSpacing: "-0.01em", color: "var(--foreground)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
               {artist.stage_name}
             </h3>
-            <p style={{ margin: "4px 0 0", fontSize: 12, color: "rgb(59,130,246)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+            <p style={{ margin: "3px 0 0", fontSize: 12, color: "var(--muted-foreground)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
               {artist.email}
             </p>
           </div>
@@ -217,22 +217,20 @@ function ArtistCard({ artist, onEdit, onDelete }: {
         </div>
 
         <p style={{
-          margin: "8px 0 0", fontSize: 13, color: "var(--muted-foreground)", lineHeight: 1.45,
+          margin: "7px 0 0", fontSize: 12.5, color: "var(--muted-foreground)", lineHeight: 1.45,
           display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden",
         }}>
           {artist.bio || "No biography provided."}
         </p>
 
-        <div style={{ display: "flex", alignItems: "center", gap: 12, marginTop: 12, fontSize: 12, color: "var(--muted-foreground)" }}>
-          <span style={{ display: "flex", alignItems: "center", gap: 4 }}>
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-              <rect x="3" y="4" width="18" height="18" rx="2" ry="2" /><line x1="16" y1="2" x2="16" y2="6" /><line x1="8" y1="2" x2="8" y2="6" /><line x1="3" y1="10" x2="21" y2="10" />
-            </svg>
-            {formatDate(artist.created_at)}
-          </span>
+        <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 10, fontSize: 11.5, color: "var(--muted-foreground)" }}>
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+            <rect x="3" y="4" width="18" height="18" rx="2" ry="2" /><line x1="16" y1="2" x2="16" y2="6" /><line x1="8" y1="2" x2="8" y2="6" /><line x1="3" y1="10" x2="21" y2="10" />
+          </svg>
+          {formatDate(artist.created_at)}
         </div>
       </div>
-    </div>
+    </article>
   )
 }
 

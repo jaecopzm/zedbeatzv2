@@ -83,28 +83,19 @@ export default function AdminUploadPage() {
   }
 
   return (
-    <div className="fade-in">
-      <div style={{ marginBottom: "24px", maxWidth: "680px", margin: "0 auto 24px" }}>
-        <h1 style={{ fontSize: "24px", fontWeight: 700, color: "var(--foreground)", letterSpacing: "-0.5px", margin: 0 }}>
-          Upload New Song Catalog
-        </h1>
-        <p style={{ fontSize: "14px", color: "var(--muted-foreground)", margin: "4px 0 0 0" }}>
-          Provide details to manually populate individual track records
-        </p>
-      </div>
+    <div className="fade-in" style={{ maxWidth: 720, margin: "0 auto", width: "100%" }}>
+      <header className="admin-header" style={{ marginBottom: 4 }}>
+        <div className="admin-header-text">
+          <span className="admin-eyebrow"><span className="admin-eyebrow-dot" aria-hidden />Manual upload</span>
+          <h1 className="admin-title">Upload a track</h1>
+          <p className="admin-sub">Audio, artwork and metadata — publish now or save as a draft.</p>
+        </div>
+      </header>
 
-      <form onSubmit={handleSubmit} style={{
-        background: "var(--card-bg)",
-        border: "1px solid var(--border)",
-        borderRadius: "14px",
-        padding: "24px",
-        boxShadow: "0 4px 16px rgba(0,0,0,0.03)",
-        maxWidth: "680px",
-        margin: "0 auto"
-      }}>
-        <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+      <form onSubmit={handleSubmit} className="admin-panel">
+        <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
           {/* Artist selector */}
-          <div>
+          <div className="admin-field">
             <label className="admin-label">Artist Owner *</label>
             <select
               value={artistId}
@@ -123,7 +114,7 @@ export default function AdminUploadPage() {
           </div>
 
           {/* Album Selector */}
-          <div>
+          <div className="admin-field">
             <label className="admin-label">Album Collection</label>
             <select
               value={albumId}
@@ -157,7 +148,7 @@ export default function AdminUploadPage() {
           </div>
 
           {/* Title */}
-          <div>
+          <div className="admin-field">
             <label className="admin-label">Song Title *</label>
             <input
               type="text"
@@ -170,8 +161,8 @@ export default function AdminUploadPage() {
           </div>
 
           {/* Description */}
-          <div>
-            <label className="admin-label">Description <span style={{ fontWeight: 400, color: "var(--muted-foreground)", textTransform: "none", letterSpacing: "normal" }}>— helps SEO, tell the story behind the track</span></label>
+          <div className="admin-field">
+            <label className="admin-label">Description <span style={{ fontWeight: 400, color: "var(--muted-foreground)", textTransform: "none", letterSpacing: "normal" }}>— SEO + story</span></label>
             <textarea
               value={description}
               onChange={(e) => setDescription(e.target.value)}
@@ -183,8 +174,8 @@ export default function AdminUploadPage() {
           </div>
 
           {/* Genre and Duration Grid */}
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "16px" }}>
-            <div>
+          <div className="admin-form-grid admin-form-grid-2">
+            <div className="admin-field">
               <label className="admin-label">Genre</label>
               <select
                 value={genreId}
@@ -200,8 +191,8 @@ export default function AdminUploadPage() {
                 ))}
               </select>
             </div>
-            <div>
-              <label className="admin-label">Duration (Seconds)</label>
+            <div className="admin-field">
+              <label className="admin-label">Duration (sec)</label>
               <input
                 type="number"
                 value={durationSec}
@@ -213,14 +204,14 @@ export default function AdminUploadPage() {
           </div>
 
           {/* Section */}
-          <div>
+          <div className="admin-field">
             <label className="admin-label">Home Page Section</label>
             <SectionSelect value={section} onChange={setSection} />
           </div>
 
           {/* Featured Artists */}
-          <div>
-            <label className="admin-label">Collaborators / Featured Artists</label>
+          <div className="admin-field">
+            <label className="admin-label">Featured Artists</label>
             <input
               type="text"
               value={featuredArtists}
@@ -231,9 +222,9 @@ export default function AdminUploadPage() {
           </div>
 
           {/* Track Order & Publish */}
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "16px" }}>
-            <div>
-              <label className="admin-label">Track Catalog Number (Order)</label>
+          <div className="admin-form-grid admin-form-grid-2">
+            <div className="admin-field">
+              <label className="admin-label">Track Order</label>
               <input
                 type="number"
                 value={trackOrder}
@@ -242,39 +233,41 @@ export default function AdminUploadPage() {
                 className="admin-input"
               />
             </div>
-            <div style={{ display: "flex", alignItems: "end", paddingBottom: "10px" }}>
-              <label style={{ display: "inline-flex", alignItems: "center", gap: "8px", cursor: "pointer", fontSize: "13px", fontWeight: 550 }}>
+            <div className="admin-field" style={{ justifyContent: "flex-end" }}>
+              <label style={{ display: "flex", alignItems: "center", gap: 10, cursor: "pointer", fontSize: "13.5px", fontWeight: 650, minHeight: "var(--admin-touch)", padding: "8px 12px", borderRadius: 12, border: "1.5px solid var(--border)", background: publish ? "var(--brand-bg)" : "var(--card-bg)" }}>
                 <input
                   type="checkbox"
                   checked={publish}
                   onChange={(e) => setPublish(e.target.checked)}
-                  style={{ width: "16px", height: "16px", accentColor: "var(--active-fg)" }}
+                  style={{ width: 20, height: 20, accentColor: "var(--brand)", flexShrink: 0 }}
                 />
-                Publish Immediately
+                Publish immediately
               </label>
             </div>
           </div>
 
           {/* File Upload Fields */}
-          <div>
-            <label className="admin-label">Audio Track File *</label>
-            <input
-              type="file"
-              accept="audio/*"
-              required
-              onChange={(e) => setAudioFile(e.target.files?.[0] || null)}
-              style={{ fontSize: "13px", color: "var(--muted-foreground)" }}
-            />
+          <div className="admin-field">
+            <label className="admin-label">Audio File * {audioFile && <span style={{ color: "rgb(16,185,129)", textTransform: "none" }}>— {audioFile.name}</span>}</label>
+            <label className="admin-file">
+              <input
+                type="file"
+                accept="audio/*"
+                required
+                onChange={(e) => setAudioFile(e.target.files?.[0] || null)}
+              />
+            </label>
           </div>
 
-          <div>
-            <label className="admin-label">Cover Image Artwork</label>
-            <input
-              type="file"
-              accept="image/*"
-              onChange={(e) => setCoverFile(e.target.files?.[0] || null)}
-              style={{ fontSize: "13px", color: "var(--muted-foreground)" }}
-            />
+          <div className="admin-field">
+            <label className="admin-label">Cover Artwork {coverFile && <span style={{ color: "rgb(16,185,129)", textTransform: "none" }}>— {coverFile.name}</span>}</label>
+            <label className="admin-file">
+              <input
+                type="file"
+                accept="image/*"
+                onChange={(e) => setCoverFile(e.target.files?.[0] || null)}
+              />
+            </label>
           </div>
 
           {error && (
@@ -287,14 +280,15 @@ export default function AdminUploadPage() {
             </div>
           )}
 
-          <button
-            type="submit"
-            disabled={!canSubmit || uploadMutation.isPending}
-            className="admin-btn-primary"
-            style={{ width: "100%", padding: "14px", marginTop: "10px" }}
-          >
-            {uploadMutation.isPending ? "Uploading Track..." : "Upload Track Metadata"}
-          </button>
+          <div className="admin-sticky-bar">
+            <button
+              type="submit"
+              disabled={!canSubmit || uploadMutation.isPending}
+              className="admin-btn-primary admin-btn-block"
+            >
+              {uploadMutation.isPending ? "Uploading…" : "Upload track"}
+            </button>
+          </div>
 
           {uploadMutation.data && (
             <div style={{

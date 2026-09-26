@@ -19,6 +19,7 @@ const HOME_STALE_TIME = 5 * 60 * 1000
 
 export type HomeInitialData = {
   best_new_songs?: any
+  best_new_songs_more?: any
   new_this_week?: any
   albums?: any
   artists?: any
@@ -76,14 +77,21 @@ function Greeting() {
 
 function RecentlyPlayedSection() {
   const user = useAuthStore((s) => s.user)
+  // Auth state is restored from localStorage, so it differs from the server
+  // prerender — defer until after hydration to avoid a hydration mismatch.
+  const [mounted, setMounted] = useState(false)
+  useEffect(() => {
+    setMounted(true)
+  }, [])
   const { data, isLoading } = useQuery({
     queryKey: ["history"],
     queryFn: () => api.getHistory(12),
-    enabled: !!user,
+    enabled: mounted && !!user,
   })
   const tracks = (data?.tracks ?? data?.history ?? []) as any[]
   const playQueue = usePlayerStore((s) => s.playQueue)
 
+  if (!mounted) return null
   if (!user) return null
   if (!isLoading && tracks.length === 0) return null
 
@@ -206,10 +214,10 @@ function FeaturedArtistsSection({ initialData }: { initialData?: any }) {
         {isLoading ? (
           <HorizontalScroller>
             {Array.from({ length: 6 }).map((_, i) => (
-              <div key={i} style={{ flexShrink: 0, width: "148px", textAlign: "center" }}>
-                <div className="skeleton" style={{ width: "116px", height: "116px", borderRadius: "50%", margin: "0 auto 12px" }} />
-                <div className="skeleton" style={{ width: "70%", height: "12px", margin: "0 auto 4px" }} />
-                <div className="skeleton" style={{ width: "40%", height: "10px", margin: "0 auto" }} />
+              <div key={i} className="hp-artist-skel">
+                <div className="skeleton hp-artist-skel-avatar" />
+                <div className="skeleton hp-artist-skel-line" style={{ width: "70%" }} />
+                <div className="skeleton hp-artist-skel-line-sm" style={{ width: "40%" }} />
               </div>
             ))}
           </HorizontalScroller>
@@ -229,14 +237,21 @@ function FeaturedArtistsSection({ initialData }: { initialData?: any }) {
 
 function RecommendationsSection() {
   const user = useAuthStore((s) => s.user)
+  // Auth state is restored from localStorage, so it differs from the server
+  // prerender — defer until after hydration to avoid a hydration mismatch.
+  const [mounted, setMounted] = useState(false)
+  useEffect(() => {
+    setMounted(true)
+  }, [])
   const { data, isLoading } = useQuery({
     queryKey: ["recommendations"],
     queryFn: () => api.getRecommendations(12),
-    enabled: !!user,
+    enabled: mounted && !!user,
   })
   const tracks = data?.recommendations ?? []
   const playQueue = usePlayerStore((s) => s.playQueue)
 
+  if (!mounted) return null
   if (!user) return null
   if (!isLoading && tracks.length === 0) return null
 
@@ -334,6 +349,66 @@ function BestNewSongsSection({ initialData }: { initialData?: any }) {
   )
 }
 
+/** Second page of the charts in the same numbered-row look — keeps home scrolling endlessly. */
+function MoreChartsSection({ initialData }: { initialData?: any }) {
+  const { data, isLoading } = useQuery({
+    queryKey: ["tracks", "best_new_songs_more"],
+    queryFn: () => api.listTracks(12, 12, "best_new_songs"),
+    ...(initialData ? { initialData, staleTime: HOME_STALE_TIME } : {}),
+  })
+
+  const tracks = data?.tracks ?? []
+  const offset = 12
+  const col1 = tracks.slice(0, 4)
+  const col2 = tracks.slice(4, 8)
+  const col3 = tracks.slice(8, 12)
+  const columns = [col1, col2, col3]
+
+  const playQueue = usePlayerStore((s) => s.playQueue)
+
+  if (!isLoading && tracks.length === 0) return null
+
+  const handlePlayAll = () => {
+    if (tracks.length === 0) return
+    playQueue(tracks.map(toTrackInfo), 0)
+  }
+
+  return (
+    <section className="hp-section">
+      <SectionHeader
+        label="Still trending"
+        href="/section/best_new_songs"
+        size="sm"
+        onPlayAll={tracks.length > 0 ? handlePlayAll : undefined}
+      />
+      {isLoading ? (
+        <div className="hp-bns-grid">
+          {Array.from({ length: 3 }).map((_, colIdx) => (
+            <div key={colIdx} className="hp-bns-column">
+              {Array.from({ length: 4 }).map((_, rIdx) => (
+                <div key={rIdx}>
+                  <SkeletonRow index={colIdx * 4 + rIdx} />
+                  {rIdx < 3 && <div className="hp-track-divider" />}
+                </div>
+              ))}
+            </div>
+          ))}
+        </div>
+      ) : (
+        <div className="hp-bns-grid">
+          {columns.map((col, colIdx) => (
+            <div key={colIdx} className="hp-bns-column">
+              {col.map((t: any, idx: number) => (
+                <TrackRow key={t.id} track={t} index={offset + colIdx * 4 + idx} isLast={idx === col.length - 1} />
+              ))}
+            </div>
+          ))}
+        </div>
+      )}
+    </section>
+  )
+}
+
 type SectionDef = { sectionKey: string; label: string }
 
 const browseSections: SectionDef[] = [
@@ -405,6 +480,7 @@ export default function HomePage({ initialData }: { initialData?: HomeInitialDat
       <NewThisWeekSection initialData={initialData?.new_this_week} />
       <AlbumsSection initialData={initialData?.albums} />
       <FeaturedArtistsSection initialData={initialData?.artists} />
+      <MoreChartsSection initialData={initialData?.best_new_songs_more} />
       {browseSections.slice(0, 4).map((s) => (
         <BrowseSection key={s.sectionKey} {...s} initialData={initialData?.sections?.[s.sectionKey]} />
       ))}

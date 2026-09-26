@@ -40,8 +40,9 @@ const browseSectionSlugs = [
 ]
 
 export default async function HomePageServer() {
-  const [best, fresh, albums, artists, ...sectionResults] = await Promise.all([
+  const [best, bestMore, fresh, albums, artists, ...sectionResults] = await Promise.all([
     fetchJSON<TrackList>(`${API_BASE}/tracks?limit=12&section=best_new_songs`),
+    fetchJSON<TrackList>(`${API_BASE}/tracks?limit=12&offset=12&section=best_new_songs`),
     fetchJSON<TrackList>(`${API_BASE}/tracks?limit=12&section=new_this_week`),
     fetchJSON<AlbumList>(`${API_BASE}/albums?limit=12`),
     fetchJSON<ArtistList>(`${API_BASE}/artists/featured`),
@@ -57,6 +58,7 @@ export default async function HomePageServer() {
 
   const initialData: HomeInitialData = {
     best_new_songs: best,
+    best_new_songs_more: bestMore,
     new_this_week: fresh,
     albums,
     artists,

@@ -142,7 +142,6 @@ export const api = {
     }),
 
   // Auth
-  devLogin: () => request<import("@/types").AuthTokens>("/auth/dev-login", { method: "POST" }),
   register: (email: string, password: string) =>
     request<import("@/types").AuthTokens>("/auth/register", {
       method: "POST", body: JSON.stringify({ email, password }),

@@ -129,110 +129,110 @@ export default function AdminAlbumsPage() {
 
   return (
     <div className="fade-in">
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 28, flexWrap: "wrap", gap: 16 }}>
-        <div>
-          <h1 style={{ fontSize: 24, fontWeight: 700, color: "var(--foreground)", letterSpacing: "-0.5px", margin: 0 }}>
-            Manage Albums
-          </h1>
-          <p style={{ fontSize: 14, color: "var(--muted-foreground)", margin: "4px 0 0" }}>
-            {albums.length} album{albums.length === 1 ? "" : "s"} · EPs, singles, and compilations
+      <header className="admin-header">
+        <div className="admin-header-text">
+          <span className="admin-eyebrow"><span className="admin-eyebrow-dot" aria-hidden />Catalog</span>
+          <h1 className="admin-title">Albums</h1>
+          <p className="admin-sub">
+            {albums.length} album{albums.length === 1 ? "" : "s"} · EPs, singles and compilations
           </p>
         </div>
-        <button
-          onClick={() => { resetCreateForm(); setShowCreate(!showCreate) }}
-          className="admin-btn-primary"
-          style={{ background: showCreate ? "var(--border)" : "var(--brand)", color: showCreate ? "var(--foreground)" : "#fff" }}
-        >
-          {showCreate ? "Cancel" : "+ New Album"}
-        </button>
-      </div>
+        <div className="admin-header-actions">
+          <button
+            onClick={() => { resetCreateForm(); setShowCreate(!showCreate) }}
+            className={showCreate ? "admin-btn-secondary" : "admin-btn-primary"}
+            aria-expanded={showCreate}
+          >
+            {showCreate ? "Cancel" : "+ New album"}
+          </button>
+        </div>
+      </header>
 
       {showCreate && (
-        <form onSubmit={handleCreate} style={{
-          background: "var(--card-bg)", border: "1px solid var(--border)", borderRadius: 16,
-          padding: "24px 28px", marginBottom: 28, display: "flex", flexDirection: "column", gap: 16,
-        }}>
-          <h2 style={{ margin: 0, fontSize: 16, fontWeight: 700, color: "var(--foreground)" }}>Create New Album</h2>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 16 }}>
-            <div>
+        <form onSubmit={handleCreate} className="admin-panel" style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+          <h2 style={{ margin: 0, fontSize: 15, fontWeight: 800, letterSpacing: "-0.01em", color: "var(--foreground)" }}>Create album</h2>
+          <div className="admin-form-grid admin-form-grid-2">
+            <div className="admin-field">
               <label className="admin-label">Artist Owner *</label>
-              <select value={createArtistId} onChange={(e) => setCreateArtistId(e.target.value)} required className="admin-input" style={{ cursor: "pointer" }}>
-                <option value="">Select artist...</option>
+              <select value={createArtistId} onChange={(e) => setCreateArtistId(e.target.value)} required className="admin-input">
+                <option value="">Select artist…</option>
                 {artists.map((a: any) => <option key={a.id} value={a.id}>{a.stage_name}</option>)}
               </select>
             </div>
-            <div>
+            <div className="admin-field">
               <label className="admin-label">Album Title *</label>
               <input value={createTitle} onChange={(e) => setCreateTitle(e.target.value)} placeholder="Album title" required className="admin-input" />
             </div>
           </div>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: 16 }}>
-            <div>
+          <div className="admin-form-grid admin-form-grid-2">
+            <div className="admin-field">
               <label className="admin-label">Type</label>
-              <select value={createType} onChange={(e) => setCreateType(e.target.value as AlbumType)} className="admin-input" style={{ cursor: "pointer" }}>
+              <select value={createType} onChange={(e) => setCreateType(e.target.value as AlbumType)} className="admin-input">
                 {ALBUM_TYPES.map((t) => <option key={t} value={t}>{t.toUpperCase()}</option>)}
               </select>
             </div>
-            <div>
+            <div className="admin-field">
               <label className="admin-label">Status</label>
-              <select value={createStatus} onChange={(e) => setCreateStatus(e.target.value)} className="admin-input" style={{ cursor: "pointer" }}>
+              <select value={createStatus} onChange={(e) => setCreateStatus(e.target.value)} className="admin-input">
                 {STATUS_OPTIONS.map((s) => <option key={s} value={s}>{s.charAt(0).toUpperCase() + s.slice(1)}</option>)}
               </select>
             </div>
-            <div>
-              <label className="admin-label">Cover Art</label>
+          </div>
+          <div className="admin-field">
+            <label className="admin-label">Cover Art {createCoverPreview && <span style={{ color: "rgb(16,185,129)", textTransform: "none" }}>— attached</span>}</label>
+            <label className="admin-file">
               <input type="file" accept="image/*" onChange={(e) => {
                 const f = e.target.files?.[0]
                 if (f) { setCreateCover(f); setCreateCoverPreview(URL.createObjectURL(f)) }
-              }} style={{ fontSize: 13, color: "var(--foreground)" }} />
-            </div>
+              }} />
+            </label>
           </div>
-          {createCoverPreview && (
-            <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
-              <img src={createCoverPreview} alt="" style={{ width: 48, height: 48, borderRadius: 8, objectFit: "cover", border: "1px solid var(--border)" }} />
-              <span style={{ fontSize: 13, color: "var(--muted-foreground)" }}>Cover preview</span>
-            </div>
-          )}
-          <button type="submit" disabled={!createArtistId || !createTitle.trim() || createMutation.isPending} className="admin-btn-primary" style={{ alignSelf: "flex-end" }}>
-            {createMutation.isPending ? "Creating..." : "Create Album"}
-          </button>
+          <div className="admin-sticky-bar">
+            <button type="submit" disabled={!createArtistId || !createTitle.trim() || createMutation.isPending} className="admin-btn-primary" style={{ flex: 1 }}>
+              {createMutation.isPending ? "Creating…" : "Create album"}
+            </button>
+          </div>
         </form>
       )}
 
       {/* Search */}
-      <div style={{ marginBottom: 24 }}>
+      <div className="admin-toolbar">
         <input
-          type="text"
+          type="search"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          placeholder="Search albums by title, artist, type..."
+          placeholder="Search title, artist, type…"
           className="admin-search"
+          aria-label="Search albums"
         />
       </div>
 
       {/* Albums Grid */}
       {albumsLoading ? (
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: 20 }}>
+        <div className="admin-skel-grid">
           {Array.from({ length: 6 }).map((_, i) => (
-            <div key={i} style={{ display: "flex", flexDirection: "column", gap: 12, padding: 16 }}>
+            <div key={i} className="admin-card" style={{ display: "flex", flexDirection: "column", gap: 10, padding: 12 }}>
               <div className="skeleton" style={{ width: "100%", aspectRatio: "1", borderRadius: 12 }} />
-              <div className="skeleton" style={{ width: "70%", height: 16 }} />
+              <div className="skeleton" style={{ width: "70%", height: 15 }} />
               <div className="skeleton" style={{ width: "50%", height: 12 }} />
             </div>
           ))}
         </div>
       ) : filteredAlbums.length === 0 ? (
         <div className="admin-empty">
-          <p style={{ fontSize: 15, fontWeight: 600, margin: "0 0 8px" }}>
+          <div className="admin-empty-icon" aria-hidden>
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><circle cx="12" cy="12" r="10" /><circle cx="12" cy="12" r="3" /></svg>
+          </div>
+          <p style={{ fontSize: 15, fontWeight: 700, margin: "0 0 6px", color: "var(--foreground)" }}>
             {search.trim() ? "No matching albums" : "No albums yet"}
           </p>
-          <p style={{ fontSize: 14, margin: 0 }}>
+          <p style={{ fontSize: 13.5, margin: 0 }}>
             {search.trim() ? "Try a different search term." : "Create your first album to get started."}
           </p>
         </div>
       ) : (
         <>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: 20 }}>
+          <div className="admin-tiles">
             {pageAlbums.map((album) => {
               const artist = artists.find((a: any) => a.id === album.artist_id)
               return (
@@ -282,45 +282,43 @@ function AlbumCard({ album, artistName, onEdit, onDelete }: {
   const typeLabel = album.type.toUpperCase()
 
   return (
-    <div className="admin-card-lift" style={{
-      background: "var(--card-bg)", border: "1px solid var(--border)", borderRadius: 16,
-      overflow: "hidden",
-    }}>
+    <article className="admin-card admin-card-lift" style={{ overflow: "hidden" }}>
       <div style={{ position: "relative", aspectRatio: "1", overflow: "hidden", background: "linear-gradient(135deg, var(--brand-bg), var(--hover-bg))" }}>
         {album.cover_url ? (
-          <img src={album.cover_url} alt={album.title} style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
+          <img src={album.cover_url} alt={album.title} loading="lazy" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
         ) : (
           <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", color: "var(--muted-foreground)", opacity: 0.5 }}>
-            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.2">
-              <rect x="3" y="3" width="18" height="18" rx="3" /><circle cx="12" cy="12" r="10" /><circle cx="12" cy="12" r="3" />
+            <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.2">
+              <circle cx="12" cy="12" r="10" /><circle cx="12" cy="12" r="3" />
             </svg>
           </div>
         )}
-        <div style={{ position: "absolute", top: 10, left: 10, right: 10, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+        <div style={{ position: "absolute", top: 8, left: 8, right: 8, display: "flex", justifyContent: "space-between", alignItems: "center", gap: 6 }}>
           <span style={{
-            padding: "4px 10px", borderRadius: 999, fontSize: 11, fontWeight: 700,
-            background: "rgba(0,0,0,0.45)", color: "#fff", backdropFilter: "blur(4px)",
-            textTransform: "uppercase", letterSpacing: "0.06em",
+            padding: "4px 9px", borderRadius: 999, fontSize: 10, fontWeight: 800,
+            background: "rgba(10,14,30,0.55)", color: "#fff", backdropFilter: "blur(6px)", WebkitBackdropFilter: "blur(6px)",
+            textTransform: "uppercase", letterSpacing: "0.07em",
           }}>
             {typeLabel}
           </span>
           <span style={{
-            padding: "4px 10px", borderRadius: 999, fontSize: 11, fontWeight: 600,
-            background: `${statusColor}20`, color: statusColor,
-            backdropFilter: "blur(4px)", textTransform: "capitalize",
+            padding: "4px 9px", borderRadius: 999, fontSize: 10.5, fontWeight: 700,
+            background: "rgba(10,14,30,0.55)", color: "#fff",
+            backdropFilter: "blur(6px)", WebkitBackdropFilter: "blur(6px)", textTransform: "capitalize",
           }}>
+            <span aria-hidden style={{ display: "inline-block", width: 6, height: 6, borderRadius: "50%", background: statusColor, marginRight: 5, verticalAlign: "1px" }} />
             {album.status}
           </span>
         </div>
       </div>
 
-      <div style={{ padding: "14px 16px", position: "relative" }}>
-        <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 8 }}>
+      <div className="admin-tile-body" style={{ position: "relative" }}>
+        <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 6 }}>
           <div style={{ flex: 1, minWidth: 0 }}>
-            <h3 style={{ margin: 0, fontSize: 14, fontWeight: 700, color: "var(--foreground)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+            <h3 style={{ margin: 0, fontSize: 13.5, fontWeight: 800, letterSpacing: "-0.01em", color: "var(--foreground)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
               {album.title}
             </h3>
-            <p style={{ margin: "3px 0 0", fontSize: 12, color: "var(--muted-foreground)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+            <p style={{ margin: "2px 0 0", fontSize: 12, color: "var(--muted-foreground)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
               {artistName}
             </p>
           </div>
@@ -338,13 +336,13 @@ function AlbumCard({ album, artistName, onEdit, onDelete }: {
             },
           ]} />
         </div>
-        <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 10, fontSize: 12, color: "var(--muted-foreground)" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 8, fontSize: 11.5, color: "var(--muted-foreground)", fontVariantNumeric: "tabular-nums" }}>
           <span>{album.tracks?.length ?? 0} tracks</span>
-          <span>·</span>
+          <span aria-hidden>·</span>
           <span>{formatDate(album.created_at)}</span>
         </div>
       </div>
-    </div>
+    </article>
   )
 }
 
