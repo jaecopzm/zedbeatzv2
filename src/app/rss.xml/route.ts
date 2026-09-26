@@ -89,7 +89,6 @@ ${items
 <guid isPermaLink="true">${esc(i.guid)}</guid>
 <pubDate>${new Date(i.pubDate).toUTCString()}</pubDate>
 <description>${esc(i.description)}</description>
-${i.image ? `<enclosure url="${esc(i.image)}" type="image/jpeg" />` : ""}
 </item>`
   )
   .join("\n")}
