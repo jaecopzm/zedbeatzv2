@@ -14,6 +14,7 @@ const navLinks = [
   { href: "/admin/albums", label: "Albums", icon: "disc" },
   { href: "/admin/claims", label: "Claims", icon: "check" },
   { href: "/admin/sections", label: "Sections", icon: "layout" },
+  { href: "/admin/blog", label: "Blog", icon: "pen" },
   { href: "/admin/radio", label: "Radio", icon: "radio" },
   { href: "/admin/credits", label: "Credits", icon: "credit" },
 ]
@@ -204,6 +205,8 @@ function NavIcon({ name, active }: { name: string; active: boolean }) {
       return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="1.8" strokeLinecap="round"><path d="M22 2L11 7v1" /><path d="M11 7a5 5 0 0 0 0 10" /><path d="M15 5a9 9 0 0 1 0 14" /><circle cx="11" cy="12" r="2" /></svg>
     case "credit":
       return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="1.8" strokeLinecap="round"><circle cx="12" cy="12" r="10" /><path d="M12 6v12M9 9l3-3 3 3M9 15l3 3 3-3" /></svg>
+    case "pen":
+      return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="1.8" strokeLinecap="round"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z" /></svg>
     default:
       return null
   }

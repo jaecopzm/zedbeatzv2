@@ -43,16 +43,36 @@ type Album = {
   created_at?: string
 }
 
+type BlogPost = {
+  slug: string
+  title: string
+  excerpt?: string
+  published_at?: string | null
+  updated_at?: string
+  created_at?: string
+}
+
 export async function GET() {
-  const [tracksData, albumsData] = await Promise.all([
+  const [tracksData, albumsData, postsData] = await Promise.all([
     fetchJSON<{ tracks: Track[] }>(`${SERVER_API_BASE}/tracks?limit=50`),
     fetchJSON<{ albums: Album[] }>(`${SERVER_API_BASE}/albums?limit=30`),
+    fetchJSON<{ posts: BlogPost[] }>(`${SERVER_API_BASE}/posts?limit=20`),
   ])
 
   const tracks = (tracksData?.tracks ?? []).slice(0, 50)
   const albums = (albumsData?.albums ?? []).slice(0, 30)
 
+  const posts = (postsData?.posts ?? []).slice(0, 20)
+
   const items = [
+    ...posts.map((p) => ({
+      title: p.title,
+      link: `${SITE_URL}/blog/${p.slug}`,
+      guid: `${SITE_URL}/blog/${p.slug}`,
+      pubDate: p.published_at || p.created_at || p.updated_at || new Date().toISOString(),
+      description: p.excerpt || p.title,
+      image: undefined as string | undefined,
+    })),
     ...tracks.map((t) => ({
       title: `${t.title} by ${t.artist_name ?? "Unknown Artist"}`,
       link: `${SITE_URL}/track/${t.id}`,

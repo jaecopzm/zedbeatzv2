@@ -352,6 +352,49 @@ export const api = {
       body: JSON.stringify({ section }),
     }),
 
+  // Blog
+  adminListPosts: (limit = 50, offset = 0, status?: string) => {
+    let qs = `?limit=${limit}&offset=${offset}`
+    if (status) qs += `&status=${status}`
+    return request<{ posts: any[] }>(`/admin/posts${qs}`)
+  },
+
+  adminCreatePost: (formData: FormData) => {
+    const token = localStorage.getItem("access_token")
+    return fetch(`${API_BASE}/admin/posts`, {
+      method: "POST",
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+      body: formData,
+    }).then(async (res) => {
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({ error: res.statusText }))
+        throw new ApiError(res.status, body.error || "Request failed")
+      }
+      return res.json()
+    })
+  },
+
+  adminUpdatePost: (id: string, formData: FormData) => {
+    const token = localStorage.getItem("access_token")
+    return fetch(`${API_BASE}/admin/posts/${id}`, {
+      method: "PATCH",
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+      body: formData,
+    }).then(async (res) => {
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({ error: res.statusText }))
+        throw new ApiError(res.status, body.error || "Request failed")
+      }
+      return res.json()
+    })
+  },
+
+  adminDeletePost: (id: string) =>
+    request<void>(`/admin/posts/${id}`, { method: "DELETE" }),
+
+  adminGetPost: (id: string) =>
+    request<any>(`/admin/posts/${id}`),
+
   adminUploadTrack: (formData: FormData) => {
     const token = localStorage.getItem("access_token")
     return fetch(`${API_BASE}/admin/tracks`, {

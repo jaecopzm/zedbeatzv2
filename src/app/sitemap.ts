@@ -90,6 +90,16 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     priority: 0.6,
   }))
 
+  const postData = await fetchJSON<{
+    posts: { slug: string; updated_at: string }[]
+  }>(`${SERVER_API_BASE}/posts/sitemap`)
+  const postPages: MetadataRoute.Sitemap = (postData?.posts ?? []).map((p) => ({
+    url: `${SITE_URL}/blog/${p.slug}`,
+    lastModified: new Date(p.updated_at),
+    changeFrequency: "weekly" as const,
+    priority: 0.7,
+  }))
+
   const trackPages: MetadataRoute.Sitemap = (sitemapData?.tracks ?? []).map((t) => ({
     url: `${SITE_URL}/track/${t.id}`,
     lastModified: new Date(t.updated_at),
@@ -106,6 +116,8 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 
   return [
     ...staticPages,
+    { url: `${SITE_URL}/blog`, lastModified: new Date(), changeFrequency: "daily" as const, priority: 0.8 },
+    ...postPages,
     ...sectionPages,
     ...albumPages,
     ...genrePages,
