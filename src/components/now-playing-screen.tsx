@@ -204,9 +204,8 @@ export function NowPlayingScreen() {
                 </div>
                 {track && (
                   <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 12px", borderRadius: 10, background: "rgba(255,255,255,0.08)", marginBottom: 8 }}>
-                    <EqBars paused={!isPlaying} />
                     <div style={{ minWidth: 0, flex: 1 }}>
-                      <p style={{ margin: 0, fontSize: 13, fontWeight: 600, color: "#fff", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{track.title}</p>
+                      <p style={{ margin: 0, fontSize: 13, fontWeight: 600, color: "#fff", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{track.title} <EqBars paused={!isPlaying} /></p>
                       <p style={{ margin: 0, fontSize: 12, color: "rgba(255,255,255,0.55)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>Now playing</p>
                     </div>
                   </div>

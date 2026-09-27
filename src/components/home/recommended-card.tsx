@@ -54,9 +54,6 @@ export function RecommendedCard({ track }: { track: RecommendedTrack }) {
             </svg>
           </div>
         )}
-        <div className="hp-card-eq">
-          <EqBars paused={!isPlaying} />
-        </div>
         <button
           className="hp-play-overlay"
           onClick={handlePlayClick}
@@ -83,7 +80,7 @@ export function RecommendedCard({ track }: { track: RecommendedTrack }) {
           router.push(`/track/${track.id}`)
         }}
       >
-        {track.title}
+        {track.title}{isCurrentTrack ? <span> <EqBars paused={!isPlaying} /></span> : null}
       </p>
       <p className="hp-card-meta">{track.artist_name}</p>
     </div>

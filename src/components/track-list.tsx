@@ -47,11 +47,7 @@ export function TrackList({ tracks, accentColor }: { tracks: any[]; accentColor?
                   {isPlayingNow ? <PauseIcon size={16} /> : <PlayIconSolid size={16} />}
                 </button>
               ) : (
-                isCurrent && isPlayingNow ? (
-                  <EqBars />
-                ) : (
-                  <span style={{ color: isCurrent ? (accentColor || "var(--brand)") : "var(--muted-foreground)" }}>{idx + 1}</span>
-                )
+                <span style={{ color: isCurrent ? (accentColor || "var(--brand)") : "var(--muted-foreground)" }}>{idx + 1}</span>
               )}
             </div>
             <div style={{ display: "flex", alignItems: "center", gap: 12, minWidth: 0 }}>
@@ -70,7 +66,7 @@ export function TrackList({ tracks, accentColor }: { tracks: any[]; accentColor?
                   onMouseEnter={(e) => (e.currentTarget.style.textDecoration = "underline")}
                   onMouseLeave={(e) => (e.currentTarget.style.textDecoration = "none")}
                 >
-                  {t.title}
+                  {t.title}{isPlayingNow ? <span> <EqBars /></span> : null}
                 </p>
                 <p style={{ margin: 0, fontSize: 12, color: "var(--muted-foreground)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                   <ArtistLinks track={t} />

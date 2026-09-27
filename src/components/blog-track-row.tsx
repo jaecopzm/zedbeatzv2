@@ -53,11 +53,7 @@ export function BlogTrackList({ tracks }: { tracks: BlogTrack[] }) {
             aria-label={`Play ${t.title} by ${t.artist_name}`}
           >
             <span className="blog-track-index" aria-hidden>
-              {active && isPlaying ? (
-                <EqBars />
-              ) : (
-                String(i + 1).padStart(2, "0")
-              )}
+              {String(i + 1).padStart(2, "0")}
             </span>
             <span className="blog-track-art">
               {t.cover_url ? (
@@ -76,7 +72,7 @@ export function BlogTrackList({ tracks }: { tracks: BlogTrack[] }) {
               </span>
             </span>
             <span className="blog-track-meta">
-              <span className="blog-track-title">{t.title}</span>
+              <span className="blog-track-title">{t.title}{active && isPlaying ? <span> <EqBars /></span> : null}</span>
               <span className="blog-track-artist">{t.artist_name}</span>
             </span>
             <span className="blog-track-cta" aria-hidden>

@@ -78,9 +78,6 @@ export function TrackCardRow({ track }: { track: Track }) {
     >
       <div className="hp-card-art">
         <TrackArt track={track} />
-        <div className="hp-card-eq">
-          <EqBars paused={!isPlaying} />
-        </div>
         <button
           className="hp-play-overlay"
           onClick={handlePlayClick}
@@ -107,7 +104,7 @@ export function TrackCardRow({ track }: { track: Track }) {
           router.push(`/track/${track.id}`)
         }}
       >
-        {track.title}
+        {track.title}{isCurrentTrack ? <span> <EqBars paused={!isPlaying} /></span> : null}
       </p>
       <p className="hp-card-meta">
         <ArtistLinks track={track} />
@@ -148,11 +145,7 @@ export function TrackRow({ track, index, isLast }: { track: Track; index?: numbe
       >
         {index !== undefined && (
           <>
-            {isCurrentTrack && isPlaying ? (
-              <span className="hp-track-number"><EqBars /></span>
-            ) : (
-              <span className="hp-track-number">{index + 1}</span>
-            )}
+            <span className="hp-track-number">{index + 1}</span>
             <button
               className="hp-track-play-num-btn"
               onClick={(e) => {
@@ -208,6 +201,7 @@ export function TrackRow({ track, index, isLast }: { track: Track; index?: numbe
             >
               {track.title}
             </span>
+            {isPlaying ? <span> <EqBars /></span> : null}
           </p>
           <p className="hp-track-artist">
             <ArtistLinks track={track} />

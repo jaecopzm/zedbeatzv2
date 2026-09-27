@@ -353,8 +353,8 @@ function TrackRow({ track }: { track: Track }) {
         <span className="sr-play" aria-hidden>
           {loading ? (
             <svg className="spinner" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><circle cx="12" cy="12" r="10" strokeDasharray="31.4 31.4" strokeLinecap="round" /></svg>
-          ) : active ? (
-            <EqBars paused={!isPlaying} />
+          ) : active && isPlaying ? (
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="4" width="4" height="16" rx="1" /><rect x="14" y="4" width="4" height="16" rx="1" /></svg>
           ) : (
             <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><polygon points="5,3 19,12 5,21" /></svg>
           )}
@@ -365,7 +365,7 @@ function TrackRow({ track }: { track: Track }) {
        <div style={{ flex: 1, minWidth: 0 }}>
          <p className="sr-title" style={{ margin: 0, fontSize: "14px", fontWeight: 500, color: "var(--foreground)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}
            onClick={(e) => { e.stopPropagation(); router.push(`/track/${track.id}`) }}
-         >{track.title}</p>
+         >{track.title}{active ? <span> <EqBars paused={!isPlaying} /></span> : null}</p>
          <p style={{ margin: "2px 0 0", fontSize: "12px", color: "var(--muted-foreground)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
            <ArtistLinks track={track} />
          </p>

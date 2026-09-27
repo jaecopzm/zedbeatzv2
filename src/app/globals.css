@@ -5211,12 +5211,11 @@ textarea.admin-input { min-height: 0; line-height: 1.55; }
   border-radius: 2px;
   background: linear-gradient(to top, #FF9F1C, #FF2E93);
   transform-origin: bottom;
-  animation: eq-bounce 0.7s ease-in-out infinite alternate;
+  animation: eq-bounce 0.45s ease-in-out infinite alternate;
 }
 .eq > span:nth-child(1) { height: 55%; animation-delay: 0s; }
-.eq > span:nth-child(2) { height: 100%; animation-delay: 0.18s; }
-.eq > span:nth-child(3) { height: 70%; animation-delay: 0.36s; }
-.eq > span:nth-child(4) { height: 40%; animation-delay: 0.5s; }
+.eq > span:nth-child(2) { height: 100%; animation-delay: 0.12s; }
+.eq > span:nth-child(3) { height: 70%; animation-delay: 0.24s; }
 .eq.is-paused > span { animation-play-state: paused; }
 @keyframes eq-bounce {
   from { transform: scaleY(0.3); }

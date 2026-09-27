@@ -414,13 +414,9 @@ export default function AlbumPage() {
                     {isActiveAndPlaying ? <PauseIconSolid size={16} /> : <PlayIconSolid size={16} />}
                   </button>
                 ) : (
-                  isActive && isActiveAndPlaying ? (
-                    <EqBars />
-                  ) : (
-                    <span style={{ color: isActive ? "var(--brand)" : "var(--muted-foreground)" }}>
-                      {index + 1}
-                    </span>
-                  )
+                  <span style={{ color: isActive ? "var(--brand)" : "var(--muted-foreground)" }}>
+                    {index + 1}
+                  </span>
                 )}
               </div>
 
@@ -440,7 +436,7 @@ export default function AlbumPage() {
                     onMouseEnter={(e) => (e.currentTarget.style.textDecoration = "underline")}
                     onMouseLeave={(e) => (e.currentTarget.style.textDecoration = "none")}
                   >
-                    {track.title}
+                    {track.title}{isActiveAndPlaying ? <span> <EqBars /></span> : null}
                   </p>
                   <p style={{ margin: 0, fontSize: 12, color: "var(--muted-foreground)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                     <ArtistLinks track={track} />
