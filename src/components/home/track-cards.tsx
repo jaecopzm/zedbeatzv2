@@ -6,6 +6,7 @@ import { usePlayerStore } from "@/lib/store"
 import { ArtistLinks } from "@/components/artist-links"
 import { PremiumTrackMenu } from "@/components/track-menu"
 import { CoverImage } from "@/components/cover-image"
+import { EqBars } from "@/components/eq"
 import { PlayIcon as PlayBold } from "@solar-icons/react/bold/play"
 import { PauseIcon as PauseBold } from "@solar-icons/react/bold/pause"
 
@@ -78,10 +79,7 @@ export function TrackCardRow({ track }: { track: Track }) {
       <div className="hp-card-art">
         <TrackArt track={track} />
         <div className="hp-card-eq">
-          <div className="hp-card-eq-bar" />
-          <div className="hp-card-eq-bar" />
-          <div className="hp-card-eq-bar" />
-          <div className="hp-card-eq-bar" />
+          <EqBars paused={!isPlaying} />
         </div>
         <button
           className="hp-play-overlay"
@@ -150,7 +148,11 @@ export function TrackRow({ track, index, isLast }: { track: Track; index?: numbe
       >
         {index !== undefined && (
           <>
-            <span className="hp-track-number">{index + 1}</span>
+            {isCurrentTrack && isPlaying ? (
+              <span className="hp-track-number"><EqBars /></span>
+            ) : (
+              <span className="hp-track-number">{index + 1}</span>
+            )}
             <button
               className="hp-track-play-num-btn"
               onClick={(e) => {
@@ -187,17 +189,13 @@ export function TrackRow({ track, index, isLast }: { track: Track; index?: numbe
               </svg>
             </div>
           )}
-          {isCurrentTrack && isPlaying ? (
-            <div className="hp-track-eq-badge">
-              <div className="hp-track-eq-badge-bar" />
-              <div className="hp-track-eq-badge-bar" />
-              <div className="hp-track-eq-badge-bar" />
-            </div>
-          ) : (
-            <div className="hp-track-play-badge">
+          <div className="hp-track-play-badge">
+            {isCurrentTrack && isPlaying ? (
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="white"><rect x="6" y="4" width="4" height="16" rx="1" /><rect x="14" y="4" width="4" height="16" rx="1" /></svg>
+            ) : (
               <svg width="14" height="14" viewBox="0 0 24 24" fill="white"><polygon points="5,3 19,12 5,21" /></svg>
-            </div>
-          )}
+            )}
+          </div>
         </div>
         <div className="hp-track-info">
           <p className="hp-track-title">

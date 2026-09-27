@@ -2,11 +2,11 @@
 
 import { useQuery } from "@tanstack/react-query"
 import { api } from "@/lib/api"
-import { usePlayerStore } from "@/lib/store"
-import { ArtistLinks } from "@/components/artist-links"
+import { usePlayerStore, type TrackInfo } from "@/lib/store"
 import { useParams } from "next/navigation"
-import Link from "next/link"
-import { useState } from "react"
+import { useMemo, useState } from "react"
+import { TrackRow } from "@/components/home/track-cards"
+import { genreArt } from "@/lib/genre-art"
 
 const SECTION_LABELS: Record<string, string> = {
   best_new_songs: "Best New Songs",
@@ -24,15 +24,43 @@ const SECTION_LABELS: Record<string, string> = {
   throwback_thursday: "Throwback Thursday",
 }
 
+function toTrackInfo(t: any): TrackInfo {
+  return {
+    id: t.id,
+    artist_id: t.artist_id,
+    title: t.title,
+    artist_name: t.artist_name ?? "",
+    cover_url: t.cover_url ?? null,
+    duration_sec: t.duration_sec,
+    collaborators: (t.collaborators ?? []).map((c: any) => ({
+      artist_id: c.artist_id,
+      stage_name: c.stage_name,
+      role: "featured",
+    })),
+  }
+}
+
+function formatRuntime(totalSec: number): string {
+  if (!totalSec) return ""
+  const h = Math.floor(totalSec / 3600)
+  const m = Math.round((totalSec % 3600) / 60)
+  if (h > 0) return `${h} hr ${m} min`
+  return `${m} min`
+}
+
 export default function SectionPage() {
   const { slug } = useParams()
-  const play = usePlayerStore((s) => s.play)
+  const playQueue = usePlayerStore((s) => s.playQueue)
+  const togglePlay = usePlayerStore((s) => s.togglePlay)
+  const isPlaying = usePlayerStore((s) => s.isPlaying)
+  const currentTrack = usePlayerStore((s) => s.currentTrack)
   const [search, setSearch] = useState("")
   const [page, setPage] = useState(0)
   const limit = 50
 
   const sectionKey = typeof slug === "string" ? slug : ""
   const label = SECTION_LABELS[sectionKey] || sectionKey.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase())
+  const art = genreArt({ slug: sectionKey, name: label })
 
   const { data, isLoading } = useQuery({
     queryKey: ["tracks", sectionKey, page],
@@ -50,112 +78,112 @@ export default function SectionPage() {
   const loading = search ? searchLoading : isLoading
   const total = data?.tracks?.length ?? 0
 
-  const formatDuration = (sec: number) => {
-    const m = Math.floor(sec / 60)
-    const s = Math.floor(sec % 60)
-    return `${m}:${s.toString().padStart(2, "0")}`
+  const runtime = useMemo(
+    () => formatRuntime(tracks.reduce((sum: number, t: any) => sum + (t.duration_sec ?? 0), 0)),
+    [tracks]
+  )
+  const anyPlaying = isPlaying && !!currentTrack && tracks.some((t: any) => t.id === currentTrack.id)
+
+  const handlePlayAll = () => {
+    if (tracks.length === 0) return
+    if (anyPlaying) togglePlay()
+    else playQueue(tracks.map(toTrackInfo), 0)
   }
 
   return (
-    <div className="fade-in" style={{ padding: "4px 28px 40px", minHeight: "100%", background: "var(--content-bg)" }}>
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "20px", gap: "16px" }}>
-        <h1 style={{ fontSize: "22px", fontWeight: 700, color: "var(--section-header)", margin: 0, letterSpacing: "-0.3px", flexShrink: 0 }}>
-          {label}
-        </h1>
-        <div style={{ position: "relative", flex: 1, maxWidth: "320px" }}>
-          <svg style={{ position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)", color: "var(--muted-foreground)", pointerEvents: "none" }} width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
-          </svg>
-          <input
-            type="text" value={search} onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search tracks..."
-            style={{
-              width: "100%", padding: "8px 12px 8px 32px", borderRadius: "8px",
-              border: "1px solid var(--border)", background: "var(--card-bg)",
-              color: "var(--foreground)", fontSize: "13px", outline: "none",
-            }}
-            onFocus={(e) => (e.currentTarget.style.borderColor = "var(--active-fg)")}
-            onBlur={(e) => (e.currentTarget.style.borderColor = "var(--border)")}
-          />
+    <div className="fade-in sec-page">
+      {/* ── Hero — the explore tile, expanded ── */}
+      <header className="sec-hero">
+        <img className="sec-hero-bg" src={art} alt="" draggable={false} />
+        <div className="sec-hero-scrim" aria-hidden />
+        <div className="sec-hero-inner">
+          <p className="sec-eyebrow">Collection</p>
+          <h1 className="sec-title">{label}</h1>
+          <p className="sec-meta">
+            {tracks.length} track{tracks.length === 1 ? "" : "s"}
+            {runtime && <> · {runtime}</>}
+          </p>
+          <div className="sec-actions">
+            <button
+              type="button"
+              onClick={handlePlayAll}
+              disabled={tracks.length === 0}
+              className="sec-play"
+            >
+              {anyPlaying ? (
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
+                  <rect x="6" y="4" width="4" height="16" />
+                  <rect x="14" y="4" width="4" height="16" />
+                </svg>
+              ) : (
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor" style={{ marginLeft: 2 }} aria-hidden>
+                  <polygon points="6,4 20,12 6,20" />
+                </svg>
+              )}
+              {anyPlaying ? "Pause" : "Play All"}
+            </button>
+            <label className="sec-search">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+                <circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" />
+              </svg>
+              <input
+                type="text"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Search tracks..."
+                aria-label="Search tracks"
+              />
+            </label>
+          </div>
         </div>
-      </div>
+      </header>
 
-      {loading ? (
-        <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
-          {Array.from({ length: 10 }).map((_, i) => (
-            <div key={i} className="skeleton" style={{ height: "52px", borderRadius: "8px" }} />
-          ))}
-        </div>
-      ) : (
-        <>
-          <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
-            {tracks.map((track: any, idx: number) => (
-              <div
-                key={track.id}
-                onClick={() => play({
-                  id: track.id, artist_id: track.artist_id,
-                  title: track.title, artist_name: track.artist_name ?? "",
-                  cover_url: track.cover_url, duration_sec: track.duration_sec,
-                  collaborators: track.collaborators,
-                })}
-                style={{
-                  display: "flex", alignItems: "center", gap: "12px",
-                  padding: "8px 12px", borderRadius: "8px", cursor: "pointer",
-                  transition: "background 0.12s",
-                }}
-                onMouseEnter={(e) => (e.currentTarget.style.background = "var(--hover-bg)")}
-                onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
-              >
-                {track.cover_url ? (
-                  <img src={track.cover_url} alt="" style={{ width: "44px", height: "44px", borderRadius: "6px", objectFit: "cover", flexShrink: 0 }} />
-                ) : (
-                  <div style={{ width: "44px", height: "44px", borderRadius: "6px", background: "var(--border)", flexShrink: 0 }} />
-                )}
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <Link href={`/track/${track.id}`} style={{ textDecoration: "none" }}>
-                    <div style={{ fontSize: "14px", fontWeight: 500, color: "var(--foreground)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                      {track.title}
-                    </div>
-                  </Link>
-                  <div style={{ fontSize: "12px", color: "var(--muted-foreground)" }}>
-                    <ArtistLinks track={track} />
-                  </div>
-                </div>
-                <span style={{ fontSize: "12px", color: "var(--muted-foreground)", flexShrink: 0 }}>
-                  {formatDuration(track.duration_sec)}
-                </span>
-              </div>
+      {/* ── Tracklist ── */}
+      <div className="sec-list">
+        {loading ? (
+          <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+            {Array.from({ length: 10 }).map((_, i) => (
+              <div key={i} className="skeleton" style={{ height: 52, borderRadius: 8 }} />
             ))}
-            {tracks.length === 0 && (
-              <div style={{ textAlign: "center", padding: "40px", color: "var(--muted-foreground)", fontSize: "13px" }}>
-                {search ? "No tracks match your search" : "No tracks in this section"}
+          </div>
+        ) : tracks.length === 0 ? (
+          <div className="sec-empty">
+            {search ? "No tracks match your search" : "No tracks in this section yet"}
+          </div>
+        ) : (
+          <>
+            {tracks.map((track: any, idx: number) => (
+              <TrackRow
+                key={track.id}
+                track={track}
+                index={search ? undefined : page * limit + idx}
+                isLast={idx === tracks.length - 1}
+              />
+            ))}
+            {!search && total >= limit && (
+              <div className="sec-pager">
+                <button
+                  type="button"
+                  onClick={() => setPage(Math.max(0, page - 1))}
+                  disabled={page === 0}
+                  className="sec-page-btn"
+                >
+                  Previous
+                </button>
+                <span className="sec-page-num">Page {page + 1}</span>
+                <button
+                  type="button"
+                  onClick={() => setPage(page + 1)}
+                  disabled={total < limit}
+                  className="sec-page-btn"
+                >
+                  Next
+                </button>
               </div>
             )}
-          </div>
-
-          {!search && total >= limit && (
-            <div style={{ display: "flex", justifyContent: "center", gap: "8px", marginTop: "20px" }}>
-              <button onClick={() => setPage(Math.max(0, page - 1))} disabled={page === 0} style={{
-                padding: "8px 16px", borderRadius: "8px", border: "1px solid var(--border)",
-                background: "var(--card-bg)", color: page === 0 ? "var(--muted-foreground)" : "var(--foreground)",
-                fontSize: "13px", fontWeight: 500, cursor: page === 0 ? "not-allowed" : "pointer",
-              }}>
-                Previous
-              </button>
-              <span style={{ display: "flex", alignItems: "center", fontSize: "13px", color: "var(--muted-foreground)", padding: "0 8px" }}>
-                Page {page + 1}
-              </span>
-              <button onClick={() => setPage(page + 1)} disabled={total < limit} style={{
-                padding: "8px 16px", borderRadius: "8px", border: "1px solid var(--border)",
-                background: "var(--card-bg)", color: total < limit ? "var(--muted-foreground)" : "var(--foreground)",
-                fontSize: "13px", fontWeight: 500, cursor: total < limit ? "not-allowed" : "pointer",
-              }}>
-                Next
-              </button>
-            </div>
-          )}
-        </>
-      )}
+          </>
+        )}
+      </div>
     </div>
   )
 }

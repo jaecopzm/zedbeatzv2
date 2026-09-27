@@ -18,7 +18,7 @@ export default function LibraryPage() {
   const [activeTab, setActiveTab] = useState<"playlists" | "albums" | "artists" | "tracks">("playlists")
   const [search, setSearch] = useState("")
   const [sortBy, setSortBy] = useState<"recent" | "title" | "artist" | "plays">("recent")
-  const [viewMode, setViewMode] = useState<"grid" | "list">("grid")
+  const [viewMode, setViewMode] = useState<"grid" | "list">("list")
   const [showHistory, setShowHistory] = useState(true)
   const [contextMenu, setContextMenu] = useState<{
     x: number; y: number; items: { label: string; action: () => void }[]

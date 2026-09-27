@@ -2,6 +2,7 @@
 
 import { usePlayerStore, type TrackInfo } from "@/lib/store"
 import { CoverImage } from "@/components/cover-image"
+import { EqBars } from "@/components/eq"
 
 export interface BlogTrack {
   id: string
@@ -53,7 +54,7 @@ export function BlogTrackList({ tracks }: { tracks: BlogTrack[] }) {
           >
             <span className="blog-track-index" aria-hidden>
               {active && isPlaying ? (
-                <span className="blog-eq"><span /><span /><span /></span>
+                <EqBars />
               ) : (
                 String(i + 1).padStart(2, "0")
               )}

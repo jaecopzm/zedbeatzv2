@@ -6,6 +6,7 @@ import { Player } from "@/components/player"
 import { PlaylistModal } from "@/components/playlist-modal"
 import { NowPlayingScreen } from "@/components/now-playing-screen"
 import { BlogNav } from "@/components/blog-nav"
+import { Footer } from "@/components/footer"
 import type { ReactNode } from "react"
 
 // Pages that need a full-screen experience without sidebar/player
@@ -26,7 +27,12 @@ export function AppShell({ children }: { children: ReactNode }) {
     return (
       <div className="blog-app">
         <BlogNav />
-        <div className="blog-app-main">{children}</div>
+        <div className="blog-app-main">
+          {children}
+          <div className="blog-footer-wrap">
+            <Footer />
+          </div>
+        </div>
       </div>
     )
   }

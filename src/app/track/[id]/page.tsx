@@ -2,7 +2,7 @@
 
 import { useQuery, useQueries, useQueryClient } from "@tanstack/react-query"
 import { useParams, useRouter } from "next/navigation"
-import { useState, useEffect, useCallback } from "react"
+import { useState, useEffect, useCallback, useMemo } from "react"
 import { api } from "@/lib/api"
 import { usePlayerStore } from "@/lib/store"
 import { useAuthStore } from "@/lib/auth-store"
@@ -11,6 +11,7 @@ import { ArtistLinks } from "@/components/artist-links"
 import { TrackList } from "@/components/track-list"
 import { PremiumTrackMenu } from "@/components/track-menu"
 import { CoverImage } from "@/components/cover-image"
+import { highlightEntities } from "@/lib/highlight"
 import { SectionHeading } from "@/components/artist/ui"
 import { PlayIcon as PlayBold } from "@solar-icons/react/bold/play"
 import { PauseIcon as PauseBold } from "@solar-icons/react/bold/pause"
@@ -193,6 +194,17 @@ export default function TrackPage() {
 
   const isCurrentTrack = currentTrack?.id === id
   const isCurrentlyPlaying = isCurrentTrack && isPlaying
+
+  const highlightTerms = useMemo(
+    () => [
+      track?.title,
+      track?.artist_name,
+      (album as any)?.title ?? (track as any)?.album_name,
+      ...((track?.collaborators ?? []) as any[]).map((c) => c.stage_name ?? c.name),
+      genreName,
+    ],
+    [track?.title, track?.artist_name, track?.collaborators, (track as any)?.album_name, (album as any)?.title, genreName]
+  )
 
   const toPlayerTrack = useCallback(() => {
     if (!track) return null
@@ -452,11 +464,11 @@ export default function TrackPage() {
             <p
               className={`track-about-text${aboutExpanded ? "" : " clamped"}`}
               style={{
-                fontSize: 16, lineHeight: 1.8, color: "var(--foreground)",
+                fontSize: 14, lineHeight: 1.65, color: "var(--foreground)",
                 margin: 0, whiteSpace: "pre-wrap", maxWidth: 680, letterSpacing: "-0.005em",
               }}
             >
-              {track.description}
+              {highlightEntities(track.description, highlightTerms)}
             </p>
             {track.description.length > 180 && (
               <button

@@ -5,6 +5,7 @@ import type { RecommendedTrack } from "@/types"
 import { usePlayerStore } from "@/lib/store"
 import { useIsTrackPlaying, useIsCurrentTrack } from "@/components/home/track-cards"
 import { CoverImage } from "@/components/cover-image"
+import { EqBars } from "@/components/eq"
 import { PlayIcon as PlayBold } from "@solar-icons/react/bold/play"
 import { PauseIcon as PauseBold } from "@solar-icons/react/bold/pause"
 
@@ -54,10 +55,7 @@ export function RecommendedCard({ track }: { track: RecommendedTrack }) {
           </div>
         )}
         <div className="hp-card-eq">
-          <div className="hp-card-eq-bar" />
-          <div className="hp-card-eq-bar" />
-          <div className="hp-card-eq-bar" />
-          <div className="hp-card-eq-bar" />
+          <EqBars paused={!isPlaying} />
         </div>
         <button
           className="hp-play-overlay"

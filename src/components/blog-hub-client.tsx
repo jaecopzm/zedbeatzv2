@@ -4,7 +4,7 @@ import { useMemo, useState } from "react"
 import Link from "next/link"
 import { CoverImage } from "@/components/cover-image"
 import { SITE_NAME } from "@/lib/seo"
-import { formatBlogDateShort, readingTimeFromAny, typeLabel, typeTint } from "@/lib/blog"
+import { formatBlogDateShort, readingTimeFromAny, typeLabel } from "@/lib/blog"
 
 export interface HubPost {
   id: string
@@ -32,10 +32,27 @@ function minutes(p: HubPost): number {
   return readingTimeFromAny(p.body ?? p.excerpt ?? "")
 }
 
+function dateOf(p: HubPost): string {
+  return formatBlogDateShort(p.published_at ?? p.created_at)
+}
+
+function Byline({ post }: { post: HubPost }) {
+  return (
+    <span className="blog-by">
+      <span className="blog-by-avatar" aria-hidden>
+        {SITE_NAME.charAt(0)}
+      </span>
+      <span className="blog-by-name">{SITE_NAME} Editorial</span>
+      <span aria-hidden className="blog-by-sep">·</span>
+      <span>{minutes(post)} min read</span>
+    </span>
+  )
+}
+
 export function BlogHubClient({ posts }: { posts: HubPost[] }) {
   const [tab, setTab] = useState("")
   const [q, setQ] = useState("")
-  const [visible, setVisible] = useState(9)
+  const [visible, setVisible] = useState(10)
 
   const filtered = useMemo(() => {
     const needle = q.trim().toLowerCase()
@@ -56,7 +73,7 @@ export function BlogHubClient({ posts }: { posts: HubPost[] }) {
 
   return (
     <>
-      {/* Filter bar — sticky, glassy, like Spotify editorial */}
+      {/* Filter bar — Cloudflare-style: plain text tabs + inline search */}
       <div className="blog-filterbar" role="search">
         <div className="blog-tabs" role="tablist" aria-label="Filter stories">
           {TABS.map((t) => (
@@ -64,7 +81,7 @@ export function BlogHubClient({ posts }: { posts: HubPost[] }) {
               key={t.v}
               role="tab"
               aria-selected={tab === t.v}
-              onClick={() => { setTab(t.v); setVisible(9) }}
+              onClick={() => { setTab(t.v); setVisible(10) }}
               className={`blog-tab${tab === t.v ? " is-active" : ""}`}
             >
               {t.l}
@@ -75,8 +92,8 @@ export function BlogHubClient({ posts }: { posts: HubPost[] }) {
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" aria-hidden><circle cx="11" cy="11" r="7" /><path d="M21 21l-4.3-4.3" /></svg>
           <input
             value={q}
-            onChange={(e) => { setQ(e.target.value); setVisible(9) }}
-            placeholder="Search stories, artists, songs…"
+            onChange={(e) => { setQ(e.target.value); setVisible(10) }}
+            placeholder="Search stories…"
             aria-label="Search stories"
           />
           {q && (
@@ -96,73 +113,48 @@ export function BlogHubClient({ posts }: { posts: HubPost[] }) {
       {!tab && !q && featured && (
         <Link href={`/blog/${featured.slug}`} className="blog-hero-link" aria-label={featured.title}>
           <article className="blog-hero">
-            <div className="blog-hero-media">
-              {featured.cover_url ? (
-                <CoverImage src={featured.cover_url} alt={featured.title} sizes="(max-width: 900px) 100vw, 1100px" priority className="blog-zoom" />
-              ) : (
-                <div className="blog-hero-fallback" aria-hidden>{SITE_NAME.toUpperCase()}</div>
-              )}
-              <div className="blog-hero-scrim" aria-hidden />
-              <span className="blog-badge blog-badge-light">Featured</span>
-              <div className="blog-hero-copy">
-                <span className="blog-kicker" style={{ color: "#fff" }}>
-                  <i className="blog-dot" style={{ background: typeTint(featured.post_type) }} />
-                  {typeLabel(featured.post_type)}
-                </span>
-                <h2 className="blog-hero-title">{featured.title}</h2>
-                {featured.excerpt && <p className="blog-hero-excerpt">{featured.excerpt}</p>}
-                <span className="blog-hero-meta">
-                  {formatBlogDateShort(featured.published_at ?? featured.created_at)}
-                  <span aria-hidden> · </span>{minutes(featured)} min read
-                  <span aria-hidden> · </span><span className="blog-read">Read story →</span>
-                </span>
-              </div>
+            <div className="blog-hero-text">
+              <p className="blog-date">{dateOf(featured)}</p>
+              <h2 className="blog-hero-title">{featured.title}</h2>
+              {featured.excerpt && <p className="blog-hero-excerpt">{featured.excerpt}</p>}
+              <Byline post={featured} />
             </div>
+            {featured.cover_url && (
+              <div className="blog-hero-thumb" aria-hidden>
+                <CoverImage src={featured.cover_url} alt="" sizes="(max-width: 900px) 100vw, 420px" priority />
+              </div>
+            )}
           </article>
         </Link>
       )}
 
       {shown.length > 0 ? (
         <>
-          {!tab && !q && (
-            <div className="blog-sectionhead">
-              <h2>Latest stories</h2>
-              <span>{rest.length} more</span>
-            </div>
-          )}
           <div className="blog-grid">
             {shown.map((p) => (
               <Link key={p.id} href={`/blog/${p.slug}`} className="blog-card-link" aria-label={p.title}>
                 <article className="blog-card">
-                  <div className="blog-card-media">
-                    {p.cover_url ? (
-                      <CoverImage src={p.cover_url} alt={p.title} sizes="(max-width: 560px) 100vw, (max-width: 1024px) 50vw, 360px" className="blog-zoom" />
-                    ) : (
-                      <div className="blog-card-fallback" aria-hidden style={{ background: `linear-gradient(135deg, ${typeTint(p.post_type)}, var(--brand-light))` }} />
-                    )}
-                    <span className="blog-badge" style={{ background: typeTint(p.post_type) }}>{typeLabel(p.post_type)}</span>
-                  </div>
-                  <div className="blog-card-body">
-                    <h3 className="blog-card-title">{p.title}</h3>
-                    {p.excerpt && <p className="blog-card-excerpt">{p.excerpt}</p>}
-                    <span className="blog-card-meta">
-                      {formatBlogDateShort(p.published_at ?? p.created_at)}
-                      <span aria-hidden> · </span>{minutes(p)} min read
-                    </span>
-                  </div>
+                  <p className="blog-date">{dateOf(p)}</p>
+                  <h3 className="blog-card-title">{p.title}</h3>
+                  {p.excerpt && <p className="blog-card-excerpt">{p.excerpt}</p>}
+                  <Byline post={p} />
                 </article>
               </Link>
             ))}
           </div>
-          {grid.length > visible && (
+          {grid.length > visible ? (
             <div className="blog-more">
-              <button type="button" className="blog-more-btn" onClick={() => setVisible((v) => v + 9)}>
-                Load more stories ({grid.length - visible} left)
+              <button type="button" className="blog-more-btn" onClick={() => setVisible((v) => v + 10)}>
+                Load more
               </button>
+            </div>
+          ) : (
+            <div className="blog-more">
+              <span className="blog-end">You&apos;ve reached the end</span>
             </div>
           )}
         </>
-      ) : (
+      ) : filtered.length === 0 ? (
         <div className="blog-empty">
           <div className="blog-empty-icon" aria-hidden>✎</div>
           <p className="blog-empty-title">No stories found</p>
@@ -172,6 +164,10 @@ export function BlogHubClient({ posts }: { posts: HubPost[] }) {
               Clear filters
             </button>
           )}
+        </div>
+      ) : (
+        <div className="blog-more">
+          <span className="blog-end">You&apos;ve reached the end</span>
         </div>
       )}
     </>

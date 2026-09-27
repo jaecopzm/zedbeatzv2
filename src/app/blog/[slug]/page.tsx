@@ -11,8 +11,8 @@ import { BlogTrackList } from "@/components/blog-track-row"
 import { BlogNewsletter } from "@/components/blog-newsletter"
 import {
   typeLabel,
-  typeTint,
   formatBlogDate,
+  formatBlogDateShort,
   readingTimeFromAny,
   scoreRelated,
   extractToc,
@@ -127,18 +127,6 @@ export default async function BlogPostPage({ params }: Props) {
 
   const related = scoreRelated(post, all as any, 3)
 
-  // Prev / next by recency (newest first)
-  const sorted = [...all].sort((a, b) => {
-    const ta = new Date(a.published_at ?? (a as any).created_at ?? 0).getTime() || 0
-    const tb = new Date(b.published_at ?? (b as any).created_at ?? 0).getTime() || 0
-    return tb - ta
-  })
-  const idx = sorted.findIndex((p) => p.slug === slug)
-  const newer = idx > 0 ? sorted[idx - 1] : null
-  const older = idx >= 0 && idx < sorted.length - 1 ? sorted[idx + 1] : null
-
-  const tint = typeTint(post.post_type)
-
   const jsonLd = {
     "@context": "https://schema.org",
     "@type": "BlogPosting",
@@ -153,7 +141,7 @@ export default async function BlogPostPage({ params }: Props) {
   }
 
   return (
-    <div style={{ minHeight: "100%", background: "var(--content-bg)" }}>
+    <div style={{ minHeight: "100%", background: "var(--card-bg)" }}>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
       <BlogProgress />
       <Breadcrumbs items={[{ label: "Blog", href: "/blog" }, { label: typeLabel(post.post_type) }, { label: post.title }]} />
@@ -162,14 +150,11 @@ export default async function BlogPostPage({ params }: Props) {
         <div className="blog-layout">
           {/* Sticky share rail — desktop only */}
           <aside className="blog-rail" aria-label="Share">
-            <span className="blog-rail-label">Share</span>
             <BlogShare title={post.title} url={pageUrl} vertical />
           </aside>
 
           <article className="blog-main">
-            <span className="blog-pill" style={{ background: tint }}>
-              {typeLabel(post.post_type)}
-            </span>
+            <p className="blog-kicker">{typeLabel(post.post_type)}</p>
             <h1 className="blog-h1">{post.title}</h1>
             <div className="blog-byline">
               <span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
@@ -187,21 +172,18 @@ export default async function BlogPostPage({ params }: Props) {
                 <div className="blog-cover-media">
                   <CoverImage src={post.cover_url} alt={post.title} sizes="(max-width: 760px) 100vw, 760px" priority />
                 </div>
-                {post.excerpt && (
-                  <figcaption className="blog-cover-cap">{post.title} — {SITE_NAME}</figcaption>
-                )}
               </figure>
             )}
 
             {post.excerpt && <p className="blog-dek">{post.excerpt}</p>}
 
-            <BlogBody markdown={post.body} dropCap />
+            <BlogBody markdown={post.body} />
 
             {tags.length > 0 && (
               <div className="blog-tags" aria-label="Tags">
                 {tags.map((t) => (
                   <Link key={t} href={`/search?q=${encodeURIComponent(t)}`} className="blog-tag">
-                    #{t}
+                    {t}
                   </Link>
                 ))}
               </div>
@@ -232,67 +214,22 @@ export default async function BlogPostPage({ params }: Props) {
                         )}
                       </span>
                       <span className="blog-artist-name">{a.stage_name}</span>
-                      <span className="blog-artist-cta">View →</span>
                     </Link>
                   ))}
                 </div>
               </section>
             )}
 
-            {/* Author box */}
-            <aside className="blog-authorbox" aria-label="About the author">
-              <span className="blog-authorbox-face" aria-hidden>{SITE_NAME.charAt(0)}</span>
-              <div>
-                <h3>{SITE_NAME} Editorial</h3>
-                <p>
-                  Covering Zambian music — new drops, artist stories and charts.
-                  Our editors listen first, verify credits, and link every song so you can play it instantly.
-                </p>
-              </div>
-            </aside>
-
-            {/* Prev / Next */}
-            {(newer || older) && (
-              <nav className="blog-prevnext" aria-label="More stories">
-                {older ? (
-                  <Link href={`/blog/${older.slug}`} className="blog-pn">
-                    <span>← Older story</span>
-                    <strong>{older.title}</strong>
-                  </Link>
-                ) : <span />}
-                {newer ? (
-                  <Link href={`/blog/${newer.slug}`} className="blog-pn next">
-                    <span>Newer story →</span>
-                    <strong>{newer.title}</strong>
-                  </Link>
-                ) : <span />}
-              </nav>
-            )}
-
             {related.length > 0 && (
               <section className="blog-related" aria-label="Keep reading">
-                <div className="blog-sectionhead">
-                  <h2>Keep reading</h2>
-                  <Link href="/blog" style={{ fontSize: 13, fontWeight: 700, color: "var(--brand)", textDecoration: "none" }}>
-                    All stories →
-                  </Link>
-                </div>
+                <h2 className="blog-subhead">Keep reading</h2>
                 <div className="blog-related-grid">
                   {related.map((p: any) => (
                     <Link key={p.id} href={`/blog/${p.slug}`} className="blog-card-link" aria-label={p.title}>
                       <article className="blog-card">
-                        <div className="blog-card-media">
-                          {p.cover_url ? (
-                            <CoverImage src={p.cover_url} alt={p.title} sizes="(max-width: 680px) 100vw, 240px" className="blog-zoom" />
-                          ) : (
-                            <div className="blog-card-fallback" style={{ background: `linear-gradient(135deg, ${typeTint(p.post_type)}, var(--brand-light))` }} />
-                          )}
-                          <span className="blog-badge" style={{ background: typeTint(p.post_type) }}>{typeLabel(p.post_type)}</span>
-                        </div>
-                        <div className="blog-card-body">
-                          <h3 className="blog-card-title" style={{ fontSize: 14.5 }}>{p.title}</h3>
-                          <span className="blog-card-meta">{formatBlogDate(p.published_at ?? p.created_at)} · {readingTimeFromAny(p.body ?? p.excerpt ?? "")} min</span>
-                        </div>
+                        <p className="blog-date">{formatBlogDateShort(p.published_at ?? p.created_at)}</p>
+                        <h3 className="blog-card-title">{p.title}</h3>
+                        <span className="blog-card-meta">{readingTimeFromAny(p.body ?? p.excerpt ?? "")} min read</span>
                       </article>
                     </Link>
                   ))}
@@ -319,21 +256,6 @@ export default async function BlogPostPage({ params }: Props) {
                     ))}
                   </ol>
                 </nav>
-                <div className="blog-toc">
-                  <h4>Why ZedBeatz?</h4>
-                  <p style={{ margin: 0, fontSize: 13, lineHeight: 1.6, color: "var(--muted-foreground)" }}>
-                    Every story links the actual songs. Tap any track to play it instantly — no searching.
-                  </p>
-                </div>
-              </div>
-            ) : tracks.length > 0 ? (
-              <div className="blog-toc-wrap">
-                <div className="blog-toc">
-                  <h4>Why ZedBeatz?</h4>
-                  <p style={{ margin: 0, fontSize: 13, lineHeight: 1.6, color: "var(--muted-foreground)" }}>
-                    Every story links the actual songs. Tap any track to play it instantly — no searching.
-                  </p>
-                </div>
               </div>
             ) : null}
           </aside>

@@ -12,6 +12,7 @@ import { SectionHeader, EmptyState, SkeletonCards } from "@/components/home/sect
 import { CoverImage } from "@/components/cover-image"
 
 import { genreArt } from "@/lib/genre-art"
+import { GenreCoverImg } from "@/components/genre-cover"
 
 export function GenreRail({ label = "Browse genres" }: { label?: string }) {
   const router = useRouter()
@@ -43,13 +44,7 @@ export function GenreRail({ label = "Browse genres" }: { label?: string }) {
               className="hp-genre-card"
               aria-label={`Browse ${g.name}`}
             >
-              <img
-                className="hp-genre-img"
-                src={genreArt(g, i)}
-                alt=""
-                loading="lazy"
-                draggable={false}
-              />
+              <GenreCoverImg genre={g} index={i} className="hp-genre-img" />
               <span className="hp-genre-scrim" aria-hidden />
               <span className="hp-genre-label">{g.name}</span>
             </button>
@@ -197,18 +192,31 @@ export function ExploreMore({ sections }: { sections: { sectionKey: string; labe
   return (
     <section className="hp-section">
       <SectionHeader label="More to explore" size="sm" />
-      <div className="hp-explore-wrap">
-        {sections.map((s) => (
+      <div className="hp-explore-grid">
+        {sections.map((s, i) => (
           <button
             key={s.sectionKey}
             type="button"
             onClick={() => router.push(`/section/${s.sectionKey}`)}
-            className="hp-explore-pill"
+            className="hp-explore-card"
+            aria-label={`Explore ${s.label}`}
           >
-            {s.label}
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-              <path d="M9 6l6 6-6 6" />
-            </svg>
+            <img
+              className="hp-explore-img"
+              src={genreArt({ slug: s.sectionKey, name: s.label }, i)}
+              alt=""
+              loading="lazy"
+              draggable={false}
+            />
+            <span className="hp-genre-scrim" aria-hidden />
+            <span className="hp-explore-copy">
+              <span className="hp-explore-label">{s.label}</span>
+              <span className="hp-explore-go" aria-hidden>
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M5 12h14" /><path d="M13 6l6 6-6 6" />
+                </svg>
+              </span>
+            </span>
           </button>
         ))}
       </div>

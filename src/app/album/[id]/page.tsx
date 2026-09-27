@@ -5,6 +5,7 @@ import { useParams, useRouter } from "next/navigation"
 import { api } from "@/lib/api"
 import { usePlayerStore } from "@/lib/store"
 import { ArtistLinks } from "@/components/artist-links"
+import { EqBars } from "@/components/eq"
 import { PremiumTrackMenu } from "@/components/track-menu"
 import { SectionHeading } from "@/components/artist/ui"
 import type { Album, Track } from "@/types"
@@ -35,13 +36,21 @@ export default function AlbumPage() {
   const playLoading = usePlayerStore((s) => s._loading)
   const [hoveredTrackId, setHoveredTrackId] = useState<string | null>(null)
   const [isMobile, setIsMobile] = useState(false)
+  const [isPhone, setIsPhone] = useState(false)
 
   useEffect(() => {
     const mq = window.matchMedia("(max-width: 1024px)")
     setIsMobile(mq.matches)
     const handler = (e: MediaQueryListEvent) => setIsMobile(e.matches)
     mq.addEventListener("change", handler)
-    return () => mq.removeEventListener("change", handler)
+    const mqPhone = window.matchMedia("(max-width: 640px)")
+    setIsPhone(mqPhone.matches)
+    const phoneHandler = (e: MediaQueryListEvent) => setIsPhone(e.matches)
+    mqPhone.addEventListener("change", phoneHandler)
+    return () => {
+      mq.removeEventListener("change", handler)
+      mqPhone.removeEventListener("change", phoneHandler)
+    }
   }, [])
 
   const { data: album, isLoading, isError } = useQuery({
@@ -114,25 +123,25 @@ export default function AlbumPage() {
   const anyTrackPlaying = tracks.length > 0 && tracks.some(t => t.id === currentTrack?.id) && isPlaying
 
   if (isLoading) {
-    const artSize = isMobile ? 150 : 260
+    const artSize = isPhone ? 160 : isMobile ? 180 : 260
     return (
       <div style={{ minHeight: "100%", background: "var(--content-bg)" }}>
-        <div style={{ background: "linear-gradient(to bottom, var(--hover-bg) 0%, var(--content-bg) 100%)", padding: isMobile ? "52px 16px 16px" : "64px 40px 40px" }}>
+        <div style={{ background: "linear-gradient(to bottom, var(--hover-bg) 0%, var(--content-bg) 100%)", padding: isPhone ? "48px 16px 16px" : isMobile ? "56px 28px 24px" : "64px 40px 40px" }}>
           <div style={{
             display: "flex",
-            gap: isMobile ? 16 : 40,
-            flexDirection: isMobile ? "column" : "row",
-            alignItems: isMobile ? "center" : "flex-end",
-            textAlign: isMobile ? "center" : "left",
-            maxWidth: isMobile ? "100%" : 900,
-            margin: isMobile ? 0 : "0 auto",
+            gap: isPhone ? 16 : isMobile ? 28 : 40,
+            flexDirection: isPhone ? "column" : "row",
+            alignItems: isPhone ? "center" : "flex-end",
+            textAlign: isPhone ? "center" : "left",
+            maxWidth: isPhone ? "100%" : 900,
+            margin: isPhone ? 0 : "0 auto",
           }}>
             <div className="skeleton" style={{ width: artSize, height: artSize, borderRadius: 6, flexShrink: 0 }} />
-            <div style={{ display: "flex", flexDirection: "column", alignItems: isMobile ? "center" : "flex-start", gap: 8, flex: 1 }}>
-              <div className="skeleton" style={{ width: isMobile ? "30%" : 140, height: 14 }} />
-              <div className="skeleton" style={{ width: isMobile ? "60%" : 280, height: 28 }} />
-              <div className="skeleton" style={{ width: isMobile ? "40%" : 180, height: 14 }} />
-              <div className="skeleton" style={{ width: isMobile ? "50%" : 220, height: 14, marginTop: 4 }} />
+            <div style={{ display: "flex", flexDirection: "column", alignItems: isPhone ? "center" : "flex-start", gap: 8, flex: 1 }}>
+              <div className="skeleton" style={{ width: isPhone ? "30%" : 140, height: 14 }} />
+              <div className="skeleton" style={{ width: isPhone ? "60%" : 280, height: 28 }} />
+              <div className="skeleton" style={{ width: isPhone ? "40%" : 180, height: 14 }} />
+              <div className="skeleton" style={{ width: isPhone ? "50%" : 220, height: 14, marginTop: 4 }} />
               <div style={{ display: "flex", gap: 12, marginTop: 8 }}>
                 <div className="skeleton" style={{ width: 110, height: 44, borderRadius: 999 }} />
                 <div className="skeleton" style={{ width: 44, height: 44, borderRadius: "50%" }} />
@@ -142,7 +151,7 @@ export default function AlbumPage() {
         </div>
 
         {/* Track list skeleton (no column header — lists start straight into rows) */}
-        <div style={{ padding: isMobile ? "16px 12px 48px" : "32px 40px 64px" }}>
+        <div style={{ padding: isPhone ? "16px 12px 48px" : isMobile ? "24px 20px 56px" : "32px 40px 64px" }}>
           {Array.from({ length: 10 }).map((_, i) => (
             <div key={i} style={{ display: "grid", gridTemplateColumns: "40px 1fr 100px 60px 40px", alignItems: "center", padding: "10px 16px" }}>
               <div className="skeleton" style={{ width: 14, height: 14, borderRadius: 4 }} />
@@ -219,30 +228,30 @@ export default function AlbumPage() {
         {/* bottom melt into page background */}
         <div style={{
           position: "absolute", left: 0, right: 0, bottom: 0, zIndex: 1,
-          height: isMobile ? 72 : 96,
+          height: isPhone ? 48 : 96,
           background: "linear-gradient(to bottom, transparent 0%, var(--content-bg) 100%)",
-          opacity: 0.9,
+          opacity: isPhone ? 0.55 : 0.9,
         }} />
 
         {/* Hero content */}
         <div style={{
           position: "relative", zIndex: 2,
           display: "flex",
-          gap: isMobile ? 12 : 40,
-          flexDirection: isMobile ? "column" : "row",
-          alignItems: isMobile ? "center" : "flex-end",
-          textAlign: isMobile ? "center" : "left",
-          padding: isMobile ? "52px 14px 56px" : "64px 40px 72px",
+          gap: isPhone ? 14 : isMobile ? 28 : 40,
+          flexDirection: isPhone ? "column" : "row",
+          alignItems: isPhone ? "center" : "flex-end",
+          textAlign: isPhone ? "center" : "left",
+          padding: isPhone ? "48px 16px 52px" : isMobile ? "56px 28px 64px" : "64px 40px 72px",
           flexWrap: "wrap",
         }}>
           {/* Cover art */}
           <div style={{
-            width: isMobile ? 120 : 260,
-            height: isMobile ? 120 : 260,
+            width: isPhone ? 160 : isMobile ? 180 : 260,
+            height: isPhone ? 160 : isMobile ? 180 : 260,
             borderRadius: 6,
             flexShrink: 0,
             overflow: "hidden",
-            boxShadow: isMobile ? "0 8px 32px rgba(0,0,0,0.4)" : "0 24px 64px rgba(0,0,0,0.5), 0 4px 16px rgba(0,0,0,0.3)",
+            boxShadow: isPhone ? "0 8px 32px rgba(0,0,0,0.4)" : "0 24px 64px rgba(0,0,0,0.5), 0 4px 16px rgba(0,0,0,0.3)",
           }}>
             {album.cover_url ? (
               <img
@@ -264,7 +273,7 @@ export default function AlbumPage() {
           </div>
 
           {/* Meta */}
-          <div style={{ flex: 1, minWidth: 0, width: isMobile ? "100%" : "auto" }}>
+          <div style={{ flex: 1, minWidth: 200, width: isPhone ? "100%" : "auto" }}>
             {/* Type badge */}
             <span style={{
               fontSize: 13,
@@ -278,13 +287,14 @@ export default function AlbumPage() {
             </span>
 
             <h1 style={{
-              fontSize: isMobile ? "clamp(18px, 5vw, 22px)" : "clamp(28px, 4vw, 48px)",
+              fontSize: isPhone ? "clamp(24px, 7vw, 32px)" : isMobile ? "clamp(24px, 3.5vw, 36px)" : "clamp(28px, 4vw, 48px)",
               fontWeight: 700,
               color: "#fff",
               margin: "0 0 4px",
-              lineHeight: 1.1,
+              lineHeight: 1.05,
               letterSpacing: "-0.02em",
               textShadow: "0 2px 16px rgba(0,0,0,0.4)",
+              textWrap: "balance",
             }}>
               {album.title}
             </h1>
@@ -302,30 +312,30 @@ export default function AlbumPage() {
             </p>
 
             {/* Stats row */}
-            <div style={{ display: "flex", gap: isMobile ? 8 : 20, marginBottom: isMobile ? 12 : 24, flexWrap: isMobile ? "nowrap" : "wrap", overflow: isMobile ? "hidden" : "visible", justifyContent: isMobile ? "center" : "flex-start" }}>
-              <StatPill icon={<TrackIcon size={isMobile ? 12 : 14} />} value={`${tracks.length} track${tracks.length !== 1 ? "s" : ""}`} compact={isMobile} />
+            <div style={{ display: "flex", gap: isPhone ? 8 : 20, marginBottom: isPhone ? 12 : 24, flexWrap: "wrap", justifyContent: isPhone ? "center" : "flex-start" }}>
+              <StatPill icon={<TrackIcon size={isPhone ? 12 : 14} />} value={`${tracks.length} track${tracks.length !== 1 ? "s" : ""}`} compact={isPhone} />
               {totalDuration > 0 && (
-                <StatPill icon={<ClockIcon size={isMobile ? 12 : 14} />} value={formatDuration(totalDuration)} compact={isMobile} />
+                <StatPill icon={<ClockIcon size={isPhone ? 12 : 14} />} value={formatDuration(totalDuration)} compact={isPhone} />
               )}
               {album.released_at && (
-                <StatPill icon={<CalIcon size={isMobile ? 12 : 14} />} value={formatDate(album.released_at)} compact={isMobile} />
+                <StatPill icon={<CalIcon size={isPhone ? 12 : 14} />} value={formatDate(album.released_at)} compact={isPhone} />
               )}
             </div>
 
             {/* Action buttons */}
-            <div style={{ display: "flex", gap: 12, flexWrap: "wrap", alignItems: "center", justifyContent: isMobile ? "center" : "flex-start" }}>
+            <div style={{ display: "flex", gap: 12, flexWrap: "wrap", alignItems: "center", justifyContent: isPhone ? "center" : "flex-start" }}>
               {tracks.length > 0 && (
                 <button
                   onClick={handlePlayAll}
                   disabled={!!playLoading}
                   style={{
                     display: "flex", alignItems: "center", gap: 10,
-                    padding: isMobile ? "8px 18px" : "12px 28px",
+                    padding: isPhone ? "8px 18px" : "12px 28px",
                     borderRadius: 999,
                     border: "1.5px solid #fff",
                     background: playLoading ? "rgba(255,255,255,0.6)" : "rgba(255,255,255,0.95)",
                     color: "#1d1d1f",
-                    fontSize: isMobile ? 13 : 15,
+                    fontSize: isPhone ? 13 : 15,
                     fontWeight: 700,
                     cursor: playLoading ? "default" : "pointer",
                     boxShadow: "0 4px 20px rgba(0,0,0,0.25)",
@@ -348,7 +358,7 @@ export default function AlbumPage() {
               <button
                 onClick={() => { navigator.clipboard.writeText(`${window.location.origin}/album/${album.id}`); toast("Link copied", "success") }}
                 style={{
-                  width: isMobile ? 36 : 48, height: isMobile ? 36 : 48, borderRadius: "50%",
+                  width: isPhone ? 36 : 48, height: isPhone ? 36 : 48, borderRadius: "50%",
                   border: "1.5px solid rgba(255,255,255,0.55)",
                   background: "rgba(255,255,255,0.12)",
                   backdropFilter: "blur(8px)",
@@ -368,7 +378,7 @@ export default function AlbumPage() {
       </div>
 
       {/* ══ TRACK LIST ══ */}
-      <div style={{ padding: isMobile ? "16px 12px 48px" : "32px 40px 64px" }}>
+      <div style={{ padding: isPhone ? "16px 12px 48px" : isMobile ? "24px 20px 56px" : "32px 40px 64px" }}>
 
         {/* Rows */}
         {tracks.map((track, index) => {
@@ -405,11 +415,7 @@ export default function AlbumPage() {
                   </button>
                 ) : (
                   isActive && isActiveAndPlaying ? (
-                    <div style={{ display: "flex", gap: 3, alignItems: "flex-end", height: 12, width: 12 }}>
-                      <div className="eq-bar" style={{ width: 2, height: "100%", background: "var(--brand)" }} />
-                      <div className="eq-bar" style={{ width: 2, height: "100%", background: "var(--brand)" }} />
-                      <div className="eq-bar" style={{ width: 2, height: "100%", background: "var(--brand)" }} />
-                    </div>
+                    <EqBars />
                   ) : (
                     <span style={{ color: isActive ? "var(--brand)" : "var(--muted-foreground)" }}>
                       {index + 1}

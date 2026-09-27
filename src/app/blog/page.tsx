@@ -1,7 +1,6 @@
 import type { Metadata } from "next"
 import Link from "next/link"
 import { SITE_URL, SITE_NAME } from "@/lib/seo"
-import { CoverImage } from "@/components/cover-image"
 import { BlogHubClient, type HubPost } from "@/components/blog-hub-client"
 import { BlogNewsletter } from "@/components/blog-newsletter"
 import { typeLabel } from "@/lib/blog"
@@ -37,7 +36,6 @@ async function getPosts(): Promise<HubPost[]> {
 
 export default async function BlogHub() {
   const posts = await getPosts()
-  const trending = posts.slice(0, 4)
 
   const jsonLd = {
     "@context": "https://schema.org",
@@ -54,19 +52,13 @@ export default async function BlogHub() {
   }
 
   return (
-    <div style={{ minHeight: "100%", background: "var(--content-bg)" }}>
+    <div style={{ minHeight: "100%", background: "var(--card-bg)" }}>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
       <div className="blog-shell">
-        {/* Masthead — editorial, like Pitchfork / FADER */}
-        <p className="blog-masthead-eyebrow">
-          <span className="blog-masthead-mark" aria-hidden>Z</span>
-          {SITE_NAME} Blog
-        </p>
-        <h1 className="blog-display">
-          Zambian music, <em>told properly.</em>
-        </h1>
+        {/* Masthead — Cloudflare-style: plain title + lede */}
+        <h1 className="blog-display">{SITE_NAME} Blog</h1>
         <p className="blog-lede">
-          New songs, artist stories, and charts — fresh every week. Follow the sound from Lusaka to the Copperbelt and beyond.
+          New Zambian songs, artist stories, and charts — from Lusaka to the Copperbelt and beyond.
         </p>
 
         {posts.length === 0 ? (
@@ -77,26 +69,6 @@ export default async function BlogHub() {
           </div>
         ) : (
           <>
-            {/* Trending strip */}
-            {trending.length > 1 && (
-              <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 4 }}>
-                <span className="blog-trend-label">Trending</span>
-                <div className="blog-trending" aria-label="Trending stories">
-                  {trending.map((p, i) => (
-                    <Link key={p.id} href={`/blog/${p.slug}`} className="blog-trend">
-                      <span className="blog-trend-rank">{String(i + 1).padStart(2, "0")}</span>
-                      {p.cover_url && (
-                        <span className="blog-trend-thumb">
-                          <CoverImage src={p.cover_url} alt="" sizes="68px" />
-                        </span>
-                      )}
-                      <span className="blog-trend-title">{p.title}</span>
-                    </Link>
-                  ))}
-                </div>
-              </div>
-            )}
-
             <BlogHubClient posts={posts} />
             <BlogNewsletter />
 

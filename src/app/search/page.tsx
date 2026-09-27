@@ -1,21 +1,35 @@
 "use client"
 
-import { useState, useEffect, useRef, useCallback } from "react"
+import { useState, useEffect, useRef, useMemo } from "react"
 import { useQuery } from "@tanstack/react-query"
 import { useRouter } from "next/navigation"
 import { api } from "@/lib/api"
-import { usePlayerStore } from "@/lib/store"
+import { usePlayerStore, type TrackInfo } from "@/lib/store"
 import type { Track, Artist, Album, Genre } from "@/types"
 import { PremiumTrackMenu } from "@/components/track-menu"
 import { ArtistLinks } from "@/components/artist-links"
+import { CoverImage } from "@/components/cover-image"
+import { EqBars } from "@/components/eq"
+import { TrackRow as ChartRow } from "@/components/home/track-cards"
+import { GenreCoverImg } from "@/components/genre-cover"
 import { formatDuration } from "@/lib/utils"
 
-// Brand-locked duotones — genre tiles stay inside the brand system
-// instead of clashing rainbow gradients.
-const GENRE_GRADIENTS: [string, string][] = [
-  ["#1E5BFF", "#0B2D8A"], ["#144AE0", "#101014"], ["#3B71FF", "#0E35A3"],
-  ["#0B2D8A", "#131318"], ["#2B62F0", "#0A2472"], ["#144AE0", "#1B1B22"],
-]
+function toTrackInfo(t: Track): TrackInfo {
+  const a = t as any
+  return {
+    id: t.id,
+    artist_id: a.artist_id,
+    title: t.title,
+    artist_name: t.artist_name ?? "",
+    cover_url: t.cover_url ?? null,
+    duration_sec: t.duration_sec,
+    collaborators: (a.collaborators ?? []).map((c: any) => ({
+      artist_id: c.artist_id,
+      stage_name: c.stage_name,
+      role: "featured",
+    })),
+  }
+}
 
 type Tab = "all" | "songs" | "artists" | "albums"
 
@@ -30,7 +44,6 @@ export default function SearchPage() {
   const [tab, setTab] = useState<Tab>("all")
   const inputRef = useRef<HTMLInputElement>(null)
   const router = useRouter()
-  const play = usePlayerStore((s) => s.play)
 
   useEffect(() => { inputRef.current?.focus() }, [])
 
@@ -61,6 +74,20 @@ export default function SearchPage() {
     enabled: isSearching,
   })
 
+  const { data: chartsData, isLoading: chartsLoading } = useQuery({
+    queryKey: ["browse-top-charts"],
+    queryFn: () => api.listTracks(5, 0, "best_new_songs"),
+    enabled: !isSearching,
+    staleTime: 5 * 60 * 1000,
+  })
+
+  const { data: freshData, isLoading: freshLoading } = useQuery({
+    queryKey: ["browse-new-releases"],
+    queryFn: () => api.listTracks(5, 0, undefined, "newest"),
+    enabled: !isSearching,
+    staleTime: 5 * 60 * 1000,
+  })
+
   const tracks: Track[] = tracksData?.results ?? []
   const artists: Artist[] = artistsData?.results ?? []
   const albums: Album[] = albumsData?.results ?? []
@@ -73,6 +100,23 @@ export default function SearchPage() {
   const showTracks = tab === "all" || tab === "songs"
   const showArtists = tab === "all" || tab === "artists"
   const showAlbums = tab === "all" || tab === "albums"
+
+  // Best match spotlight (All tab only): exact artist hit wins, then first
+  // artist / track / album. Spotlighted item is excluded from its list below.
+  const topPick: TopPick | null = (() => {
+    if (tab !== "all" || !hasResults) return null
+    const q = query.trim().toLowerCase()
+    const exact = artists.find((a) => a.stage_name.toLowerCase() === q)
+    if (exact) return { kind: "artist", artist: exact }
+    if (artists.length > 0) return { kind: "artist", artist: artists[0] }
+    if (tracks.length > 0) return { kind: "track", track: tracks[0] }
+    if (albums.length > 0) return { kind: "album", album: albums[0] }
+    return null
+  })()
+
+  const listArtists = topPick?.kind === "artist" ? artists.filter((a) => a.id !== topPick.artist.id) : artists
+  const listTracks = topPick?.kind === "track" ? tracks.filter((t) => t.id !== topPick.track.id) : tracks
+  const listAlbums = topPick?.kind === "album" ? albums.filter((a) => a.id !== topPick.album.id) : albums
 
   return (
     <div className="fade-in search-page" style={{ padding: "32px", minHeight: "100%", background: "var(--content-bg)" }}>
@@ -123,12 +167,59 @@ export default function SearchPage() {
 
       {/* Browse state */}
       {!isSearching && (
-        genresLoading ? <GenreSkeleton /> : genres.length > 0 ? <GenreBrowse genres={genres} router={router} /> : (
-          <div style={{ textAlign: "center", paddingTop: "60px", color: "var(--muted-foreground)" }}>
-            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.2" style={{ opacity: 0.35, marginBottom: "16px" }}><circle cx="11" cy="11" r="8" /><path d="M21 21l-4.35-4.35" /></svg>
-            <p style={{ fontSize: "15px", margin: 0 }}>Start typing to search</p>
-          </div>
-        )
+        <div style={{ display: "flex", flexDirection: "column", gap: "36px" }}>
+          {(freshLoading || (freshData?.tracks ?? []).length > 0) && (
+            <section>
+              <h2 style={{ fontSize: 20, fontWeight: 700, color: "var(--section-header)", margin: "0 0 8px", letterSpacing: "-0.3px" }}>New Releases</h2>
+              {freshLoading ? (
+                <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                  {Array.from({ length: 5 }).map((_, i) => (
+                    <div key={i} className="skeleton" style={{ height: 52, borderRadius: 8 }} />
+                  ))}
+                </div>
+              ) : (
+                <div>
+                  {(freshData?.tracks ?? []).map((t: any, i: number, arr: any[]) => (
+                    <ChartRow key={t.id} track={t} index={i} isLast={i === arr.length - 1} />
+                  ))}
+                </div>
+              )}
+            </section>
+          )}
+          {(chartsLoading || (chartsData?.tracks ?? []).length > 0) && (
+            <section>
+              <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", margin: "0 0 8px" }}>
+                <h2 style={{ fontSize: 20, fontWeight: 700, color: "var(--section-header)", margin: 0, letterSpacing: "-0.3px" }}>Top Charts</h2>
+                <button
+                  type="button"
+                  onClick={() => router.push("/section/best_new_songs")}
+                  style={{ background: "none", border: "none", cursor: "pointer", fontSize: 13, fontWeight: 600, color: "var(--brand)", fontFamily: "inherit", padding: 0 }}
+                >
+                  View all
+                </button>
+              </div>
+              {chartsLoading ? (
+                <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                  {Array.from({ length: 5 }).map((_, i) => (
+                    <div key={i} className="skeleton" style={{ height: 52, borderRadius: 8 }} />
+                  ))}
+                </div>
+              ) : (
+                <div>
+                  {(chartsData?.tracks ?? []).map((t: any, i: number, arr: any[]) => (
+                    <ChartRow key={t.id} track={t} index={i} isLast={i === arr.length - 1} />
+                  ))}
+                </div>
+              )}
+            </section>
+          )}
+          {genresLoading ? <GenreSkeleton /> : genres.length > 0 ? <GenreBrowse genres={genres} router={router} /> : (
+            <div style={{ textAlign: "center", paddingTop: "60px", color: "var(--muted-foreground)" }}>
+              <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.2" style={{ opacity: 0.35, marginBottom: "16px" }}><circle cx="11" cy="11" r="8" /><path d="M21 21l-4.35-4.35" /></svg>
+              <p style={{ fontSize: "15px", margin: 0 }}>Start typing to search</p>
+            </div>
+          )}
+        </div>
       )}
 
       {/* Search results */}
@@ -164,29 +255,30 @@ export default function SearchPage() {
 
           {!isLoading && hasResults && (
             <div style={{ display: "flex", flexDirection: "column", gap: "32px" }}>
-              {showArtists && artists.length > 0 && (
+              {topPick && <TopResult pick={topPick} tracks={tracks} />}
+              {showArtists && listArtists.length > 0 && (
                 <section>
                   <h2 style={{ fontSize: "15px", fontWeight: 700, color: "var(--foreground)", letterSpacing: "-0.2px", margin: "0 0 12px" }}>Artists</h2>
                   <div className="search-scroller" style={{ display: "flex", gap: 4, overflowX: "auto", paddingBottom: 4 }}>
-                    {artists.map((artist) => <ArtistCard key={artist.id} artist={artist} router={router} />)}
+                    {listArtists.map((artist) => <ArtistCard key={artist.id} artist={artist} router={router} />)}
                   </div>
                 </section>
               )}
-              {showAlbums && albums.length > 0 && (
+              {showAlbums && listAlbums.length > 0 && (
                 <section>
                   <h2 style={{ fontSize: "15px", fontWeight: 700, color: "var(--foreground)", letterSpacing: "-0.2px", margin: "0 0 12px" }}>Albums</h2>
                   <div className="search-scroller" style={{ display: "flex", gap: 4, overflowX: "auto", paddingBottom: 4 }}>
-                    {albums.map((album) => (
+                    {listAlbums.map((album) => (
                       <AlbumCard key={album.id} album={album} router={router} />
                     ))}
                   </div>
                 </section>
               )}
-              {showTracks && tracks.length > 0 && (
+              {showTracks && listTracks.length > 0 && (
                 <section>
                   <h2 style={{ fontSize: "15px", fontWeight: 700, color: "var(--foreground)", letterSpacing: "-0.2px", margin: "0 0 4px" }}>Songs</h2>
                   <div>
-                    {tracks.map((track) => <TrackRow key={track.id} track={track} onPlay={play} />)}
+                    {listTracks.map((track) => <TrackRow key={track.id} track={track} />)}
                   </div>
                 </section>
               )}
@@ -223,49 +315,56 @@ function AlbumCard({ album, router }: { album: Album; router: any }) {
 
 /* ─── Track row ─── */
 
-function TrackRow({ track, onPlay }: { track: Track; onPlay: any }) {
+function TrackRow({ track }: { track: Track }) {
   const router = useRouter()
-  const [hovered, setHovered] = useState(false)
+  const play = usePlayerStore((s) => s.play)
+  const togglePlay = usePlayerStore((s) => s.togglePlay)
+  const isPlaying = usePlayerStore((s) => s.isPlaying)
+  const currentTrack = usePlayerStore((s) => s.currentTrack)
+  const loading = usePlayerStore((s) => s._loading) === track.id
+  const isCurrent = currentTrack?.id === track.id
+  const active = isCurrent && (isPlaying || loading)
+
+  const handlePlay = () => {
+    if (isCurrent) togglePlay()
+    else play(toTrackInfo(track))
+  }
 
   return (
     <div
-      className="search-track-row track-row"
+      className={`search-track-row track-row${isCurrent ? " is-current" : ""}`}
       style={{
         display: "flex", alignItems: "center", gap: "12px",
         padding: "8px 12px", cursor: "pointer",
         borderBottom: "1px solid var(--border)", transition: "background 0.12s",
         position: "relative",
       }}
-      onMouseEnter={() => setHovered(true)}
-      onMouseLeave={() => setHovered(false)}
-      onClick={() => onPlay({
-        id: track.id, title: track.title, artist_name: track.artist_name ?? "",
-        cover_url: track.cover_url, duration_sec: track.duration_sec,
-        collaborators: track.collaborators,
-      })}
+      onClick={handlePlay}
     >
       {/* Cover */}
-      <div style={{ position: "relative", flexShrink: 0 }}>
+      <span className="sr-thumb-wrap">
         {track.cover_url ? (
-          <img src={track.cover_url} alt="" className="sr-thumb" style={{ width: 44, height: 44, borderRadius: 4, objectFit: "cover", display: "block" }} />
+          <CoverImage src={track.cover_url} alt={track.title} sizes="88px" />
         ) : (
-          <div className="sr-thumb" style={{ width: 44, height: 44, borderRadius: 4, background: "linear-gradient(135deg, #e8e8ec, #d0d0d8)", display: "flex", alignItems: "center", justifyContent: "center" }}>
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#86868b" strokeWidth="1.5"><path d="M9 18V5l12-2v13" /><circle cx="6" cy="18" r="3" /><circle cx="18" cy="16" r="3" /></svg>
-          </div>
+          <span className="sr-thumb-fallback" aria-hidden>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M9 18V5l12-2v13" /><circle cx="6" cy="18" r="3" /><circle cx="18" cy="16" r="3" /></svg>
+          </span>
         )}
-        {hovered && (
-          <div style={{ position: "absolute", inset: 0, borderRadius: 4, background: "rgba(0,0,0,0.45)", display: "flex", alignItems: "center", justifyContent: "center" }}>
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="white"><polygon points="5,3 19,12 5,21" /></svg>
-          </div>
-        )}
-      </div>
+        <span className="sr-play" aria-hidden>
+          {loading ? (
+            <svg className="spinner" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><circle cx="12" cy="12" r="10" strokeDasharray="31.4 31.4" strokeLinecap="round" /></svg>
+          ) : active ? (
+            <EqBars paused={!isPlaying} />
+          ) : (
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><polygon points="5,3 19,12 5,21" /></svg>
+          )}
+        </span>
+      </span>
 
        {/* Title + artist */}
        <div style={{ flex: 1, minWidth: 0 }}>
-         <p style={{ margin: 0, fontSize: "14px", fontWeight: 500, color: "var(--foreground)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}
+         <p className="sr-title" style={{ margin: 0, fontSize: "14px", fontWeight: 500, color: "var(--foreground)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}
            onClick={(e) => { e.stopPropagation(); router.push(`/track/${track.id}`) }}
-           onMouseEnter={(e) => { e.currentTarget.style.textDecoration = "underline" }}
-           onMouseLeave={(e) => { e.currentTarget.style.textDecoration = "none" }}
          >{track.title}</p>
          <p style={{ margin: "2px 0 0", fontSize: "12px", color: "var(--muted-foreground)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
            <ArtistLinks track={track} />
@@ -327,19 +426,150 @@ function GenreBrowse({ genres, router }: { genres: Genre[]; router: any }) {
     <section>
       <h2 style={{ fontSize: 20, fontWeight: 700, color: "var(--section-header)", margin: "0 0 16px", letterSpacing: "-0.3px" }}>Browse by genre</h2>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: "12px" }} className="genre-grid">
-        {genres.map((genre, idx) => {
-          const [from, to] = GENRE_GRADIENTS[idx % GENRE_GRADIENTS.length]
-          return (
-            <button key={genre.id} onClick={() => router.push(`/genres/${genre.id}`)}
-              style={{ background: `linear-gradient(135deg, ${from}, ${to})`, border: "none", borderRadius: 8, padding: 0, height: 90, cursor: "pointer", position: "relative", overflow: "hidden", transition: "transform 0.18s ease, box-shadow 0.18s ease", boxShadow: "0 4px 14px rgba(0,0,0,0.12)", textAlign: "left" }}
-              onMouseEnter={(e) => { e.currentTarget.style.transform = "scale(1.03)"; e.currentTarget.style.boxShadow = "0 8px 24px rgba(0,0,0,0.2)" }}
-              onMouseLeave={(e) => { e.currentTarget.style.transform = "scale(1)"; e.currentTarget.style.boxShadow = "0 4px 14px rgba(0,0,0,0.12)" }}
-            >
-              <div style={{ position: "absolute", right: -14, bottom: -14, width: 80, height: 80, borderRadius: "50%", background: "rgba(255,255,255,0.15)" }} />
-              <span style={{ position: "absolute", bottom: 14, left: 14, fontSize: 15, fontWeight: 700, color: "#fff", letterSpacing: "-0.2px", textShadow: "0 1px 3px rgba(0,0,0,0.25)", lineHeight: 1.25, maxWidth: "calc(100% - 28px)" }}>{genre.name}</span>
+        {genres.map((genre, idx) => (
+          <button
+            key={genre.id}
+            onClick={() => router.push(`/genres/${genre.id}`)}
+            className="search-genre-tile"
+            aria-label={`Browse ${genre.name}`}
+          >
+            <GenreCoverImg genre={genre} index={idx} className="search-genre-img" />
+            <span className="hp-genre-scrim" aria-hidden />
+            <span className="search-genre-label">{genre.name}</span>
+          </button>
+        ))}
+      </div>
+    </section>
+  )
+}
+
+/* ─── Top result spotlight ─── */
+
+type TopPick =
+  | { kind: "artist"; artist: Artist }
+  | { kind: "track"; track: Track }
+  | { kind: "album"; album: Album }
+
+function TopResult({ pick, tracks }: { pick: TopPick; tracks: Track[] }) {
+  const router = useRouter()
+  const play = usePlayerStore((s) => s.play)
+  const togglePlay = usePlayerStore((s) => s.togglePlay)
+  const isPlaying = usePlayerStore((s) => s.isPlaying)
+  const currentTrack = usePlayerStore((s) => s.currentTrack)
+
+  if (pick.kind === "artist") {
+    const a = pick.artist as any
+    const first = tracks.find((t) => (t as any).artist_id === a.id || t.artist_name === a.stage_name) ?? tracks[0]
+    const isCurrent = !!first && currentTrack?.id === first.id
+    const active = isCurrent && isPlaying
+    return (
+      <section aria-label="Top result">
+        <h2 style={{ fontSize: "15px", fontWeight: 700, color: "var(--foreground)", letterSpacing: "-0.2px", margin: "0 0 12px" }}>Top result</h2>
+        <div className="search-top">
+          <span className="search-top-art is-round">
+            {a.photo_url ? (
+              <CoverImage src={a.photo_url} alt={a.stage_name} sizes="224px" />
+            ) : (
+              <span className="search-top-fallback" aria-hidden>{(a.stage_name ?? "?").charAt(0).toUpperCase()}</span>
+            )}
+          </span>
+          <div className="search-top-meta">
+            <span className="search-top-eyebrow">Artist</span>
+            <p className="search-top-title">{a.stage_name}</p>
+            <p className="search-top-sub">
+              {typeof a.follower_count === "number" && a.follower_count > 0
+                ? `${formatCount(a.follower_count)} followers`
+                : "Artist on ZedBeatz"}
+            </p>
+            <div className="search-top-actions">
+              {first && (
+                <button
+                  type="button"
+                  className="search-top-play"
+                  aria-label={active ? "Pause" : `Play ${first.title}`}
+                  onClick={() => (isCurrent ? togglePlay() : play(toTrackInfo(first)))}
+                >
+                  {active ? (
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden><rect x="6" y="4" width="4" height="16" /><rect x="14" y="4" width="4" height="16" /></svg>
+                  ) : (
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden style={{ marginLeft: 2 }}><polygon points="6,4 20,12 6,20" /></svg>
+                  )}
+                </button>
+              )}
+              <button type="button" className="search-top-view" onClick={() => router.push(`/artist/${a.id}`)}>
+                View profile
+              </button>
+            </div>
+          </div>
+        </div>
+      </section>
+    )
+  }
+
+  if (pick.kind === "track") {
+    const t = pick.track
+    const isCurrent = currentTrack?.id === t.id
+    const active = !!isCurrent && isPlaying
+    return (
+      <section aria-label="Top result">
+        <h2 style={{ fontSize: "15px", fontWeight: 700, color: "var(--foreground)", letterSpacing: "-0.2px", margin: "0 0 12px" }}>Top result</h2>
+        <div className="search-top">
+          <span className="search-top-art">
+            {t.cover_url ? (
+              <CoverImage src={t.cover_url} alt={t.title} sizes="224px" />
+            ) : (
+              <span className="search-top-fallback" aria-hidden>{(t.title ?? "?").charAt(0).toUpperCase()}</span>
+            )}
+          </span>
+          <div className="search-top-meta">
+            <span className="search-top-eyebrow">Song</span>
+            <p className="search-top-title">{t.title}</p>
+            <p className="search-top-sub">{t.artist_name ?? "Unknown Artist"}{t.album_name ? ` · ${t.album_name}` : ""}</p>
+            <div className="search-top-actions">
+              <button
+                type="button"
+                className="search-top-play"
+                aria-label={active ? "Pause" : `Play ${t.title}`}
+                onClick={() => (isCurrent ? togglePlay() : play(toTrackInfo(t)))}
+              >
+                {active ? (
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden><rect x="6" y="4" width="4" height="16" /><rect x="14" y="4" width="4" height="16" /></svg>
+                ) : (
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden style={{ marginLeft: 2 }}><polygon points="6,4 20,12 6,20" /></svg>
+                )}
+              </button>
+              <button type="button" className="search-top-view" onClick={() => router.push(`/track/${t.id}`)}>
+                Open track
+              </button>
+            </div>
+          </div>
+        </div>
+      </section>
+    )
+  }
+
+  const al = pick.album as any
+  return (
+    <section aria-label="Top result">
+      <h2 style={{ fontSize: "15px", fontWeight: 700, color: "var(--foreground)", letterSpacing: "-0.2px", margin: "0 0 12px" }}>Top result</h2>
+      <div className="search-top">
+        <span className="search-top-art">
+          {al.cover_url ? (
+            <CoverImage src={al.cover_url} alt={al.title} sizes="224px" />
+          ) : (
+            <span className="search-top-fallback" aria-hidden>{(al.title ?? "?").charAt(0).toUpperCase()}</span>
+          )}
+        </span>
+        <div className="search-top-meta">
+          <span className="search-top-eyebrow">{al.type === "single" ? "Single" : al.type === "ep" ? "EP" : "Album"}</span>
+          <p className="search-top-title">{al.title}</p>
+          <p className="search-top-sub">{al.artist_name ?? "Unknown Artist"}</p>
+          <div className="search-top-actions">
+            <button type="button" className="search-top-view search-top-view-primary" onClick={() => router.push(`/album/${al.id}`)}>
+              Open {al.type === "single" ? "single" : al.type === "ep" ? "EP" : "album"}
             </button>
-          )
-        })}
+          </div>
+        </div>
       </div>
     </section>
   )

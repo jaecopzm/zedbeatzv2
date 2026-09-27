@@ -5,6 +5,7 @@ import { usePlayerStore, type TrackInfo } from "@/lib/store"
 import { useUIStore } from "@/lib/ui-store"
 import { useLikesStore } from "@/lib/likes-store"
 import { useColorExtract } from "@/lib/use-color-extract"
+import { EqBars } from "@/components/eq"
 import { ShuffleIcon as ShuffleLinear } from "@solar-icons/react/linear/shuffle"
 import { RepeatIcon as RepeatLinear } from "@solar-icons/react/linear/repeat"
 import { SkipPreviousIcon as PrevBold } from "@solar-icons/react/bold/skip-previous"
@@ -203,11 +204,7 @@ export function NowPlayingScreen() {
                 </div>
                 {track && (
                   <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 12px", borderRadius: 10, background: "rgba(255,255,255,0.08)", marginBottom: 8 }}>
-                    <span style={{ display: "flex", alignItems: "flex-end", gap: 2, height: 14 }}>
-                      {[0, 1, 2].map((i) => (
-                        <span key={i} className="eq-bar" style={{ width: 3, height: 14, background: "#fff", borderRadius: 2, animationDelay: `${i * 0.18}s`, animationPlayState: isPlaying ? "running" : "paused" }} />
-                      ))}
-                    </span>
+                    <EqBars paused={!isPlaying} />
                     <div style={{ minWidth: 0, flex: 1 }}>
                       <p style={{ margin: 0, fontSize: 13, fontWeight: 600, color: "#fff", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{track.title}</p>
                       <p style={{ margin: 0, fontSize: 12, color: "rgba(255,255,255,0.55)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>Now playing</p>

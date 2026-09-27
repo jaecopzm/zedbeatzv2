@@ -409,6 +409,65 @@ function MoreChartsSection({ initialData }: { initialData?: any }) {
   )
 }
 
+/** New Releases — newest uploads first, in the Top Charts numbered-row look. */
+function NewReleasesSection() {
+  const { data, isLoading } = useQuery({
+    queryKey: ["tracks", "new_releases"],
+    queryFn: () => api.listTracks(12, 0, undefined, "newest"),
+    staleTime: HOME_STALE_TIME,
+  })
+
+  const tracks = (data?.tracks ?? []) as any[]
+
+  const col1 = tracks.slice(0, 4)
+  const col2 = tracks.slice(4, 8)
+  const col3 = tracks.slice(8, 12)
+  const columns = [col1, col2, col3]
+
+  const playQueue = usePlayerStore((s) => s.playQueue)
+
+  if (!isLoading && tracks.length === 0) return null
+
+  const handlePlayAll = () => {
+    if (tracks.length === 0) return
+    playQueue(tracks.map(toTrackInfo), 0)
+  }
+
+  return (
+    <section className="hp-section">
+      <SectionHeader
+        label="New Releases"
+        size="lg"
+        onPlayAll={tracks.length > 0 ? handlePlayAll : undefined}
+      />
+      {isLoading ? (
+        <div className="hp-bns-grid">
+          {Array.from({ length: 3 }).map((_, colIdx) => (
+            <div key={colIdx} className="hp-bns-column">
+              {Array.from({ length: 4 }).map((_, rIdx) => (
+                <div key={rIdx}>
+                  <SkeletonRow index={colIdx * 4 + rIdx} />
+                  {rIdx < 3 && <div className="hp-track-divider" />}
+                </div>
+              ))}
+            </div>
+          ))}
+        </div>
+      ) : (
+        <div className="hp-bns-grid">
+          {columns.map((col, colIdx) => (
+            <div key={colIdx} className="hp-bns-column">
+              {col.map((t: any, idx: number) => (
+                <TrackRow key={t.id} track={t} index={colIdx * 4 + idx} isLast={idx === col.length - 1} />
+              ))}
+            </div>
+          ))}
+        </div>
+      )}
+    </section>
+  )
+}
+
 type SectionDef = { sectionKey: string; label: string }
 
 const browseSections: SectionDef[] = [
@@ -479,6 +538,7 @@ export default function HomePage({ initialData }: { initialData?: HomeInitialDat
       <RecentlyPlayedSection />
       <NewThisWeekSection initialData={initialData?.new_this_week} />
       <AlbumsSection initialData={initialData?.albums} />
+      <NewReleasesSection />
       <FeaturedArtistsSection initialData={initialData?.artists} />
       <MoreChartsSection initialData={initialData?.best_new_songs_more} />
       {browseSections.slice(0, 4).map((s) => (

@@ -58,7 +58,6 @@ export default function GenrePage() {
   })
 
   const genre = genresData?.genres?.find((g: any) => g.id === id)
-  const art = genreArt(genre, 0)
   const accent = genreAccent(genre, 0)
 
   const { data, isLoading } = useQuery({
@@ -68,6 +67,9 @@ export default function GenrePage() {
   })
 
   const tracks = data?.tracks ?? []
+  // Real artwork: the genre's most-played track cover (no extra request —
+  // tracks are already loaded), Unsplash fallback while loading/empty.
+  const art = (tracks[0] as any)?.cover_url || genreArt(genre, 0)
   const queueTracks = tracks.map((t: any) => ({
     id: t.id,
     artist_id: t.artist_id,

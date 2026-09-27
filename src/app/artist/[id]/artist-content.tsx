@@ -9,6 +9,7 @@ import type { Track, Album, Artist } from "@/types"
 import { useState, useEffect, useCallback, useMemo } from "react"
 import { PremiumTrackMenu } from "@/components/track-menu"
 import { CoverImage } from "@/components/cover-image"
+import { highlightEntities } from "@/lib/highlight"
 import { PlayIcon as PlayBold } from "@solar-icons/react/bold/play"
 import { PauseIcon as PauseBold } from "@solar-icons/react/bold/pause"
 import { CheckCircleIcon as BadgeBold } from "@solar-icons/react/bold/check-circle"
@@ -513,7 +514,7 @@ export default function ArtistContent({ artistId, initialArtist }: ArtistContent
           text-shadow: 0 2px 20px rgba(0,0,0,0.5);
           display: flex;
           align-items: center;
-          gap: 10;
+          gap: 10px;
         }
         .artist-hero-stats {
           display: flex;
@@ -542,19 +543,38 @@ export default function ArtistContent({ artistId, initialArtist }: ArtistContent
         }
         .artist-hero-body { padding: 60px 40px 64px; }
         @media (max-width: 1024px) {
+          /* Tablet portrait: keep the horizontal desktop composition, scaled
+             down — avatar, name, stats and actions stay left-aligned in a row.
+             The centered stacked phone layout only applies at phone widths. */
           .artist-hero-inner {
-            gap: 16px;
-            padding: 48px 14px 20px;
-            justify-content: center;
+            gap: 24px;
+            padding: 60px 28px 32px;
           }
-          .artist-hero-avatar-wrap > * { width: 130px !important; height: 130px !important; }
+          .artist-hero-avatar-wrap > * { width: 150px !important; height: 150px !important; }
+          .artist-hero-body { padding: 40px 28px 56px; }
+        }
+        @media (max-width: 640px) {
+          /* Phones: left-aligned editorial hero — big balanced name that
+             handles long stage names, avatar anchoring top-left. */
+          .artist-hero-inner {
+            gap: 14px;
+            padding: 44px 16px 22px;
+            justify-content: flex-start;
+            text-align: left;
+          }
+          .artist-hero-avatar-wrap > * { width: 104px !important; height: 104px !important; }
+          .artist-hero-eyebrow { text-align: left; }
           .artist-hero-name {
-            font-size: clamp(24px, 8vw, 36px);
-            justify-content: center;
+            justify-content: flex-start;
+            text-align: left;
+            font-size: clamp(30px, 9.5vw, 40px) !important;
+            line-height: 1.0 !important;
+            text-wrap: balance;
+            letter-spacing: -0.03em;
           }
-          .artist-hero-stats { justify-content: center; gap: 6px; margin-bottom: 12px; }
+          .artist-hero-stats { justify-content: flex-start; gap: 6px; margin-bottom: 12px; }
           .artist-hero-pill { gap: 3px; padding: 3px 8px; font-size: 11px; }
-          .artist-hero-actions { justify-content: center; gap: 8px; }
+          .artist-hero-actions { justify-content: flex-start; gap: 8px; }
           .artist-hero-body { padding: 20px 16px 48px; }
         }
         .artist-tracks .track-row {
@@ -887,14 +907,18 @@ export default function ArtistContent({ artistId, initialArtist }: ArtistContent
             </div>
 
             <div style={{ flex: 1, minWidth: 0 }}>
-              <p style={{
+              <p
+                className="artist-hero-eyebrow"
+                style={{
                 margin: "0 0 6px", fontSize: isDesktop ? 13 : 12, fontWeight: 600,
                 letterSpacing: "-0.01em",
                 color: "rgba(255,255,255,0.72)",
               }}>
                 Artist{artist.verified ? " · verified" : ""}
               </p>
-              <h1 style={{
+              <h1
+                className="artist-hero-name"
+                style={{
                 fontFamily: "var(--font-display, Inter, sans-serif)",
                 fontSize: isDesktop ? "clamp(32px, 5vw, 56px)" : "clamp(24px, 8vw, 32px)",
                 fontWeight: 700,
@@ -905,7 +929,7 @@ export default function ArtistContent({ artistId, initialArtist }: ArtistContent
                 textShadow: "0 2px 20px rgba(0,0,0,0.5)",
                 display: "flex",
                 alignItems: "center",
-                gap: 10,
+                gap: "10px",
               }}>
                 {artist.stage_name}
                 {artist.verified && (
@@ -1439,16 +1463,28 @@ export default function ArtistContent({ artistId, initialArtist }: ArtistContent
               <SectionHeading title="About" size="md" />
               <div style={{
                 background: "var(--card-bg)", border: "1px solid var(--border)",
-                borderRadius: 10, padding: isDesktop ? 24 : 18,
+                borderRadius: 12, overflow: "hidden",
                 boxShadow: "0 1px 2px rgba(18,18,28,0.05), 0 16px 40px -16px rgba(18,18,28,0.2)",
               }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 14, marginBottom: artist.bio ? 14 : 0 }}>
-                  <Avatar src={artist.photo_url} name={artist.stage_name} size={isDesktop ? 64 : 52} shape="circle" />
-                  <div style={{ minWidth: 0 }}>
-                    <p style={{ margin: 0, fontSize: isDesktop ? 18 : 16, fontWeight: 700, color: "var(--foreground)", letterSpacing: "-0.02em" }}>
+                <div style={{
+                  position: "relative", height: isDesktop ? 132 : 104,
+                  background: artist.photo_url ? undefined : "linear-gradient(135deg, var(--brand), #1a1a2e)",
+                  overflow: "hidden",
+                }}>
+                  {artist.photo_url && (
+                    <img src={artist.photo_url} alt="" loading="lazy" draggable={false} style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover" }} />
+                  )}
+                  <div style={{ position: "absolute", inset: 0, background: "linear-gradient(180deg, rgba(5,8,22,0.05) 30%, rgba(5,8,22,0.45) 100%)" }} />
+                </div>
+                <div style={{ padding: isDesktop ? "0 24px 24px" : "0 18px 18px" }}>
+                <div style={{ display: "flex", alignItems: "flex-end", gap: 14, marginTop: isDesktop ? -36 : -30, marginBottom: artist.bio ? 14 : 0 }}>
+                  <Avatar src={artist.photo_url} name={artist.stage_name} size={isDesktop ? 72 : 60} shape="circle" ring />
+                  <div style={{ minWidth: 0, paddingBottom: 4 }}>
+                    <p style={{ margin: 0, fontSize: isDesktop ? 20 : 17, fontWeight: 800, color: "var(--foreground)", letterSpacing: "-0.02em", display: "flex", alignItems: "center", gap: 6 }}>
                       {artist.stage_name}
+                      {artist.verified && <BadgeBold size={17} color="var(--brand)" secondaryColor="#fff" secondaryOpacity={1} />}
                     </p>
-                    <p style={{ margin: "2px 0 0", fontSize: 12, color: "var(--muted-foreground)" }}>
+                    <p style={{ margin: "2px 0 0", fontSize: 12.5, color: "var(--muted-foreground)" }}>
                       {typeof artist.follower_count === "number" && artist.follower_count > 0
                         ? `${formatCount(artist.follower_count)} followers`
                         : "Artist"}
@@ -1458,8 +1494,11 @@ export default function ArtistContent({ artistId, initialArtist }: ArtistContent
                 </div>
                 {artist.bio && (
                   <>
-                    <p style={{ margin: 0, fontSize: 14, lineHeight: 1.7, color: "var(--muted-foreground)", maxWidth: 640 }}>
-                      {bioOpen || artist.bio.length <= 240 ? artist.bio : `${artist.bio.slice(0, 240).trimEnd()}…`}
+                    <p style={{ margin: 0, fontSize: 15, lineHeight: 1.7, color: "var(--foreground)", maxWidth: 640, whiteSpace: "pre-wrap" }}>
+                      {highlightEntities(
+                        bioOpen || artist.bio.length <= 240 ? artist.bio : `${artist.bio.slice(0, 240).trimEnd()}…`,
+                        [artist.stage_name, artist.location, ...(artist.genre_tags ?? [])]
+                      )}
                     </p>
                     {artist.bio.length > 240 && (
                       <button
@@ -1512,6 +1551,7 @@ export default function ArtistContent({ artistId, initialArtist }: ArtistContent
                       ))
                   )}
                 </div>
+                </div>
               </div>
             </section>
           )}
@@ -1524,21 +1564,25 @@ export default function ArtistContent({ artistId, initialArtist }: ArtistContent
               gap: 12,
             }}>
               {[
-                { label: "Followers", value: typeof artist.follower_count === "number" ? formatCount(artist.follower_count) : "—" },
-                { label: "Tracks", value: typeof artist.track_count === "number" ? formatCount(artist.track_count) : String(tracks.length || "—") },
-                { label: "Releases", value: albums.length > 0 ? String(albums.length) : "—" },
-                { label: "Appears on", value: collabTracks.length > 0 ? String(collabTracks.length) : "—" },
-              ].map((s) => (
-                <div key={s.label} style={{
+                { label: "Followers", value: typeof artist.follower_count === "number" ? formatCount(artist.follower_count) : "—", Icon: FansLinear },
+                { label: "Tracks", value: typeof artist.track_count === "number" ? formatCount(artist.track_count) : String(tracks.length || "—"), Icon: MusicLinear },
+                { label: "Releases", value: albums.length > 0 ? String(albums.length) : "—", Icon: AlbumLinear },
+                { label: "Appears on", value: collabTracks.length > 0 ? String(collabTracks.length) : "—", Icon: HeadphonesLinear },
+              ].map(({ label, value, Icon }) => (
+                <div key={label} style={{
                   background: "var(--card-bg)", border: "1px solid var(--border)",
-                  borderRadius: 10, padding: isDesktop ? "16px 18px" : "13px 14px",
+                  borderRadius: 10, padding: isDesktop ? "14px 16px" : "12px 13px",
+                  display: "flex", alignItems: "center", gap: 12,
                 }}>
-                  <p style={{ margin: 0, fontSize: isDesktop ? 22 : 18, fontWeight: 800, letterSpacing: "-0.02em", color: "var(--foreground)" }}>
-                    {s.value}
-                  </p>
-                  <p style={{ margin: "2px 0 0", fontSize: 12, color: "var(--muted-foreground)" }}>
-                    {s.label}
-                  </p>
+                  <Icon size={20} color="var(--brand)" strokeWidth={2} />
+                  <span style={{ minWidth: 0 }}>
+                    <span style={{ display: "block", fontSize: isDesktop ? 20 : 17, fontWeight: 800, letterSpacing: "-0.02em", color: "var(--foreground)", lineHeight: 1.2 }}>
+                      {value}
+                    </span>
+                    <span style={{ display: "block", fontSize: 12, color: "var(--muted-foreground)", marginTop: 1 }}>
+                      {label}
+                    </span>
+                  </span>
                 </div>
               ))}
             </div>

@@ -5,6 +5,7 @@ import { useParams, useRouter } from "next/navigation"
 import { api } from "@/lib/api"
 import { usePlayerStore } from "@/lib/store"
 import { ArtistLinks } from "@/components/artist-links"
+import { EqBars } from "@/components/eq"
 import { PremiumTrackMenu } from "@/components/track-menu"
 import type { RadioStationTrack } from "@/types"
 import { useState, useEffect } from "react"
@@ -403,12 +404,8 @@ export default function StationPage() {
                     </button>
                   ) : (
                     isActiveAndPlaying ? (
-                      <div style={{ display: "flex", gap: 3, alignItems: "flex-end", height: 12, width: 12 }}>
-                        <div className="eq-bar" style={{ width: 2, height: "100%", background: "var(--brand)" }} />
-                        <div className="eq-bar" style={{ width: 2, height: "100%", background: "var(--brand)" }} />
-                        <div className="eq-bar" style={{ width: 2, height: "100%", background: "var(--brand)" }} />
-                      </div>
-                    ) : (
+                    <EqBars />
+                  ) : (
                       <span style={{ color: isActive ? "var(--brand)" : "var(--muted-foreground)" }}>
                         {index + 1}
                       </span>

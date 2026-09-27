@@ -6,6 +6,7 @@ import { usePlayerStore } from "@/lib/store"
 import { ArtistLinks } from "@/components/artist-links"
 import { PremiumTrackMenu } from "@/components/track-menu"
 import { CoverImage } from "@/components/cover-image"
+import { EqBars } from "@/components/eq"
 
 function formatDuration(sec: number) {
   const m = Math.floor(sec / 60)
@@ -47,11 +48,7 @@ export function TrackList({ tracks, accentColor }: { tracks: any[]; accentColor?
                 </button>
               ) : (
                 isCurrent && isPlayingNow ? (
-                  <div style={{ display: "flex", gap: 3, alignItems: "flex-end", height: 12, width: 12 }}>
-                    <div className="eq-bar" style={{ width: 2, height: "100%", background: accentColor || "var(--brand)" }} />
-                    <div className="eq-bar" style={{ width: 2, height: "100%", background: accentColor || "var(--brand)" }} />
-                    <div className="eq-bar" style={{ width: 2, height: "100%", background: accentColor || "var(--brand)" }} />
-                  </div>
+                  <EqBars />
                 ) : (
                   <span style={{ color: isCurrent ? (accentColor || "var(--brand)") : "var(--muted-foreground)" }}>{idx + 1}</span>
                 )

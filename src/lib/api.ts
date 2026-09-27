@@ -120,8 +120,12 @@ async function refreshAccessToken(): Promise<boolean> {
 
 export const api = {
   // Tracks
-  listTracks: (limit = 20, offset = 0, section?: string) =>
-    request<any>(`/tracks?limit=${limit}&offset=${offset}${section ? `&section=${encodeURIComponent(section)}` : ""}`),
+  listTracks: (limit = 20, offset = 0, section?: string, order?: "newest") => {
+    let q = `/tracks?limit=${limit}&offset=${offset}`
+    if (section) q += `&section=${encodeURIComponent(section)}`
+    if (order) q += `&order=${encodeURIComponent(order)}`
+    return request<any>(q)
+  },
 
   searchTracks: (q: string) =>
     request<any>(`/tracks/search?q=${encodeURIComponent(q)}`),
