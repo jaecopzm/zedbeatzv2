@@ -1,8 +1,12 @@
 // Blog body renderer — rich HTML (visual editor, sanitized) with legacy
 // markdown-lite fallback. Supports embeds (YouTube / Spotify), figures,
 // tables, code, pull-quotes. Inspired by Pitchfork / Genius / Medium.
+//
+// NOTE: sanitization uses sanitize-html (pure JS, no jsdom) instead of
+// DOMPurify — jsdom cannot load inside the production serverless function
+// (ERR_REQUIRE_ESM via html-encoding-sniffer) and 500s every article page.
 import React from "react"
-import DOMPurify from "isomorphic-dompurify"
+import sanitizeHtml from "sanitize-html"
 import { slugifyHeading } from "@/lib/blog"
 
 function renderInline(text: string, keyPrefix: string): React.ReactNode[] {
@@ -159,11 +163,23 @@ const ALLOWED_TAGS = [
   "iframe", "audio", "source",
 ]
 
-const ALLOWED_ATTR = [
-  "href", "src", "alt", "title", "target", "rel", "id", "class",
-  "width", "height", "loading", "allow", "allowfullscreen", "frameborder",
-  "referrerpolicy", "controls", "type",
-]
+// Per-tag attributes (mirrors the old DOMPurify allowlist). id/class are
+// permitted everywhere so heading anchors and editor classes survive.
+const ID_CLASS = ["id", "class"]
+const ALLOWED_ATTR: Record<string, string[]> = {
+  a: ["href", "title", "target", "rel", ...ID_CLASS],
+  img: ["src", "alt", "title", "width", "height", "loading", ...ID_CLASS],
+  iframe: ["src", "width", "height", "title", "allow", "allowfullscreen", "frameborder", "referrerpolicy", "loading", ...ID_CLASS],
+  audio: ["src", "controls", ...ID_CLASS],
+  source: ["src", "type", ...ID_CLASS],
+  p: [...ID_CLASS], h2: [...ID_CLASS], h3: [...ID_CLASS], h4: [...ID_CLASS],
+  blockquote: [...ID_CLASS], ul: [...ID_CLASS], ol: [...ID_CLASS], li: [...ID_CLASS],
+  pre: [...ID_CLASS], code: [...ID_CLASS], figure: [...ID_CLASS], figcaption: [...ID_CLASS],
+  table: [...ID_CLASS], thead: [...ID_CLASS], tbody: [...ID_CLASS], tr: [...ID_CLASS],
+  th: [...ID_CLASS], td: [...ID_CLASS], hr: [...ID_CLASS],
+  strong: [...ID_CLASS], em: [...ID_CLASS], u: [...ID_CLASS], s: [...ID_CLASS],
+  br: [...ID_CLASS],
+}
 
 const EMBED_HOSTS = [
   "www.youtube.com",
@@ -266,17 +282,21 @@ function enhanceHtml(clean: string): string {
 export function BlogBody({ markdown, dropCap = false }: { markdown: string; dropCap?: boolean }) {
   const source = markdown ?? ""
   if (/^\s*</.test(source)) {
-    const clean = DOMPurify.sanitize(source, {
-      ALLOWED_TAGS,
-      ALLOWED_ATTR,
-      ALLOW_DATA_ATTR: false,
-      FORBID_TAGS: ["script", "style", "form", "input", "button"],
+    const clean = sanitizeHtml(source, {
+      allowedTags: ALLOWED_TAGS,
+      allowedAttributes: ALLOWED_ATTR,
+      allowedIframeHostnames: EMBED_HOSTS,
+      allowIframeRelativeUrls: false,
     })
-    // Strip disallowed iframes (non-whitelisted hosts) post-sanitize.
-    const withoutBadIframes = String(clean).replace(
-      /<iframe[^>]*src="([^"]*)"[^>]*>(?:<\/iframe>)?/gi,
-      (m, src) => (isEmbedAllowed(String(src)) ? m : "")
-    )
+    // Strip disallowed iframes (non-whitelisted hosts) post-sanitize —
+    // belt and suspenders alongside allowedIframeHostnames. The second
+    // pass drops iframes whose src was stripped entirely (no src at all).
+    const withoutBadIframes = String(clean)
+      .replace(
+        /<iframe[^>]*src="([^"]*)"[^>]*>(?:<\/iframe>)?/gi,
+        (m, src) => (isEmbedAllowed(String(src)) ? m : "")
+      )
+      .replace(/<iframe(?![^>]*\ssrc=)[^>]*>(?:<\/iframe>)?/gi, "")
     const html = enhanceHtml(withoutBadIframes)
     return <div className={`blog-rich${dropCap ? " blog-dropcap" : ""}`} dangerouslySetInnerHTML={{ __html: html }} />
   }
