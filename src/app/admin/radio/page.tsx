@@ -161,7 +161,6 @@ export default function AdminRadioPage() {
     <div className="fade-in">
       <header className="admin-header">
         <div className="admin-header-text">
-          <span className="admin-eyebrow"><span className="admin-eyebrow-dot" aria-hidden />Curation</span>
           <h1 className="admin-title">Radio</h1>
           <p className="admin-sub">Curated stations, genre feeds and playlists.</p>
         </div>
@@ -308,7 +307,7 @@ export default function AdminRadioPage() {
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <div>
-      <h2 style={{ fontSize: 13, fontWeight: 800, color: "var(--muted-foreground)", margin: "0 0 10px", letterSpacing: "0.08em", textTransform: "uppercase" }}>
+      <h2 style={{ fontSize: 11, fontWeight: 500, color: "var(--muted-foreground)", margin: "0 0 10px", letterSpacing: "0.04em", textTransform: "uppercase" }}>
         {title}
       </h2>
       <div className="admin-tiles">
@@ -323,30 +322,29 @@ function StationCard({ station, onEdit, onDelete, onManageTracks }: {
 }) {
   return (
     <article className="admin-card admin-card-lift" style={{ overflow: "hidden" }}>
-      <div style={{ position: "relative", aspectRatio: "1.6", overflow: "hidden", background: "linear-gradient(135deg, var(--brand-bg), var(--hover-bg))" }}>
+      <div style={{ position: "relative", aspectRatio: "1.6", overflow: "hidden", background: "var(--hover-bg)" }}>
         {station.cover_url ? (
           <img src={station.cover_url} alt={station.name} loading="lazy" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
         ) : (
-          <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", color: "var(--muted-foreground)" }}>
-            <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.2" opacity={0.7}>
+          <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", color: "var(--muted-foreground)", opacity: 0.4 }}>
+            <svg width="32" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.2">
               <rect x="3" y="3" width="18" height="18" rx="3" /><path d="M9 18V9l8-1.5v9" /><circle cx="7" cy="18" r="2" /><circle cx="15" cy="16.5" r="2" />
             </svg>
           </div>
         )}
         <span className="admin-pill" style={{
           position: "absolute", top: 8, right: 8,
-          background: "rgba(10,14,30,0.55)", color: "#fff",
-          backdropFilter: "blur(6px)", WebkitBackdropFilter: "blur(6px)",
+          background: "rgba(0,0,0,0.65)", color: "#fff",
           textTransform: "capitalize",
         }}>
-          <span aria-hidden style={{ display: "inline-block", width: 6, height: 6, borderRadius: "50%", background: station.is_active ? "#22c55e" : "#94a3b8", marginRight: 2 }} />
+          <span aria-hidden style={{ display: "inline-block", width: 6, height: 6, borderRadius: "50%", background: station.is_active ? "#16a34a" : "#64748b", marginRight: 3 }} />
           {station.is_active ? "Active" : "Inactive"}
         </span>
       </div>
       <div className="admin-tile-body">
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 6 }}>
           <div style={{ flex: 1, minWidth: 0 }}>
-            <h3 style={{ margin: 0, fontSize: 13.5, fontWeight: 800, letterSpacing: "-0.01em", color: "var(--foreground)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+            <h3 style={{ margin: 0, fontSize: 13.5, fontWeight: 600, color: "var(--foreground)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
               {station.name}
             </h3>
             <p style={{ margin: "2px 0 0", fontSize: 12, color: "var(--muted-foreground)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>

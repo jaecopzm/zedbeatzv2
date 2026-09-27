@@ -1,7 +1,6 @@
 import type { Metadata } from "next"
 import { SITE_URL, SITE_NAME, SERVER_API_BASE } from "@/lib/seo"
-import { Breadcrumbs } from "@/components/breadcrumbs"
-import { GenreBackButton } from "./back-button"
+import { DetailTopbar } from "@/components/detail-topbar"
 
 interface Props {
   params: Promise<{ id: string }>
@@ -53,13 +52,13 @@ export default async function GenreLayout({ params, children }: Props) {
   return (
     <div style={{ position: "relative" }}>
       {genre && (
-        <div className="genre-topbar">
-          <GenreBackButton />
-          <Breadcrumbs items={[
+        <DetailTopbar
+          tone="light"
+          items={[
             { label: "Genres", href: "/search" },
             { label: `${genre.name} Music` },
-          ]} />
-        </div>
+          ]}
+        />
       )}
       {children}
     </div>

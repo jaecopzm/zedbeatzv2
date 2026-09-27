@@ -51,7 +51,6 @@ export default function AdminClaimsPage() {
     <div className="fade-in">
       <header className="admin-header">
         <div className="admin-header-text">
-          <span className="admin-eyebrow"><span className="admin-eyebrow-dot" aria-hidden />Verification queue</span>
           <h1 className="admin-title">Claims</h1>
           <p className="admin-sub">Review ownership proofs and approve or reject verification requests.</p>
         </div>
@@ -105,7 +104,7 @@ export default function AdminClaimsPage() {
         {selectedClaim && (
           <>
             <div style={{ padding: "24px", display: "flex", flexDirection: "column", gap: "12px" }}>
-              <h2 style={{ fontSize: "18px", fontWeight: 700, color: "var(--foreground)", margin: "0 0 16px 0", letterSpacing: "-0.3px" }}>
+              <h2 style={{ fontSize: "16px", fontWeight: 600, color: "var(--foreground)", margin: "0 0 14px 0" }}>
                 Review Verification Claim
               </h2>
               <div style={{
@@ -229,59 +228,38 @@ function ClaimCard({
   onReview: () => void
 }) {
   const isSocial = claim.method === "social_media"
-  const methodIcon = isSocial ? (
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
-      <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
-    </svg>
-  ) : (
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-      <polyline points="14 2 14 8 20 8"></polyline>
-      <line x1="16" y1="13" x2="8" y2="13"></line>
-      <line x1="16" y1="17" x2="8" y2="17"></line>
-      <polyline points="10 9 9 9 8 9"></polyline>
-    </svg>
-  )
   const methodLabel = isSocial ? "Social Verification" : "Manual Document Upload"
 
   return (
     <article
       className="admin-card"
-      style={{ padding: "14px 15px" }}
+      style={{ padding: "14px 16px" }}
     >
       <div className="admin-list-row" style={{ alignItems: "flex-start" }}>
-        <span aria-hidden style={{
-          width: 36, height: 36, borderRadius: 11, flexShrink: 0,
-          background: "var(--brand-bg)", color: "var(--brand)",
-          display: "flex", alignItems: "center", justifyContent: "center",
-        }}>
-          {methodIcon}
-        </span>
         <div style={{ minWidth: 0, flex: "1 1 200px" }}>
           <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-            <span style={{ fontSize: "13.5px", fontWeight: 800, letterSpacing: "-0.01em", color: "var(--foreground)" }}>
+            <span style={{ fontSize: "13.5px", fontWeight: 600, color: "var(--foreground)" }}>
               {methodLabel}
             </span>
-            <span className="admin-pill" style={{ background: "var(--brand-bg)", color: "var(--brand)" }}>
+            <span className="admin-pill" style={{ background: "var(--hover-bg)", color: "var(--muted-foreground)" }}>
               {claim.status.replace("_", " ")}
             </span>
           </div>
 
-          <div style={{ marginTop: 7, display: "flex", flexDirection: "column", gap: 3, fontSize: "12.5px", color: "var(--muted-foreground)" }}>
+          <div style={{ marginTop: 6, display: "flex", flexDirection: "column", gap: 3, fontSize: "12.5px", color: "var(--muted-foreground)" }}>
             {claim.verification_code && (
               <div>
-                Code: <span style={{ fontFamily: "monospace", fontWeight: 700, color: "var(--foreground)" }}>{claim.verification_code}</span>
+                Code: <span style={{ fontFamily: "monospace", fontWeight: 600, color: "var(--foreground)" }}>{claim.verification_code}</span>
               </div>
             )}
             {claim.social_platform && (
               <div>
-                Platform: <span style={{ textTransform: "capitalize", fontWeight: 600, color: "var(--foreground)" }}>{claim.social_platform}</span>
+                Platform: <span style={{ textTransform: "capitalize", fontWeight: 500, color: "var(--foreground)" }}>{claim.social_platform}</span>
               </div>
             )}
             {claim.social_post_url && (
               <div style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                <a href={claim.social_post_url} target="_blank" rel="noopener noreferrer" style={{ color: "var(--brand)", fontWeight: 600 }}>{claim.social_post_url}</a>
+                <a href={claim.social_post_url} target="_blank" rel="noopener noreferrer" style={{ color: "var(--brand)", fontWeight: 500 }}>{claim.social_post_url}</a>
               </div>
             )}
           </div>

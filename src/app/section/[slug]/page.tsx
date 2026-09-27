@@ -4,7 +4,7 @@ import { useQuery } from "@tanstack/react-query"
 import { api } from "@/lib/api"
 import { usePlayerStore } from "@/lib/store"
 import { ArtistLinks } from "@/components/artist-links"
-import { useRouter, useParams } from "next/navigation"
+import { useParams } from "next/navigation"
 import Link from "next/link"
 import { useState } from "react"
 
@@ -27,7 +27,6 @@ const SECTION_LABELS: Record<string, string> = {
 export default function SectionPage() {
   const { slug } = useParams()
   const play = usePlayerStore((s) => s.play)
-  const router = useRouter()
   const [search, setSearch] = useState("")
   const [page, setPage] = useState(0)
   const limit = 50
@@ -58,17 +57,7 @@ export default function SectionPage() {
   }
 
   return (
-    <div className="fade-in" style={{ padding: "28px 28px 40px", minHeight: "100%", background: "var(--content-bg)" }}>
-      <button onClick={() => router.back()} style={{
-        display: "inline-flex", alignItems: "center", gap: "6px", fontSize: "13px", fontWeight: 500,
-        color: "var(--active-fg)", background: "none", border: "none", cursor: "pointer", padding: 0, marginBottom: "18px"
-      }}>
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          <line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/>
-        </svg>
-        Back
-      </button>
-
+    <div className="fade-in" style={{ padding: "4px 28px 40px", minHeight: "100%", background: "var(--content-bg)" }}>
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "20px", gap: "16px" }}>
         <h1 style={{ fontSize: "22px", fontWeight: 700, color: "var(--section-header)", margin: 0, letterSpacing: "-0.3px", flexShrink: 0 }}>
           {label}

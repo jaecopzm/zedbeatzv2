@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation"
 import type { Album } from "@/types"
 import { CoverImage } from "@/components/cover-image"
+import { PlayIcon as PlayBold } from "@solar-icons/react/bold/play"
 
 export function AlbumCard({ album }: { album: Album }) {
   const router = useRouter()
@@ -28,9 +29,9 @@ export function AlbumCard({ album }: { album: Album }) {
           aria-label="Open album"
           type="button"
         >
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-            <polygon points="6,4 20,12 6,20" />
-          </svg>
+          <span style={{ marginLeft: 2, display: "flex" }}>
+            <PlayBold size={17} color="currentColor" />
+          </span>
         </button>
       </div>
       <p

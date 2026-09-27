@@ -1,5 +1,6 @@
 "use client"
 
+import { useEffect, useState } from "react"
 import { useQuery } from "@tanstack/react-query"
 import { useRouter } from "next/navigation"
 import { api } from "@/lib/api"
@@ -84,6 +85,12 @@ function Section({ title, children }: { title: string; children: React.ReactNode
 export default function RadioPage() {
   const router = useRouter()
   const user = useAuthStore((s) => s.user)
+  // Auth state is restored from localStorage, so it differs from the server
+  // prerender — gate the personalized card until after hydration.
+  const [mounted, setMounted] = useState(false)
+  useEffect(() => {
+    setMounted(true)
+  }, [])
 
   const { data, isLoading } = useQuery({
     queryKey: ["radio-stations"],
@@ -124,7 +131,7 @@ export default function RadioPage() {
       ) : (
         <>
           {/* Personalized */}
-          {user && (
+          {mounted && user && (
             <div
               onClick={() => router.push("/radio/personalized")}
               style={{

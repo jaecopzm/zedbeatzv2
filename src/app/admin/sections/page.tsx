@@ -45,7 +45,6 @@ export default function AdminSectionsPage() {
     <div className="fade-in">
       <header className="admin-header">
         <div className="admin-header-text">
-          <span className="admin-eyebrow"><span className="admin-eyebrow-dot" aria-hidden />Curation</span>
           <h1 className="admin-title">Sections</h1>
           <p className="admin-sub">Assign tracks to home page rails. Changes go live immediately.</p>
         </div>
@@ -96,7 +95,7 @@ export default function AdminSectionsPage() {
                 <div style={{ width: 42, height: 42, borderRadius: 9, background: "var(--hover-bg)", flexShrink: 0 }} />
               )}
               <div className="admin-row-grow" style={{ flex: "1 1 160px", minWidth: 0 }}>
-                <div style={{ fontSize: "13.5px", fontWeight: 700, letterSpacing: "-0.01em", color: "var(--foreground)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                <div style={{ fontSize: "13.5px", fontWeight: 600, color: "var(--foreground)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                   {track.title}
                 </div>
                 <div style={{ fontSize: "12px", color: "var(--muted-foreground)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>

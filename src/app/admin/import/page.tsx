@@ -339,12 +339,6 @@ export default function AdminImportPage() {
       {/* Header */}
       <header className="admin-header" style={{ marginBottom: 2 }}>
         <div className="admin-header-text">
-          <span className="admin-eyebrow">
-            <span aria-hidden style={{ width: 22, height: 22, borderRadius: "50%", background: "#1DB954", display: "inline-flex", alignItems: "center", justifyContent: "center", color: "white" }}>
-              <svg width="12" height="12" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2C6.477 2 2 6.477 2 12s4.477 10 10 10 10-4.477 10-10S17.523 2 12 2zm4.586 14.424c-.18.295-.565.387-.86.207-2.377-1.454-5.37-1.783-8.892-.982-.336.076-.67-.135-.746-.472-.076-.336.135-.67.472-.746 3.847-.88 7.143-.5 9.816 1.134.296.18.388.564.21.859zm1.223-2.72c-.227.367-.707.487-1.074.26-2.72-1.672-6.87-2.157-10.078-1.182-.413.125-.847-.107-.972-.52-.125-.413.108-.847.52-.972 3.666-1.112 8.243-.574 11.345 1.337.367.226.488.707.26 1.076zm.105-2.81c-3.26-1.937-8.643-2.12-11.758-1.173-.5.152-1.025-.133-1.177-.633-.15-.5.133-1.025.633-1.177 3.616-1.1 9.544-.89 13.3 1.343.45.267.6.845.333 1.295-.267.45-.845.6-1.297.332z" /></svg>
-            </span>
-            Bulk import
-          </span>
           <h1 className="admin-title">Spotify Import</h1>
           <p className="admin-sub">Search, configure metadata, bulk-import to the catalog.</p>
         </div>

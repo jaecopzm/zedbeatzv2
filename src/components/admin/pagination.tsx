@@ -58,11 +58,10 @@ export function Pagination({ page, pageSize, total, onPageChange }: Props) {
                 aria-label={`Page ${p}`}
                 aria-current={p === page ? "page" : undefined}
                 style={{
-                  minWidth: 36, height: 36, padding: "0 10px", borderRadius: 11, border: "none",
-                  background: p === page ? "linear-gradient(135deg, var(--brand), var(--brand-light))" : "transparent",
+                  minWidth: 32, height: 32, padding: "0 8px", borderRadius: 8, border: "none",
+                  background: p === page ? "var(--brand)" : "transparent",
                   color: p === page ? "#fff" : "var(--foreground)",
-                  boxShadow: p === page ? "0 4px 12px var(--brand-shadow)" : "none",
-                  fontSize: 13.5, fontWeight: 750, cursor: "pointer", fontFamily: "inherit",
+                  fontSize: 13, fontWeight: p === page ? 600 : 450, cursor: "pointer", fontFamily: "inherit",
                   fontVariantNumeric: "tabular-nums",
                 }}
               >

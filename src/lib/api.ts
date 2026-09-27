@@ -394,6 +394,28 @@ export const api = {
   adminGetPost: (id: string) =>
     request<any>(`/admin/posts/${id}`),
 
+  adminAssistWrite: (payload: {
+    action: "outline" | "draft" | "titles"
+    topic_mode: "music" | "open"
+    post_type: string
+    brief: string
+    track_ids?: string[]
+    artist_ids?: string[]
+    tone?: string
+    target_words?: number
+  }) =>
+    request<{
+      title?: string
+      excerpt?: string
+      keywords?: string
+      body?: string
+      outline?: string[]
+      titles?: string[]
+      suggested_tracks?: Array<{ id: string; title: string; artist?: string }>
+      suggested_artists?: Array<{ id: string; title: string }>
+      warnings?: string[]
+    }>(`/admin/posts/assist`, { method: "POST", body: JSON.stringify(payload) }),
+
   adminUploadTrack: (formData: FormData) => {
     const token = localStorage.getItem("access_token")
     return fetch(`${API_BASE}/admin/tracks`, {

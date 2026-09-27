@@ -1,6 +1,8 @@
 "use client"
 
+import { useEffect, useState } from "react"
 import Link from "next/link"
+import { useThemeStore } from "@/lib/theme-store"
 
 const columns = [
   {
@@ -41,11 +43,22 @@ const socials = [
 ]
 
 export function Footer() {
+  const theme = useThemeStore((s) => s.theme)
+  const [mounted, setMounted] = useState(false)
+  useEffect(() => {
+    setMounted(true)
+  }, [])
+
   return (
     <footer className="app-footer">
       <div className="footer-top">
         <div className="footer-brand">
-          <p className="footer-wordmark">ZedBeatz</p>
+          <img
+            src={mounted && theme !== "dark" ? "/logo-black.png" : "/logo-white.png"}
+            alt="ZedBeatz"
+            className="footer-logo"
+            suppressHydrationWarning
+          />
           <p className="footer-tagline">Zambia&rsquo;s home for new music.</p>
           <div className="footer-socials">
             {socials.map((s) => (

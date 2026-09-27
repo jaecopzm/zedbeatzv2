@@ -1,6 +1,6 @@
 import type { Metadata } from "next"
 import { SITE_URL, SITE_NAME, SERVER_API_BASE } from "@/lib/seo"
-import { Breadcrumbs } from "@/components/breadcrumbs"
+import { DetailTopbar } from "@/components/detail-topbar"
 
 interface Props {
   params: Promise<{ id: string }>
@@ -127,14 +127,13 @@ export default async function AlbumLayout({ params, children }: Props) {
         />
       )}
       {artistName && (
-        <div style={{ position: "absolute", top: 0, left: 0, right: 0, zIndex: 10, background: "rgba(0,0,0,0.3)", backdropFilter: "blur(8px)", pointerEvents: "none" }}>
-          <div style={{ pointerEvents: "auto" }}>
-            <Breadcrumbs items={[
-              { label: artistName, href: `${SITE_URL}/artist/${album!.artist_id}` },
-              { label: album!.title },
-            ]} />
-          </div>
-        </div>
+        <DetailTopbar
+          tone="light"
+          items={[
+            { label: artistName, href: `${SITE_URL}/artist/${album!.artist_id}` },
+            { label: album!.title },
+          ]}
+        />
       )}
       {children}
     </div>

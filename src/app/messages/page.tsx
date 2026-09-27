@@ -1,5 +1,6 @@
 "use client"
 
+import { useEffect, useState } from "react"
 import { useQuery } from "@tanstack/react-query"
 import { api } from "@/lib/api"
 import { useAuthStore } from "@/lib/auth-store"
@@ -13,8 +14,21 @@ interface Message {
   created_at: string
 }
 
+function formatDate(iso: string) {
+  const d = new Date(iso)
+  if (Number.isNaN(d.getTime())) return ""
+  return d.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })
+}
+
 export default function MessagesPage() {
-  const isAuthed = !!useAuthStore((s) => s.user)
+  const user = useAuthStore((s) => s.user)
+  // Auth state is restored from localStorage, so it differs from the server
+  // prerender — gate the authed branch until after hydration.
+  const [mounted, setMounted] = useState(false)
+  useEffect(() => {
+    setMounted(true)
+  }, [])
+  const isAuthed = mounted && !!user
 
   const { data, isLoading, isError } = useQuery({
     queryKey: ["messages"],
@@ -23,81 +37,83 @@ export default function MessagesPage() {
   })
 
   const messages: Message[] = data?.messages ?? []
+  const unread = messages.filter((m) => !m.read).length
 
   return (
-    <div className="fade-in messages-page" style={{ padding: "32px", minHeight: "100%", background: "var(--content-bg)" }}>
-      <style>{`
-        @media (max-width: 640px) {
-          .messages-page { padding: 16px 12px 24px !important; }
-          .messages-page h1 { font-size: 22px !important; margin-bottom: 16px !important; }
-        }
-      `}</style>
-
-      <h1 style={{ fontSize: 26, fontWeight: 700, color: "var(--foreground)", margin: "0 0 24px", letterSpacing: "-0.5px" }}>
+    <div className="fade-in msg-page">
+      <h1 className="msg-title">
         Messages
+        {unread > 0 && (
+          <span
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              justifyContent: "center",
+              minWidth: 22,
+              height: 22,
+              padding: "0 7px",
+              marginLeft: 10,
+              borderRadius: 999,
+              background: "var(--brand)",
+              color: "#fff",
+              fontSize: 12,
+              fontWeight: 800,
+              verticalAlign: "middle",
+            }}
+          >
+            {unread}
+          </span>
+        )}
       </h1>
+      <p className="msg-sub">Updates from artists you follow.</p>
 
       {!isAuthed ? (
-        <div style={{ textAlign: "center", padding: "80px 0", color: "var(--muted-foreground)" }}>
-          <p style={{ fontSize: 18, fontWeight: 600, margin: "0 0 8px" }}>Sign in to see your messages</p>
-          <p style={{ fontSize: 14, margin: 0 }}>Artists you follow send updates and announcements here.</p>
+        <div className="empty">
+          <p className="empty-title">Sign in to see your messages</p>
+          <p className="empty-sub">Artists you follow send updates and announcements here.</p>
         </div>
       ) : isError ? (
-        <div style={{ textAlign: "center", padding: "80px 0", color: "var(--muted-foreground)" }}>
-          <div style={{ width: 56, height: 56, borderRadius: "50%", background: "rgba(239,68,68,0.12)", display: "inline-flex", alignItems: "center", justifyContent: "center", marginBottom: 16 }}>
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#ef4444" strokeWidth="1.8" strokeLinecap="round"><circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="12" /><line x1="12" y1="16" x2="12.01" y2="16" /></svg>
+        <div className="empty">
+          <div className="empty-icon is-error" aria-hidden>
+            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#ef4444" strokeWidth="1.8" strokeLinecap="round"><circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="12" /><line x1="12" y1="16" x2="12.01" y2="16" /></svg>
           </div>
-          <p style={{ fontSize: 16, fontWeight: 500, margin: "0 0 8px" }}>Failed to load messages</p>
-          <p style={{ fontSize: 14, margin: 0 }}>Please try again later.</p>
+          <p className="empty-title">Failed to load messages</p>
+          <p className="empty-sub">Please try again later.</p>
         </div>
       ) : isLoading ? (
-        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+        <div className="msg-list" aria-hidden>
           {Array.from({ length: 5 }).map((_, i) => (
-            <div key={i} style={{ background: "var(--card-bg)", borderRadius: 12, padding: 16 }}>
-              <div className="skeleton" style={{ width: "40%", height: 16, marginBottom: 8 }} />
-              <div className="skeleton" style={{ width: "80%", height: 13, marginBottom: 4 }} />
+            <div key={i} className="msg-skel">
+              <div className="skeleton" style={{ width: "40%", height: 15, marginBottom: 8 }} />
+              <div className="skeleton" style={{ width: "85%", height: 13, marginBottom: 4 }} />
               <div className="skeleton" style={{ width: "60%", height: 13 }} />
             </div>
           ))}
         </div>
       ) : messages.length === 0 ? (
-        <div style={{ textAlign: "center", padding: "80px 0", color: "var(--muted-foreground)" }}>
-          <div style={{ width: 80, height: 80, borderRadius: "50%", background: "linear-gradient(135deg, var(--brand) 0%, var(--brand-light) 100%)", display: "inline-flex", alignItems: "center", justifyContent: "center", marginBottom: 20 }}>
-            <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+        <div className="empty">
+          <div className="empty-icon" aria-hidden>
+            <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
               <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
             </svg>
           </div>
-          <p style={{ fontSize: 18, fontWeight: 600, margin: "0 0 8px" }}>No messages yet</p>
-          <p style={{ fontSize: 14, margin: 0 }}>Messages from artists you follow will appear here.</p>
+          <p className="empty-title">No messages yet</p>
+          <p className="empty-sub">Messages from artists you follow will appear here.</p>
         </div>
       ) : (
-        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+        <div className="msg-list">
           {messages.map((msg) => (
-            <div
-              key={msg.id}
-              className="msg-card"
-              style={{
-                background: msg.read ? "var(--card-bg)" : "var(--card-bg)",
-                borderRadius: 12,
-                border: msg.read ? "1px solid var(--border)" : "1.5px solid var(--brand)",
-                padding: "16px 20px",
-                transition: "border-color 0.2s",
-              }}
-            >
-              <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 8 }}>
-                {!msg.read && (
-                  <span style={{ width: 8, height: 8, borderRadius: "50%", background: "var(--brand)", flexShrink: 0 }} />
+            <article key={msg.id} className={`msg-card${msg.read ? "" : " is-unread"}`}>
+              <div className="msg-head">
+                {!msg.read && <span className="msg-dot" aria-label="Unread" />}
+                <p className="msg-subject">{msg.subject}</p>
+                {msg.created_at && (
+                  <span className="msg-date">{formatDate(msg.created_at)}</span>
                 )}
-                <p style={{ margin: 0, fontSize: 14, fontWeight: 700, color: "var(--foreground)" }}>{msg.subject}</p>
-                <span style={{ fontSize: 11, color: "var(--muted-foreground)", marginLeft: "auto", flexShrink: 0 }}>
-                  {new Date(msg.created_at).toLocaleDateString()}
-                </span>
               </div>
-              <p style={{ margin: "0 0 6px", fontSize: 13, color: "var(--muted-foreground)", lineHeight: 1.5 }}>{msg.body}</p>
-              <p style={{ margin: 0, fontSize: 12, fontWeight: 600, color: "var(--brand)" }}>
-                — {msg.artist_name}
-              </p>
-            </div>
+              <p className="msg-body">{msg.body}</p>
+              <p className="msg-from">— {msg.artist_name}</p>
+            </article>
           ))}
         </div>
       )}

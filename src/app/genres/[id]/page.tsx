@@ -127,8 +127,8 @@ export default function GenrePage() {
           <p className="genre-eyebrow">Genre</p>
           <h1 className="genre-title">{genre?.name || "Genre"}</h1>
           <p className="genre-meta">
-            {tracks.length} track{tracks.length === 1 ? "" : "s"}
-            {totalPlays > 0 && <> · {formatCount(totalPlays)} plays</>}
+            {tracks.length}{" "}track{tracks.length === 1 ? "" : "s"}
+            {totalPlays > 0 && <>{" "}·{" "}{formatCount(totalPlays)} plays</>}
           </p>
           <button
             type="button"
@@ -170,9 +170,9 @@ export default function GenrePage() {
                       )}
                     </span>
                     <p className="genre-artist-name">{a.name}</p>
-                    <p className="genre-artist-meta">
-                      {a.count} track{a.count === 1 ? "" : "s"}
-                    </p>
+                  <p className="genre-artist-meta">
+                    {a.count}{" "}track{a.count === 1 ? "" : "s"}
+                  </p>
                   </>
                 )
                 return a.id ? (

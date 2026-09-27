@@ -828,6 +828,12 @@ function CommentsSection({ trackId }: { trackId: string }) {
   const queryClient = useQueryClient()
   const [body, setBody] = useState("")
   const [posting, setPosting] = useState(false)
+  // Auth state is restored from localStorage, so it differs from the server
+  // prerender — gate the comment form until after hydration.
+  const [mounted, setMounted] = useState(false)
+  useEffect(() => {
+    setMounted(true)
+  }, [])
 
   const { data, isLoading } = useQuery({
     queryKey: ["comments", trackId],
@@ -854,7 +860,7 @@ function CommentsSection({ trackId }: { trackId: string }) {
         description="Join the conversation"
       />
 
-      {user ? (
+      {mounted && user ? (
         <div style={{ display: "flex", gap: 10, marginBottom: 18 }}>
           <div style={{ width: 36, height: 36, borderRadius: "50%", background: "linear-gradient(135deg, var(--brand), var(--brand-light))", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontSize: 14, fontWeight: 700, flexShrink: 0 }}>
             {(user.email?.charAt(0) || "?").toUpperCase()}

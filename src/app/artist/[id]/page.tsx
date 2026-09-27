@@ -2,7 +2,7 @@ import type { Metadata } from "next"
 import { notFound } from "next/navigation"
 import ArtistContent from "./artist-content"
 import { SITE_URL } from "@/lib/seo"
-import { Breadcrumbs } from "@/components/breadcrumbs"
+import { DetailTopbar } from "@/components/detail-topbar"
 
 interface Props {
   params: Promise<{ id: string }>
@@ -107,13 +107,12 @@ export default async function ArtistPage({ params }: Props) {
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
-      <div style={{ position: "absolute", top: 0, left: 0, right: 0, zIndex: 10, background: "rgba(0,0,0,0.3)", backdropFilter: "blur(8px)", pointerEvents: "none" }}>
-        <div style={{ pointerEvents: "auto" }}>
-          <Breadcrumbs items={[
-            { label: artist.stage_name },
-          ]} />
-        </div>
-      </div>
+      <DetailTopbar
+        tone="light"
+        items={[
+          { label: artist.stage_name },
+        ]}
+      />
       <nav aria-label="Artist catalogue" className="seo-link-list">
         <a href={`/artist/${id}`}>{artist.stage_name}</a>
         {seoTracks.map((t) => (

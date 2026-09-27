@@ -1,6 +1,6 @@
 import type { Metadata } from "next"
 import { SITE_URL, SITE_NAME } from "@/lib/seo"
-import { Breadcrumbs } from "@/components/breadcrumbs"
+import { DetailTopbar } from "@/components/detail-topbar"
 
 interface Props {
   params: Promise<{ slug: string }>
@@ -47,11 +47,7 @@ export default async function SectionLayout({ params, children }: Props) {
 
   return (
     <div style={{ position: "relative" }}>
-      <div style={{ position: "absolute", top: 0, left: 0, right: 0, zIndex: 10, background: "rgba(0,0,0,0.3)", backdropFilter: "blur(8px)", pointerEvents: "none" }}>
-        <div style={{ pointerEvents: "auto" }}>
-          <Breadcrumbs items={[{ label }]} />
-        </div>
-      </div>
+      <DetailTopbar tone="dark" overlay={false} items={[{ label }]} />
       {children}
     </div>
   )

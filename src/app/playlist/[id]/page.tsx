@@ -134,7 +134,7 @@ export default function PlaylistPage() {
               <p style={{ margin: "0 0 4px", fontSize: 14, opacity: 0.75, lineHeight: 1.45, maxWidth: 560 }}>{display.description}</p>
             )}
             <p style={{ margin: "6px 0 0", fontSize: 13, fontWeight: 600, opacity: 0.75 }}>
-              {displayTracks.length} track{displayTracks.length === 1 ? "" : "s"}{totalDuration > 0 ? ` · ${totalMins} min` : ""}
+              {displayTracks.length}{" "}track{displayTracks.length === 1 ? "" : "s"}{totalDuration > 0 ? ` · ${totalMins} min` : ""}
             </p>
             <div style={{ display: "flex", gap: 12, marginTop: 16, alignItems: "center" }}>
               <button

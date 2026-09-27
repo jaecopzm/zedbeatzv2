@@ -78,7 +78,6 @@ export default function AdminArtistsPage() {
     <div className="fade-in">
       <header className="admin-header">
         <div className="admin-header-text">
-          <span className="admin-eyebrow"><span className="admin-eyebrow-dot" aria-hidden />Catalog</span>
           <h1 className="admin-title">Artists</h1>
           <p className="admin-sub">
             {artists.length} artist{artists.length === 1 ? "" : "s"} registered
@@ -167,12 +166,12 @@ function ArtistCard({ artist, onEdit, onDelete }: {
 }) {
   return (
     <article className="admin-card admin-card-lift" style={{ overflow: "hidden" }}>
-      <div style={{ position: "relative", aspectRatio: "1.35", overflow: "hidden", background: "linear-gradient(135deg, var(--brand-bg), var(--hover-bg))" }}>
+      <div style={{ position: "relative", aspectRatio: "1.35", overflow: "hidden", background: "var(--hover-bg)" }}>
         {artist.cover_url ? (
           <img src={artist.cover_url} alt="" loading="lazy" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
         ) : (
-          <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", color: "var(--muted-foreground)", opacity: 0.5 }}>
-            <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.2">
+          <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", color: "var(--muted-foreground)", opacity: 0.4 }}>
+            <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.2">
               <rect x="3" y="3" width="18" height="18" rx="3" /><path d="M9 18V9l8-1.5v9" /><circle cx="7" cy="18" r="2" /><circle cx="15" cy="16.5" r="2" />
             </svg>
           </div>
@@ -180,12 +179,8 @@ function ArtistCard({ artist, onEdit, onDelete }: {
         {artist.verified && (
           <span className="admin-pill" style={{
             position: "absolute", top: 8, right: 8,
-            background: "rgba(10,14,30,0.55)", color: "#fff",
-            backdropFilter: "blur(6px)", WebkitBackdropFilter: "blur(6px)",
+            background: "rgba(0,0,0,0.65)", color: "#fff",
           }}>
-            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3.2" strokeLinecap="round" strokeLinejoin="round">
-              <polyline points="20 6 9 17 4 12" />
-            </svg>
             Verified
           </span>
         )}
@@ -194,7 +189,7 @@ function ArtistCard({ artist, onEdit, onDelete }: {
       <div className="admin-tile-body" style={{ position: "relative" }}>
         <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 6 }}>
           <div style={{ flex: 1, minWidth: 0 }}>
-            <h3 style={{ margin: 0, fontSize: 14, fontWeight: 800, letterSpacing: "-0.01em", color: "var(--foreground)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+            <h3 style={{ margin: 0, fontSize: 13.5, fontWeight: 600, color: "var(--foreground)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
               {artist.stage_name}
             </h3>
             <p style={{ margin: "3px 0 0", fontSize: 12, color: "var(--muted-foreground)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
@@ -275,9 +270,9 @@ function EditArtistModal({
           ) : (
             <div style={{
               width: 56, height: 56, borderRadius: "50%", flexShrink: 0,
-              background: "linear-gradient(135deg, var(--brand), var(--brand-light))",
+              background: "var(--brand)",
               display: "flex", alignItems: "center", justifyContent: "center",
-              color: "#fff", fontSize: 20, fontWeight: 700, border: "2px solid var(--border)",
+              color: "#fff", fontSize: 18, fontWeight: 600, border: "1px solid var(--border)",
             }}>
               {artist.stage_name?.charAt(0).toUpperCase() ?? "?"}
             </div>
@@ -330,20 +325,17 @@ function EditArtistModal({
           </div>
         </div>
 
-        <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "12px 16px", borderRadius: 12, background: "var(--card-bg)", border: "1px solid var(--border)" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "12px 14px", borderRadius: 10, background: "var(--card-bg)", border: "1px solid var(--border)" }}>
           <input
             type="checkbox"
             id="verified"
             checked={verified}
             onChange={(e) => setVerified(e.target.checked)}
-            style={{ width: 18, height: 18, accentColor: "var(--brand)", cursor: "pointer" }}
+            style={{ width: 16, height: 16, accentColor: "var(--brand)", cursor: "pointer" }}
           />
-          <label htmlFor="verified" style={{ fontSize: 14, fontWeight: 600, color: "var(--foreground)", cursor: "pointer", flex: 1 }}>
+          <label htmlFor="verified" style={{ fontSize: 13.5, fontWeight: 500, color: "var(--foreground)", cursor: "pointer", flex: 1 }}>
             Verified Artist
           </label>
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={verified ? "rgb(59,130,246)" : "var(--muted-foreground)"} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" /><polyline points="22 4 12 14.01 9 11.01" />
-          </svg>
         </div>
       </div>
 

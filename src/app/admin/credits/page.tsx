@@ -140,7 +140,6 @@ export default function AdminCreditsPage() {
     <div className="fade-in">
       <header className="admin-header">
         <div className="admin-header-text">
-          <span className="admin-eyebrow"><span className="admin-eyebrow-dot" aria-hidden />Ledger</span>
           <h1 className="admin-title">Credits</h1>
           <p className="admin-sub">
             {selectedArtist ? "Balance, grants, revokes and full history." : "Pick an artist to manage their credit balance."}
@@ -196,9 +195,9 @@ export default function AdminCreditsPage() {
                   ) : (
                     <div aria-hidden style={{
                       width: 42, height: 42, borderRadius: "50%", flexShrink: 0,
-                      background: "linear-gradient(135deg, var(--brand) 0%, var(--brand-light) 100%)",
+                      background: "var(--brand)",
                       display: "flex", alignItems: "center", justifyContent: "center",
-                      color: "#fff", fontSize: 15, fontWeight: 800,
+                      color: "#fff", fontSize: 15, fontWeight: 600,
                     }}>
                       {artist.stage_name?.charAt(0).toUpperCase() ?? "?"}
                     </div>
@@ -233,9 +232,9 @@ export default function AdminCreditsPage() {
             ) : (
               <div style={{
                 width: 56, height: 56, borderRadius: "50%", flexShrink: 0,
-                background: "linear-gradient(135deg, var(--brand) 0%, var(--brand-light) 100%)",
+                background: "var(--brand)",
                 display: "flex", alignItems: "center", justifyContent: "center",
-                color: "#fff", fontSize: 22, fontWeight: 700, border: "2px solid var(--border)",
+                color: "#fff", fontSize: 20, fontWeight: 600, border: "1px solid var(--border)",
               }}>
                 {selectedArtistData?.stage_name?.charAt(0).toUpperCase() ?? "?"}
               </div>
@@ -260,24 +259,20 @@ export default function AdminCreditsPage() {
 
           {/* Balance Card */}
           {creditsLoading ? (
-            <div className="skeleton" style={{ height: 150, borderRadius: 18 }} />
+            <div className="skeleton" style={{ height: 120, borderRadius: 10 }} />
           ) : bal ? (
-            <div style={{
-              background: "linear-gradient(140deg, var(--brand) 0%, var(--brand-light) 100%)",
-              borderRadius: 18, padding: "clamp(18px, 4vw, 28px)", position: "relative", overflow: "hidden",
-              color: "#fff", boxShadow: "0 12px 32px var(--brand-shadow)",
-            }}>
-              <div aria-hidden style={{ position: "absolute", right: -60, top: -60, width: 200, height: 200, borderRadius: "50%", background: "rgba(255,255,255,0.12)" }} />
-              <div aria-hidden style={{ position: "absolute", right: 30, bottom: -90, width: 160, height: 160, borderRadius: "50%", background: "rgba(255,255,255,0.08)" }} />
-              <p style={{ margin: "0 0 2px", fontSize: 12, fontWeight: 700, letterSpacing: "0.07em", textTransform: "uppercase", opacity: 0.85 }}>Available credits</p>
-              <p style={{ margin: 0, fontSize: "clamp(38px, 9vw, 52px)", fontWeight: 900, letterSpacing: "-0.04em", lineHeight: 1.05, fontVariantNumeric: "tabular-nums" }}>
+            <div className="admin-card" style={{ padding: "18px 20px" }}>
+              <p style={{ margin: "0 0 2px", fontSize: 11, fontWeight: 600, letterSpacing: "0.04em", textTransform: "uppercase", color: "var(--muted-foreground)" }}>
+                Available credits
+              </p>
+              <p style={{ margin: 0, fontSize: 36, fontWeight: 600, letterSpacing: "-0.02em", lineHeight: 1.1, fontVariantNumeric: "tabular-nums", color: "var(--foreground)" }}>
                 {formatNumber(bal.balance)}
               </p>
-              <div style={{ display: "flex", gap: "8px 20px", marginTop: 14, fontSize: 12.5, flexWrap: "wrap", fontVariantNumeric: "tabular-nums" }}>
-                <span style={{ opacity: 0.92 }}>Granted <strong>{formatNumber(bal.lifetime_granted)}</strong></span>
-                <span style={{ opacity: 0.92 }}>Purchased <strong>{formatNumber(bal.lifetime_purchased)}</strong></span>
-                <span style={{ opacity: 0.92 }}>Spent <strong>{formatNumber(bal.lifetime_spent)}</strong></span>
-                <span style={{ opacity: 0.92 }}>Refunded <strong>{formatNumber(bal.lifetime_refunded ?? 0)}</strong></span>
+              <div style={{ display: "flex", gap: "8px 20px", marginTop: 12, fontSize: 12.5, flexWrap: "wrap", fontVariantNumeric: "tabular-nums", color: "var(--muted-foreground)" }}>
+                <span>Granted <strong style={{ color: "var(--foreground)", fontWeight: 600 }}>{formatNumber(bal.lifetime_granted)}</strong></span>
+                <span>Purchased <strong style={{ color: "var(--foreground)", fontWeight: 600 }}>{formatNumber(bal.lifetime_purchased)}</strong></span>
+                <span>Spent <strong style={{ color: "var(--foreground)", fontWeight: 600 }}>{formatNumber(bal.lifetime_spent)}</strong></span>
+                <span>Refunded <strong style={{ color: "var(--foreground)", fontWeight: 600 }}>{formatNumber(bal.lifetime_refunded ?? 0)}</strong></span>
               </div>
             </div>
           ) : (
@@ -293,16 +288,16 @@ export default function AdminCreditsPage() {
           {bal && (
             <div className="admin-grid-stats" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 140px), 1fr))" }}>
               {[
-                { label: "Granted", value: bal.lifetime_granted, color: "rgb(16,185,129)" },
-                { label: "Purchased", value: bal.lifetime_purchased, color: "rgb(59,130,246)" },
-                { label: "Spent", value: bal.lifetime_spent, color: "rgb(239,68,68)" },
-                { label: "Refunded", value: bal.lifetime_refunded ?? 0, color: "rgb(168,85,247)" },
+                { label: "Granted", value: bal.lifetime_granted },
+                { label: "Purchased", value: bal.lifetime_purchased },
+                { label: "Spent", value: bal.lifetime_spent },
+                { label: "Refunded", value: bal.lifetime_refunded ?? 0 },
               ].map((stat) => (
                 <div key={stat.label} className="admin-card" style={{ padding: "14px 16px" }}>
-                  <p style={{ margin: "0 0 4px", fontSize: 11, fontWeight: 800, color: "var(--muted-foreground)", textTransform: "uppercase", letterSpacing: "0.07em" }}>
+                  <p style={{ margin: "0 0 4px", fontSize: 11, fontWeight: 600, color: "var(--muted-foreground)", textTransform: "uppercase", letterSpacing: "0.04em" }}>
                     {stat.label}
                   </p>
-                  <p style={{ margin: 0, fontSize: 22, fontWeight: 850, letterSpacing: "-0.02em", color: stat.color, fontVariantNumeric: "tabular-nums" }}>
+                  <p style={{ margin: 0, fontSize: 20, fontWeight: 600, color: "var(--foreground)", fontVariantNumeric: "tabular-nums" }}>
                     {formatNumber(stat.value)}
                   </p>
                 </div>
@@ -314,15 +309,7 @@ export default function AdminCreditsPage() {
           <div className="admin-grid-2" style={{ marginBottom: 4 }}>
             {/* Grant form */}
             <div className="admin-panel">
-              <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 14 }}>
-                <div aria-hidden style={{
-                  width: 34, height: 34, borderRadius: 11, background: "rgba(34,197,94,0.14)",
-                  display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0,
-                }}>
-                  <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#22c55e" strokeWidth="2.4" strokeLinecap="round"><polyline points="17 11 12 6 7 11" /><polyline points="17 18 12 13 7 18" /></svg>
-                </div>
-                <h3 style={{ margin: 0, fontSize: 15, fontWeight: 800, letterSpacing: "-0.01em", color: "var(--foreground)" }}>Grant credits</h3>
-              </div>
+              <h3 style={{ margin: "0 0 14px", fontSize: 13.5, fontWeight: 600, color: "var(--foreground)" }}>Grant credits</h3>
               <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
                 <div className="admin-chip-row" role="group" aria-label="Grant amount">
                   {GRANT_OPTIONS.map((n) => {
@@ -356,15 +343,7 @@ export default function AdminCreditsPage() {
 
             {/* Revoke form */}
             <div className="admin-panel">
-              <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 14 }}>
-                <div aria-hidden style={{
-                  width: 34, height: 34, borderRadius: 11, background: "rgba(239,68,68,0.12)",
-                  display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0,
-                }}>
-                  <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#ef4444" strokeWidth="2.4" strokeLinecap="round"><polyline points="7 13 12 18 17 13" /><polyline points="7 6 12 11 17 6" /></svg>
-                </div>
-                <h3 style={{ margin: 0, fontSize: 15, fontWeight: 800, letterSpacing: "-0.01em", color: "var(--foreground)" }}>Revoke credits</h3>
-              </div>
+              <h3 style={{ margin: "0 0 14px", fontSize: 13.5, fontWeight: 600, color: "var(--foreground)" }}>Revoke credits</h3>
               <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
                 <div className="admin-chip-row" role="group" aria-label="Revoke amount">
                   {REVOKE_OPTIONS.map((n) => {
@@ -441,10 +420,10 @@ export default function AdminCreditsPage() {
                     </caption>
                     <thead>
                       <tr>
-                        <th style={{ textAlign: "left", padding: "8px 12px", fontSize: 11, fontWeight: 600, color: "var(--muted-foreground)", textTransform: "uppercase", letterSpacing: "0.06em", borderBottom: "1px solid var(--border)" }}>Type</th>
-                        <th style={{ textAlign: "left", padding: "8px 12px", fontSize: 11, fontWeight: 600, color: "var(--muted-foreground)", textTransform: "uppercase", letterSpacing: "0.06em", borderBottom: "1px solid var(--border)" }}>Description</th>
-                        <th style={{ textAlign: "right", padding: "8px 12px", fontSize: 11, fontWeight: 600, color: "var(--muted-foreground)", textTransform: "uppercase", letterSpacing: "0.06em", borderBottom: "1px solid var(--border)" }}>Amount</th>
-                        <th style={{ textAlign: "right", padding: "8px 12px", fontSize: 11, fontWeight: 600, color: "var(--muted-foreground)", textTransform: "uppercase", letterSpacing: "0.06em", borderBottom: "1px solid var(--border)" }}>Date</th>
+                        <th style={{ textAlign: "left", padding: "8px 12px", fontSize: 11, fontWeight: 500, color: "var(--muted-foreground)", textTransform: "uppercase", letterSpacing: "0.04em", borderBottom: "1px solid var(--border)" }}>Type</th>
+                        <th style={{ textAlign: "left", padding: "8px 12px", fontSize: 11, fontWeight: 500, color: "var(--muted-foreground)", textTransform: "uppercase", letterSpacing: "0.04em", borderBottom: "1px solid var(--border)" }}>Description</th>
+                        <th style={{ textAlign: "right", padding: "8px 12px", fontSize: 11, fontWeight: 500, color: "var(--muted-foreground)", textTransform: "uppercase", letterSpacing: "0.04em", borderBottom: "1px solid var(--border)" }}>Amount</th>
+                        <th style={{ textAlign: "right", padding: "8px 12px", fontSize: 11, fontWeight: 500, color: "var(--muted-foreground)", textTransform: "uppercase", letterSpacing: "0.04em", borderBottom: "1px solid var(--border)" }}>Date</th>
                       </tr>
                     </thead>
                     <tbody>

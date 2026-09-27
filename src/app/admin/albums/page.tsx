@@ -131,7 +131,6 @@ export default function AdminAlbumsPage() {
     <div className="fade-in">
       <header className="admin-header">
         <div className="admin-header-text">
-          <span className="admin-eyebrow"><span className="admin-eyebrow-dot" aria-hidden />Catalog</span>
           <h1 className="admin-title">Albums</h1>
           <p className="admin-sub">
             {albums.length} album{albums.length === 1 ? "" : "s"} · EPs, singles and compilations
@@ -278,33 +277,31 @@ export default function AdminAlbumsPage() {
 function AlbumCard({ album, artistName, onEdit, onDelete }: {
   album: Album; artistName: string; onEdit: () => void; onDelete: () => void
 }) {
-  const statusColor = album.status === "published" ? "rgb(16,185,129)" : album.status === "draft" ? "rgb(245,158,11)" : "rgb(148,163,184)"
+  const statusColor = album.status === "published" ? "#16a34a" : album.status === "draft" ? "#d97706" : "#64748b"
   const typeLabel = album.type.toUpperCase()
 
   return (
     <article className="admin-card admin-card-lift" style={{ overflow: "hidden" }}>
-      <div style={{ position: "relative", aspectRatio: "1", overflow: "hidden", background: "linear-gradient(135deg, var(--brand-bg), var(--hover-bg))" }}>
+      <div style={{ position: "relative", aspectRatio: "1", overflow: "hidden", background: "var(--hover-bg)" }}>
         {album.cover_url ? (
           <img src={album.cover_url} alt={album.title} loading="lazy" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
         ) : (
-          <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", color: "var(--muted-foreground)", opacity: 0.5 }}>
-            <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.2">
+          <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", color: "var(--muted-foreground)", opacity: 0.4 }}>
+            <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.2">
               <circle cx="12" cy="12" r="10" /><circle cx="12" cy="12" r="3" />
             </svg>
           </div>
         )}
         <div style={{ position: "absolute", top: 8, left: 8, right: 8, display: "flex", justifyContent: "space-between", alignItems: "center", gap: 6 }}>
           <span style={{
-            padding: "4px 9px", borderRadius: 999, fontSize: 10, fontWeight: 800,
-            background: "rgba(10,14,30,0.55)", color: "#fff", backdropFilter: "blur(6px)", WebkitBackdropFilter: "blur(6px)",
-            textTransform: "uppercase", letterSpacing: "0.07em",
+            padding: "3px 8px", borderRadius: 999, fontSize: 10, fontWeight: 600,
+            background: "rgba(0,0,0,0.65)", color: "#fff", textTransform: "uppercase",
           }}>
             {typeLabel}
           </span>
           <span style={{
-            padding: "4px 9px", borderRadius: 999, fontSize: 10.5, fontWeight: 700,
-            background: "rgba(10,14,30,0.55)", color: "#fff",
-            backdropFilter: "blur(6px)", WebkitBackdropFilter: "blur(6px)", textTransform: "capitalize",
+            padding: "3px 8px", borderRadius: 999, fontSize: 10.5, fontWeight: 500,
+            background: "rgba(0,0,0,0.65)", color: "#fff", textTransform: "capitalize",
           }}>
             <span aria-hidden style={{ display: "inline-block", width: 6, height: 6, borderRadius: "50%", background: statusColor, marginRight: 5, verticalAlign: "1px" }} />
             {album.status}
@@ -315,7 +312,7 @@ function AlbumCard({ album, artistName, onEdit, onDelete }: {
       <div className="admin-tile-body" style={{ position: "relative" }}>
         <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 6 }}>
           <div style={{ flex: 1, minWidth: 0 }}>
-            <h3 style={{ margin: 0, fontSize: 13.5, fontWeight: 800, letterSpacing: "-0.01em", color: "var(--foreground)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+            <h3 style={{ margin: 0, fontSize: 13.5, fontWeight: 600, color: "var(--foreground)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
               {album.title}
             </h3>
             <p style={{ margin: "2px 0 0", fontSize: 12, color: "var(--muted-foreground)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
@@ -382,9 +379,9 @@ function EditAlbumModal({
             <img src={coverPreview} alt="" style={{ width: 56, height: 56, borderRadius: 10, objectFit: "cover", border: "2px solid var(--border)", flexShrink: 0 }} />
           ) : (
             <div style={{
-              width: 56, height: 56, borderRadius: 10, flexShrink: 0,
-              background: "linear-gradient(135deg, var(--brand), var(--brand-light))",
-              display: "flex", alignItems: "center", justifyContent: "center", border: "2px solid var(--border)",
+              width: 56, height: 56, borderRadius: 8, flexShrink: 0,
+              background: "var(--brand)",
+              display: "flex", alignItems: "center", justifyContent: "center", border: "1px solid var(--border)",
             }}>
               <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="1.8"><circle cx="12" cy="12" r="10" /><circle cx="12" cy="12" r="3" /></svg>
             </div>

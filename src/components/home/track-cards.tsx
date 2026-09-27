@@ -6,6 +6,8 @@ import { usePlayerStore } from "@/lib/store"
 import { ArtistLinks } from "@/components/artist-links"
 import { PremiumTrackMenu } from "@/components/track-menu"
 import { CoverImage } from "@/components/cover-image"
+import { PlayIcon as PlayBold } from "@solar-icons/react/bold/play"
+import { PauseIcon as PauseBold } from "@solar-icons/react/bold/pause"
 
 const formatDuration = (sec: number) => {
   const m = Math.floor(sec / 60)
@@ -92,14 +94,11 @@ export function TrackCardRow({ track }: { track: Track }) {
               <circle cx="12" cy="12" r="10" strokeDasharray="31.4 31.4" strokeLinecap="round" />
             </svg>
           ) : isPlaying ? (
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-              <rect x="6" y="4" width="4" height="16" />
-              <rect x="14" y="4" width="4" height="16" />
-            </svg>
+            <PauseBold size={17} color="currentColor" />
           ) : (
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-              <polygon points="6,4 20,12 6,20" />
-            </svg>
+            <span style={{ marginLeft: 2, display: "flex" }}>
+              <PlayBold size={17} color="currentColor" />
+            </span>
           )}
         </button>
       </div>

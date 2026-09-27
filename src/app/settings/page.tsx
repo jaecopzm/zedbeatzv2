@@ -1,6 +1,17 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import Link from "next/link"
+import { useRouter } from "next/navigation"
+import { useAuthStore } from "@/lib/auth-store"
+import { useThemeStore } from "@/lib/theme-store"
+
+import { SunIcon as SunLinear } from "@solar-icons/react/linear/sun"
+import { MoonIcon as MoonLinear } from "@solar-icons/react/linear/moon"
+import { UserIcon as UserLinear } from "@solar-icons/react/linear/user"
+import { HeartIcon as HeartLinear } from "@solar-icons/react/linear/heart"
+import { ChatRoundDotsIcon as ChatLinear } from "@solar-icons/react/linear/chat-round-dots"
+import { Logout2Icon as LogoutLinear } from "@solar-icons/react/linear/logout-2"
 
 const STORAGE_KEY = "zedbeatz_settings"
 
@@ -9,109 +20,145 @@ interface StoredSettings {
   dataSaver: boolean
 }
 
-function loadSettings(): StoredSettings {
-  if (typeof window === "undefined") return { autoplay: true, dataSaver: false }
-  try {
-    return { autoplay: true, dataSaver: false, ...JSON.parse(localStorage.getItem(STORAGE_KEY) || "{}") }
-  } catch { return { autoplay: true, dataSaver: false } }
-}
+const DEFAULTS: StoredSettings = { autoplay: true, dataSaver: false }
 
-function saveSettings(s: StoredSettings) {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(s))
+function loadSettings(): StoredSettings {
+  try {
+    return { ...DEFAULTS, ...JSON.parse(localStorage.getItem(STORAGE_KEY) || "{}") }
+  } catch {
+    return DEFAULTS
+  }
 }
 
 export default function SettingsPage() {
-  const [settings, setSettings] = useState<StoredSettings>(loadSettings)
+  const router = useRouter()
+  const user = useAuthStore((s) => s.user)
+  const logout = useAuthStore((s) => s.logout)
+  const theme = useThemeStore((s) => s.theme)
+  const setTheme = useThemeStore((s) => s.setTheme)
 
-  useEffect(() => { saveSettings(settings) }, [settings])
+  // localStorage differs from the server prerender — load after mount so the
+  // first render always matches, then persist changes.
+  const [mounted, setMounted] = useState(false)
+  const [settings, setSettings] = useState<StoredSettings>(DEFAULTS)
+  useEffect(() => {
+    setSettings(loadSettings())
+    setMounted(true)
+  }, [])
+  useEffect(() => {
+    if (mounted) localStorage.setItem(STORAGE_KEY, JSON.stringify(settings))
+  }, [settings, mounted])
+
+  const handleLogout = () => {
+    logout()
+    router.push("/")
+  }
 
   return (
-    <div className="fade-in settings-page" style={{ padding: "32px", minHeight: "100%", background: "var(--content-bg)" }}>
-      <style>{`
-        @media (max-width: 640px) {
-          .settings-page { padding: 16px 12px 24px !important; }
-        }
-        .settings-link:hover { opacity: 0.7; }
-      `}</style>
+    <div className="fade-in set-page">
+      <div className="set-inner">
+        <h1 className="set-title">Settings</h1>
+        <p className="set-sub">Tune ZedBeatz to how you listen.</p>
 
-      <h1 style={{ fontSize: 26, fontWeight: 700, color: "var(--foreground)", margin: "0 0 24px", letterSpacing: "-0.5px" }}>Settings</h1>
+        {/* Appearance */}
+        <section className="set-group">
+          <h2 className="set-group-label">Appearance</h2>
+          <div className="set-segmented" role="group" aria-label="Appearance">
+            <button
+              type="button"
+              className={`set-segment${mounted && theme === "light" ? " is-active" : ""}`}
+              onClick={() => setTheme("light")}
+              aria-pressed={theme === "light"}
+            >
+              <SunLinear size={16} color="currentColor" strokeWidth={1.8} />
+              Light
+            </button>
+            <button
+              type="button"
+              className={`set-segment${mounted && theme === "dark" ? " is-active" : ""}`}
+              onClick={() => setTheme("dark")}
+              aria-pressed={theme === "dark"}
+            >
+              <MoonLinear size={16} color="currentColor" strokeWidth={1.8} />
+              Dark
+            </button>
+          </div>
+        </section>
 
-      <div style={{ display: "flex", flexDirection: "column", gap: 20, maxWidth: 520 }}>
-        <section style={{ background: "var(--card-bg)", borderRadius: 14, padding: "20px 24px", border: "1px solid var(--border)" }}>
-          <h3 style={{ fontSize: 12, fontWeight: 700, color: "var(--muted-foreground)", textTransform: "uppercase", letterSpacing: "0.06em", margin: "0 0 4px" }}>Playback</h3>
-
+        {/* Playback */}
+        <section className="set-group">
+          <h2 className="set-group-label">Playback</h2>
           <ToggleRow
             label="Autoplay"
             description="Automatically play similar tracks when your queue ends"
             checked={settings.autoplay}
             onChange={(v) => setSettings((s) => ({ ...s, autoplay: v }))}
           />
-
           <ToggleRow
             label="Data Saver"
             description="Use lower audio quality to save mobile data"
             checked={settings.dataSaver}
             onChange={(v) => setSettings((s) => ({ ...s, dataSaver: v }))}
-            last
           />
         </section>
 
-        <section style={{ background: "var(--card-bg)", borderRadius: 14, padding: "20px 24px", border: "1px solid var(--border)" }}>
-          <h3 style={{ fontSize: 12, fontWeight: 700, color: "var(--muted-foreground)", textTransform: "uppercase", letterSpacing: "0.06em", margin: "0 0 4px" }}>Account</h3>
-          <a href="/profile" className="settings-link" style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 0", color: "var(--foreground)", fontSize: 14, textDecoration: "none", borderBottom: "1px solid var(--border)", transition: "opacity 0.15s" }}>
-            <span style={{ width: 28, height: 28, borderRadius: 8, background: "var(--hover-bg)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, fontWeight: 700, color: "var(--muted-foreground)", flexShrink: 0 }}>P</span>
-            View Profile
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--muted-foreground)" strokeWidth="2" strokeLinecap="round" style={{ marginLeft: "auto", flexShrink: 0 }}><path d="M9 18l6-6-6-6" /></svg>
-          </a>
-          <a href="/liked" className="settings-link" style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 0", color: "var(--foreground)", fontSize: 14, textDecoration: "none", borderBottom: "1px solid var(--border)", transition: "opacity 0.15s" }}>
-            <span style={{ width: 28, height: 28, borderRadius: 8, background: "var(--hover-bg)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, fontWeight: 700, color: "var(--muted-foreground)", flexShrink: 0 }}>L</span>
-            Liked Songs
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--muted-foreground)" strokeWidth="2" strokeLinecap="round" style={{ marginLeft: "auto", flexShrink: 0 }}><path d="M9 18l6-6-6-6" /></svg>
-          </a>
-          <a href="/messages" className="settings-link" style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 0", color: "var(--foreground)", fontSize: 14, textDecoration: "none", transition: "opacity 0.15s" }}>
-            <span style={{ width: 28, height: 28, borderRadius: 8, background: "var(--hover-bg)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, fontWeight: 700, color: "var(--muted-foreground)", flexShrink: 0 }}>M</span>
-            Messages
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--muted-foreground)" strokeWidth="2" strokeLinecap="round" style={{ marginLeft: "auto", flexShrink: 0 }}><path d="M9 18l6-6-6-6" /></svg>
-          </a>
+        {/* Account */}
+        <section className="set-group">
+          <h2 className="set-group-label">Account</h2>
+          <SettingLink href="/profile" label="View Profile" tile="var(--brand)" icon={<UserLinear size={16} color="currentColor" strokeWidth={1.8} />} />
+          <SettingLink href="/liked" label="Liked Songs" tile="#ff4e6a" icon={<HeartLinear size={16} color="currentColor" strokeWidth={1.8} />} />
+          <SettingLink href="/messages" label="Messages" tile="#22b573" icon={<ChatLinear size={16} color="currentColor" strokeWidth={1.8} />} />
+          {mounted && user && (
+            <button type="button" className="set-row set-row-danger" onClick={handleLogout}>
+              <span className="set-tile">
+                <LogoutLinear size={16} color="currentColor" strokeWidth={1.8} />
+              </span>
+              <span className="set-row-text">Log out</span>
+            </button>
+          )}
         </section>
       </div>
     </div>
   )
 }
 
+function SettingLink({ href, label, tile, icon }: { href: string; label: string; tile: string; icon: React.ReactNode }) {
+  return (
+    <Link href={href} className="set-row" style={{ ["--tile" as string]: tile }}>
+      <span className="set-tile">{icon}</span>
+      <span className="set-row-text">{label}</span>
+      <span className="set-chevron" aria-hidden>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M9 6l6 6-6 6" />
+        </svg>
+      </span>
+    </Link>
+  )
+}
+
 function ToggleRow({
-  label, description, checked, onChange, last,
+  label, description, checked, onChange,
 }: {
   label: string
   description: string
   checked: boolean
   onChange: (v: boolean) => void
-  last?: boolean
 }) {
   return (
-    <div style={{
-      display: "flex", alignItems: "center", justifyContent: "space-between",
-      padding: "14px 0", borderBottom: last ? "none" : "1px solid var(--border)", gap: 16,
-    }}>
+    <div className="set-row" style={{ cursor: "default" }} onClick={(e) => e.stopPropagation()}>
       <div style={{ flex: 1, minWidth: 0 }}>
         <p style={{ margin: 0, fontSize: 14, fontWeight: 600, color: "var(--foreground)" }}>{label}</p>
-        <p style={{ margin: "3px 0 0", fontSize: 12, color: "var(--muted-foreground)", lineHeight: 1.35 }}>{description}</p>
+        <p className="set-row-desc">{description}</p>
       </div>
       <button
+        type="button"
         onClick={() => onChange(!checked)}
-        style={{
-          width: 50, height: 30, borderRadius: 15, border: "none",
-          background: checked ? "var(--brand)" : "var(--border)",
-          cursor: "pointer", position: "relative", transition: "background 0.2s", flexShrink: 0,
-        }}
+        className={`set-switch${checked ? " is-on" : ""}`}
         role="switch"
         aria-checked={checked}
+        aria-label={label}
       >
-        <div style={{
-          position: "absolute", top: 3, left: checked ? 24 : 3,
-          width: 24, height: 24, borderRadius: "50%", background: "#fff",
-          boxShadow: "0 2px 6px rgba(0,0,0,0.2)", transition: "left 0.2s",
-        }} />
+        <span className="set-switch-knob" />
       </button>
     </div>
   )

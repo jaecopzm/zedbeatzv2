@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useRef, useCallback } from "react"
+import { useState, useRef, useCallback, useEffect } from "react"
 import { useQuery, useMutation } from "@tanstack/react-query"
 import { useParams, useRouter } from "next/navigation"
 import { api } from "@/lib/api"
@@ -206,7 +206,13 @@ export default function ClaimPage() {
   if (!artist) return <div style={{ padding: 40, textAlign: "center", color: "var(--muted-foreground)" }}>Artist not found</div>
 
   const existingClaim = claimStatus?.claimed ? claimStatus.claim : null
-  const isAuthed = !!user
+  // Auth state is restored from localStorage, so it differs from the server
+  // prerender — gate auth branches until after hydration.
+  const [mounted, setMounted] = useState(false)
+  useEffect(() => {
+    setMounted(true)
+  }, [])
+  const isAuthed = mounted && !!user
 
   const pageStyle: React.CSSProperties = {
     maxWidth: 560,

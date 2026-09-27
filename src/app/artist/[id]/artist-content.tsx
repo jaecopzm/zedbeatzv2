@@ -540,7 +540,7 @@ export default function ArtistContent({ artistId, initialArtist }: ArtistContent
           flex-wrap: wrap;
           align-items: center;
         }
-        .artist-hero-body { padding: 40px 40px 64px; }
+        .artist-hero-body { padding: 60px 40px 64px; }
         @media (max-width: 1024px) {
           .artist-hero-inner {
             gap: 16px;
