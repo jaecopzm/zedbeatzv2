@@ -4,7 +4,7 @@ import { useMemo, useState } from "react"
 import Link from "next/link"
 import { CoverImage } from "@/components/cover-image"
 import { SITE_NAME } from "@/lib/seo"
-import { formatBlogDateShort, readingTimeFromAny, typeLabel } from "@/lib/blog"
+import { formatBlogDateShort, readingTimeFromAny, typeLabel, keywordsToList } from "@/lib/blog"
 
 export interface HubPost {
   id: string
@@ -14,7 +14,7 @@ export interface HubPost {
   body?: string
   cover_url?: string | null
   post_type: string
-  keywords?: string
+  keywords?: string | string[] | null
   published_at?: string | null
   created_at: string
 }
@@ -62,7 +62,7 @@ export function BlogHubClient({ posts }: { posts: HubPost[] }) {
       return (
         p.title.toLowerCase().includes(needle) ||
         (p.excerpt ?? "").toLowerCase().includes(needle) ||
-        (p.keywords ?? "").toLowerCase().includes(needle)
+        keywordsToList(p.keywords).join(" ").toLowerCase().includes(needle)
       )
     })
   }, [posts, tab, q])

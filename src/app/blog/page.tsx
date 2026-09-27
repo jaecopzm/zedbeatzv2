@@ -23,15 +23,22 @@ const API_BASE = process.env.NEXT_PUBLIC_API_URL
   ? process.env.NEXT_PUBLIC_API_URL.replace(/\/+$/, "")
   : "http://localhost:8080/api/v1"
 
-async function getPosts(): Promise<HubPost[]> {
+async function fetchJSON<T>(url: string, ms = 10000): Promise<T | null> {
   try {
-    const res = await fetch(`${API_BASE}/posts?limit=50`, { next: { revalidate: 300 } })
-    if (!res.ok) return []
-    const data = await res.json()
-    return data.posts ?? []
+    const controller = new AbortController()
+    const timeout = setTimeout(() => controller.abort(), ms)
+    const res = await fetch(url, { signal: controller.signal, next: { revalidate: 300 } })
+    clearTimeout(timeout)
+    if (!res.ok) return null
+    return (await res.json()) as T
   } catch {
-    return []
+    return null
   }
+}
+
+async function getPosts(): Promise<HubPost[]> {
+  const data = await fetchJSON<{ posts?: HubPost[] }>(`${API_BASE}/posts?limit=50`)
+  return data?.posts ?? []
 }
 
 export default async function BlogHub() {

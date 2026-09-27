@@ -16,6 +16,9 @@ import {
   readingTimeFromAny,
   scoreRelated,
   extractToc,
+  asString,
+  asArray,
+  keywordsToList,
 } from "@/lib/blog"
 
 export const revalidate = 300
@@ -43,15 +46,15 @@ interface BlogPost {
   slug: string
   title: string
   excerpt: string
-  body: string
+  body: string | null
   cover_url?: string | null
   post_type: string
-  keywords: string
+  keywords: string | string[] | null
   published_at?: string | null
   updated_at: string
   created_at?: string
-  tracks?: LinkedTrack[]
-  artists?: LinkedArtist[]
+  tracks?: LinkedTrack[] | null
+  artists?: LinkedArtist[] | null
   linked_track_ids?: string[]
   linked_artist_ids?: string[]
 }
@@ -60,25 +63,26 @@ interface Props {
   params: Promise<{ slug: string }>
 }
 
-async function getPost(slug: string): Promise<BlogPost | null> {
+async function fetchJSON<T>(url: string, ms = 10000): Promise<T | null> {
   try {
-    const res = await fetch(`${API_BASE}/posts/${slug}`, { next: { revalidate: 300 } })
+    const controller = new AbortController()
+    const timeout = setTimeout(() => controller.abort(), ms)
+    const res = await fetch(url, { signal: controller.signal, next: { revalidate: 300 } })
+    clearTimeout(timeout)
     if (!res.ok) return null
-    return await res.json()
+    return (await res.json()) as T
   } catch {
     return null
   }
 }
 
+async function getPost(slug: string): Promise<BlogPost | null> {
+  return fetchJSON<BlogPost>(`${API_BASE}/posts/${slug}`)
+}
+
 async function getAll(): Promise<BlogPost[]> {
-  try {
-    const res = await fetch(`${API_BASE}/posts?limit=50`, { next: { revalidate: 300 } })
-    if (!res.ok) return []
-    const data = await res.json()
-    return data.posts ?? []
-  } catch {
-    return []
-  }
+  const data = await fetchJSON<{ posts?: BlogPost[] }>(`${API_BASE}/posts?limit=50`)
+  return data?.posts ?? []
 }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
@@ -87,10 +91,11 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   if (!post) return { title: "Post not found" }
 
   const description = post.excerpt || `Read "${post.title}" on the ${SITE_NAME} Blog.`
+  const tags = keywordsToList(post.keywords).slice(0, 8)
   return {
     title: post.title,
     description,
-    keywords: post.keywords || undefined,
+    keywords: tags.length ? tags : undefined,
     openGraph: {
       title: post.title,
       description,
@@ -114,16 +119,13 @@ export default async function BlogPostPage({ params }: Props) {
   const [post, all] = await Promise.all([getPost(slug), getAll()])
   if (!post) notFound()
 
-  const tracks = post.tracks ?? []
-  const artists = post.artists ?? []
-  const tags = (post.keywords ?? "")
-    .split(",")
-    .map((t) => t.trim())
-    .filter(Boolean)
-    .slice(0, 8)
-  const minutes = readingTimeFromAny(post.body)
+  const body = asString(post.body)
+  const tracks = asArray<LinkedTrack>(post.tracks)
+  const artists = asArray<LinkedArtist>(post.artists)
+  const tags = keywordsToList(post.keywords).slice(0, 8)
+  const minutes = readingTimeFromAny(body)
   const pageUrl = `${SITE_URL}/blog/${slug}`
-  const toc = extractToc(post.body ?? "")
+  const toc = extractToc(body)
 
   const related = scoreRelated(post, all as any, 3)
 
@@ -177,7 +179,7 @@ export default async function BlogPostPage({ params }: Props) {
 
             {post.excerpt && <p className="blog-dek">{post.excerpt}</p>}
 
-            <BlogBody markdown={post.body} />
+            <BlogBody markdown={body} />
 
             {tags.length > 0 && (
               <div className="blog-tags" aria-label="Tags">

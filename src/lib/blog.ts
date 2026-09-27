@@ -24,6 +24,23 @@ export function typeTint(t?: string | null): string {
   return TYPE_TINTS[t] ?? TYPE_TINTS.article
 }
 
+/** Defensive coercions — the API occasionally returns arrays/objects/null
+ *  where the frontend types say string. A single non-string field used to
+ *  500 the whole article page in production, so normalize at the boundary. */
+export function asString(v: unknown): string {
+  return typeof v === "string" ? v : ""
+}
+
+export function asArray<T>(v: unknown): T[] {
+  return Array.isArray(v) ? (v as T[]) : []
+}
+
+export function keywordsToList(kw: unknown): string[] {
+  if (Array.isArray(kw)) return kw.map((t) => String(t ?? "").trim()).filter(Boolean)
+  if (typeof kw === "string") return kw.split(",").map((t) => t.trim()).filter(Boolean)
+  return []
+}
+
 export function formatBlogDate(s?: string | null): string {
   if (!s) return ""
   const d = new Date(s)
@@ -80,26 +97,24 @@ export interface RelatedCandidate {
 export function scoreRelated(
   current: {
     post_type: string
-    keywords?: string
-    tracks?: Array<{ id: string }>
-    artists?: Array<{ id: string }>
-    linked_track_ids?: string[]
-    linked_artist_ids?: string[]
+    keywords?: unknown
+    tracks?: unknown
+    artists?: unknown
+    linked_track_ids?: unknown
+    linked_artist_ids?: unknown
     slug: string
   },
   candidates: RelatedCandidate[],
   limit = 3
 ): RelatedCandidate[] {
-  const curTags = new Set(
-    (current.keywords ?? "").split(",").map((t) => t.trim().toLowerCase()).filter(Boolean)
-  )
+  const curTags = new Set(keywordsToList(current.keywords).map((t) => t.toLowerCase()))
   const curTrackIds = new Set([
-    ...(current.tracks ?? []).map((t) => t.id),
-    ...(current.linked_track_ids ?? []),
+    ...asArray<{ id: string }>(current.tracks).map((t) => t?.id),
+    ...asArray<string>(current.linked_track_ids),
   ])
   const curArtistIds = new Set([
-    ...(current.artists ?? []).map((a) => a.id),
-    ...(current.linked_artist_ids ?? []),
+    ...asArray<{ id: string }>(current.artists).map((a) => a?.id),
+    ...asArray<string>(current.linked_artist_ids),
   ])
 
   return candidates
@@ -107,16 +122,16 @@ export function scoreRelated(
     .map((p) => {
       let score = 0
       if (p.post_type === current.post_type) score += 3
-      const pTags = (p.keywords ?? "").split(",").map((t) => t.trim().toLowerCase()).filter(Boolean)
-      for (const t of pTags) if (curTags.has(t)) score += 2
+      const pTags = keywordsToList(p.keywords)
+      for (const t of pTags) if (curTags.has(t.toLowerCase())) score += 2
       const pTrackIds = new Set([
-        ...(p.tracks ?? []).map((t) => t.id),
-        ...(p.linked_track_ids ?? []),
+        ...asArray<{ id: string }>(p.tracks).map((t) => t?.id),
+        ...asArray<string>(p.linked_track_ids),
       ])
       for (const id of pTrackIds) if (curTrackIds.has(id)) score += 4
       const pArtistIds = new Set([
-        ...(p.artists ?? []).map((a) => a.id),
-        ...(p.linked_artist_ids ?? []),
+        ...asArray<{ id: string }>(p.artists).map((a) => a?.id),
+        ...asArray<string>(p.linked_artist_ids),
       ])
       for (const id of pArtistIds) if (curArtistIds.has(id)) score += 3
       // Recency tiebreak: newer first
