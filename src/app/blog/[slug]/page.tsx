@@ -5,7 +5,18 @@ import { SITE_URL, SITE_NAME } from "@/lib/seo"
 import { BlogBody } from "@/components/blog-body"
 import { Breadcrumbs } from "@/components/breadcrumbs"
 import { CoverImage } from "@/components/cover-image"
-import { TYPE_LABELS } from "../page"
+import { BlogProgress } from "@/components/blog-progress"
+import { BlogShare } from "@/components/blog-share"
+import { BlogTrackList } from "@/components/blog-track-row"
+import { BlogNewsletter } from "@/components/blog-newsletter"
+import {
+  typeLabel,
+  typeTint,
+  formatBlogDate,
+  readingTimeFromAny,
+  scoreRelated,
+  extractToc,
+} from "@/lib/blog"
 
 export const revalidate = 300
 
@@ -18,6 +29,7 @@ interface LinkedTrack {
   title: string
   artist_name: string
   cover_url?: string | null
+  duration_sec?: number | null
 }
 
 interface LinkedArtist {
@@ -37,8 +49,11 @@ interface BlogPost {
   keywords: string
   published_at?: string | null
   updated_at: string
+  created_at?: string
   tracks?: LinkedTrack[]
   artists?: LinkedArtist[]
+  linked_track_ids?: string[]
+  linked_artist_ids?: string[]
 }
 
 interface Props {
@@ -55,12 +70,12 @@ async function getPost(slug: string): Promise<BlogPost | null> {
   }
 }
 
-async function getRelated(currentSlug: string): Promise<BlogPost[]> {
+async function getAll(): Promise<BlogPost[]> {
   try {
-    const res = await fetch(`${API_BASE}/posts?limit=12`, { next: { revalidate: 300 } })
+    const res = await fetch(`${API_BASE}/posts?limit=50`, { next: { revalidate: 300 } })
     if (!res.ok) return []
     const data = await res.json()
-    return (data.posts ?? []).filter((p: BlogPost) => p.slug !== currentSlug).slice(0, 3)
+    return data.posts ?? []
   } catch {
     return []
   }
@@ -94,20 +109,9 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   }
 }
 
-function formatDate(s?: string | null) {
-  if (!s) return ""
-  return new Date(s).toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" })
-}
-
-function readingTime(body: string): number {
-  const text = (body ?? "").replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim()
-  const words = text ? text.split(" ").length : 0
-  return Math.max(1, Math.round(words / 200))
-}
-
 export default async function BlogPostPage({ params }: Props) {
   const { slug } = await params
-  const [post, related] = await Promise.all([getPost(slug), getRelated(slug)])
+  const [post, all] = await Promise.all([getPost(slug), getAll()])
   if (!post) notFound()
 
   const tracks = post.tracks ?? []
@@ -117,10 +121,23 @@ export default async function BlogPostPage({ params }: Props) {
     .map((t) => t.trim())
     .filter(Boolean)
     .slice(0, 8)
-  const minutes = readingTime(post.body)
+  const minutes = readingTimeFromAny(post.body)
   const pageUrl = `${SITE_URL}/blog/${slug}`
-  const shareText = encodeURIComponent(post.title)
-  const shareUrl = encodeURIComponent(pageUrl)
+  const toc = extractToc(post.body ?? "")
+
+  const related = scoreRelated(post, all as any, 3)
+
+  // Prev / next by recency (newest first)
+  const sorted = [...all].sort((a, b) => {
+    const ta = new Date(a.published_at ?? (a as any).created_at ?? 0).getTime() || 0
+    const tb = new Date(b.published_at ?? (b as any).created_at ?? 0).getTime() || 0
+    return tb - ta
+  })
+  const idx = sorted.findIndex((p) => p.slug === slug)
+  const newer = idx > 0 ? sorted[idx - 1] : null
+  const older = idx >= 0 && idx < sorted.length - 1 ? sorted[idx + 1] : null
+
+  const tint = typeTint(post.post_type)
 
   const jsonLd = {
     "@context": "https://schema.org",
@@ -138,192 +155,190 @@ export default async function BlogPostPage({ params }: Props) {
   return (
     <div style={{ minHeight: "100%", background: "var(--content-bg)" }}>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
-      <style>{`
-        .blog-article { max-width: 780px; margin: 0 auto; padding: 20px 32px 72px; }
-        .blog-share-btn { display: inline-flex; align-items: center; justify-content: center; gap: 7px; min-height: 40px; padding: 8px 16px; border-radius: 999px; border: 1.5px solid var(--border); background: var(--card-bg); color: var(--foreground); font-size: 13px; font-weight: 700; text-decoration: none; transition: background 0.14s ease, transform 0.14s ease; }
-        @media (hover: hover) { .blog-share-btn:hover { background: var(--hover-bg); } }
-        .blog-share-btn:active { transform: scale(0.96); }
-        .blog-related-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
-        @media (max-width: 680px) {
-          .blog-article { padding: 16px 16px 56px; }
-          .blog-related-grid { grid-template-columns: 1fr; }
-        }
-      `}</style>
+      <BlogProgress />
+      <Breadcrumbs items={[{ label: "Blog", href: "/blog" }, { label: typeLabel(post.post_type) }, { label: post.title }]} />
 
-      <Breadcrumbs items={[{ label: "Blog", href: "/blog" }, { label: post.title }]} />
+      <div className="blog-article-shell">
+        <div className="blog-layout">
+          {/* Sticky share rail — desktop only */}
+          <aside className="blog-rail" aria-label="Share">
+            <span className="blog-rail-label">Share</span>
+            <BlogShare title={post.title} url={pageUrl} vertical />
+          </aside>
 
-      <article className="blog-article">
-        {/* Header */}
-        <span style={{ display: "inline-block", fontSize: 11, fontWeight: 800, letterSpacing: "0.14em", textTransform: "uppercase", color: "#fff", background: "var(--brand)", padding: "6px 14px", borderRadius: 999 }}>
-          {TYPE_LABELS[post.post_type] ?? "News"}
-        </span>
-        <h1 style={{ fontFamily: "var(--font-display, Inter, sans-serif)", fontSize: "clamp(30px, 4.6vw, 44px)", fontWeight: 800, margin: "14px 0 12px", letterSpacing: "-0.03em", lineHeight: 1.08, textWrap: "balance" }}>
-          {post.title}
-        </h1>
-        <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", fontSize: 13, color: "var(--muted-foreground)", margin: "0 0 22px" }}>
-          <span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
-            <span aria-hidden style={{ width: 30, height: 30, borderRadius: "50%", background: "linear-gradient(135deg, var(--brand), var(--brand-light))", display: "inline-flex", alignItems: "center", justifyContent: "center", color: "#fff", fontSize: 12, fontWeight: 800 }}>
-              {SITE_NAME.charAt(0)}
+          <article className="blog-main">
+            <span className="blog-pill" style={{ background: tint }}>
+              {typeLabel(post.post_type)}
             </span>
-            <strong style={{ color: "var(--foreground)", fontWeight: 700 }}>{SITE_NAME}</strong>
-          </span>
-          <span aria-hidden>·</span>
-          <span>{formatDate(post.published_at)}</span>
-          <span aria-hidden>·</span>
-          <span>{minutes} min read</span>
-        </div>
-
-        {post.cover_url && (
-          <figure style={{ margin: "0 0 26px" }}>
-            <div style={{ position: "relative", aspectRatio: "16/9", borderRadius: 18, overflow: "hidden", border: "1px solid var(--border)" }}>
-              <CoverImage src={post.cover_url} alt={post.title} sizes="(max-width: 780px) 100vw, 780px" priority />
+            <h1 className="blog-h1">{post.title}</h1>
+            <div className="blog-byline">
+              <span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
+                <span className="blog-avatar" aria-hidden>{SITE_NAME.charAt(0)}</span>
+                <strong>{SITE_NAME} Editorial</strong>
+              </span>
+              <span aria-hidden>·</span>
+              <span>{formatBlogDate(post.published_at)}</span>
+              <span aria-hidden>·</span>
+              <span>{minutes} min read</span>
             </div>
-          </figure>
-        )}
 
-        {post.excerpt && (
-          <p style={{ fontSize: "clamp(17px, 2.2vw, 19px)", lineHeight: 1.65, fontWeight: 550, margin: "0 0 24px", color: "var(--foreground)", textWrap: "pretty" }}>
-            {post.excerpt}
-          </p>
-        )}
+            {post.cover_url && (
+              <figure className="blog-cover">
+                <div className="blog-cover-media">
+                  <CoverImage src={post.cover_url} alt={post.title} sizes="(max-width: 760px) 100vw, 760px" priority />
+                </div>
+                {post.excerpt && (
+                  <figcaption className="blog-cover-cap">{post.title} — {SITE_NAME}</figcaption>
+                )}
+              </figure>
+            )}
 
-        <BlogBody markdown={post.body} />
+            {post.excerpt && <p className="blog-dek">{post.excerpt}</p>}
 
-        {/* Tags */}
-        {tags.length > 0 && (
-          <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 32 }}>
-            {tags.map((t) => (
-              <Link
-                key={t}
-                href={`/search?q=${encodeURIComponent(t)}`}
-                style={{ fontSize: 12.5, fontWeight: 650, color: "var(--muted-foreground)", background: "var(--card-bg)", border: "1px solid var(--border)", padding: "7px 14px", borderRadius: 999, textDecoration: "none" }}
-              >
-                #{t}
-              </Link>
-            ))}
-          </div>
-        )}
+            <BlogBody markdown={post.body} dropCap />
 
-        {/* Share */}
-        <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", marginTop: 28, padding: "18px 0", borderTop: "1px solid var(--border)", borderBottom: "1px solid var(--border)" }}>
-          <span style={{ fontSize: 12, fontWeight: 800, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--muted-foreground)", marginRight: 4 }}>
-            Share
-          </span>
-          <a className="blog-share-btn" href={`https://wa.me/?text=${shareText}%20${shareUrl}`} target="_blank" rel="noopener noreferrer">
-            WhatsApp
-          </a>
-          <a className="blog-share-btn" href={`https://www.facebook.com/sharer/sharer.php?u=${shareUrl}`} target="_blank" rel="noopener noreferrer">
-            Facebook
-          </a>
-          <a className="blog-share-btn" href={`https://twitter.com/intent/tweet?text=${shareText}&url=${shareUrl}`} target="_blank" rel="noopener noreferrer">
-            X
-          </a>
-        </div>
+            {tags.length > 0 && (
+              <div className="blog-tags" aria-label="Tags">
+                {tags.map((t) => (
+                  <Link key={t} href={`/search?q=${encodeURIComponent(t)}`} className="blog-tag">
+                    #{t}
+                  </Link>
+                ))}
+              </div>
+            )}
 
-        {tracks.length > 0 && (
-          <section style={{ marginTop: 36 }}>
-            <h2 style={{ fontSize: 13, fontWeight: 800, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--muted-foreground)", margin: "0 0 14px" }}>
-              Songs in this story
-            </h2>
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(min(100%, 240px), 1fr))", gap: 10 }}>
-              {tracks.map((t) => (
-                <Link
-                  key={t.id}
-                  href={`/track/${t.id}`}
-                  style={{
-                    display: "flex", alignItems: "center", gap: 12, padding: 10,
-                    background: "var(--card-bg)", border: "1px solid var(--border)",
-                    borderRadius: 14, textDecoration: "none", color: "inherit",
-                  }}
-                >
-                  <span style={{ position: "relative", width: 50, height: 50, borderRadius: 10, overflow: "hidden", flexShrink: 0, display: "block" }}>
-                    {t.cover_url ? (
-                      <CoverImage src={t.cover_url} alt={t.title} sizes="100px" />
-                    ) : (
-                      <span style={{ position: "absolute", inset: 0, background: "linear-gradient(135deg, var(--brand), var(--brand-light))" }} />
-                    )}
-                  </span>
-                  <span style={{ minWidth: 0 }}>
-                    <span style={{ display: "block", fontSize: 14, fontWeight: 700, letterSpacing: "-0.01em", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                      {t.title}
-                    </span>
-                    <span style={{ display: "block", fontSize: 12, color: "var(--muted-foreground)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                      {t.artist_name} · Play →
-                    </span>
-                  </span>
-                </Link>
-              ))}
-            </div>
-          </section>
-        )}
+            <BlogShare title={post.title} url={pageUrl} />
 
-        {artists.length > 0 && (
-          <section style={{ marginTop: 32 }}>
-            <h2 style={{ fontSize: 13, fontWeight: 800, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--muted-foreground)", margin: "0 0 14px" }}>
-              Artists mentioned
-            </h2>
-            <div style={{ display: "flex", gap: 18, flexWrap: "wrap" }}>
-              {artists.map((a) => (
-                <Link
-                  key={a.id}
-                  href={`/artist/${a.id}`}
-                  style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 8, textDecoration: "none", color: "inherit", width: 84 }}
-                >
-                  <span style={{ position: "relative", width: 68, height: 68, borderRadius: "50%", overflow: "hidden", display: "block", border: "2px solid var(--border)" }}>
-                    {a.photo_url ? (
-                      <CoverImage src={a.photo_url} alt={a.stage_name} sizes="136px" />
-                    ) : (
-                      <span style={{ position: "absolute", inset: 0, background: "linear-gradient(135deg, var(--brand), var(--brand-light))", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 24, fontWeight: 800, color: "#fff" }}>
-                        {a.stage_name.charAt(0).toUpperCase()}
+            {tracks.length > 0 && (
+              <section className="blog-section" aria-label="Songs in this story">
+                <h2 className="blog-subhead">Songs in this story — tap to play</h2>
+                <BlogTrackList tracks={tracks} />
+              </section>
+            )}
+
+            {artists.length > 0 && (
+              <section className="blog-section" aria-label="Artists mentioned">
+                <h2 className="blog-subhead">Artists mentioned</h2>
+                <div className="blog-artists">
+                  {artists.map((a) => (
+                    <Link key={a.id} href={`/artist/${a.id}`} className="blog-artist">
+                      <span className="blog-artist-face">
+                        {a.photo_url ? (
+                          <CoverImage src={a.photo_url} alt={a.stage_name} sizes="144px" />
+                        ) : (
+                          <span className="blog-artist-face-fallback" aria-hidden>
+                            {a.stage_name.charAt(0).toUpperCase()}
+                          </span>
+                        )}
                       </span>
-                    )}
-                  </span>
-                  <span style={{ fontSize: 12, fontWeight: 650, textAlign: "center", lineHeight: 1.35 }}>
-                    {a.stage_name}
-                  </span>
-                </Link>
-              ))}
-            </div>
-          </section>
-        )}
+                      <span className="blog-artist-name">{a.stage_name}</span>
+                      <span className="blog-artist-cta">View →</span>
+                    </Link>
+                  ))}
+                </div>
+              </section>
+            )}
 
-        {/* Related */}
-        {related.length > 0 && (
-          <section style={{ marginTop: 40 }}>
-            <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 10, margin: "0 0 14px" }}>
-              <h2 style={{ fontSize: 13, fontWeight: 800, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--muted-foreground)", margin: 0 }}>
-                Keep reading
-              </h2>
-              <Link href="/blog" style={{ fontSize: 13, fontWeight: 700, color: "var(--brand)", textDecoration: "none" }}>
-                All stories →
-              </Link>
+            {/* Author box */}
+            <aside className="blog-authorbox" aria-label="About the author">
+              <span className="blog-authorbox-face" aria-hidden>{SITE_NAME.charAt(0)}</span>
+              <div>
+                <h3>{SITE_NAME} Editorial</h3>
+                <p>
+                  Covering Zambian music — new drops, artist stories and charts.
+                  Our editors listen first, verify credits, and link every song so you can play it instantly.
+                </p>
+              </div>
+            </aside>
+
+            {/* Prev / Next */}
+            {(newer || older) && (
+              <nav className="blog-prevnext" aria-label="More stories">
+                {older ? (
+                  <Link href={`/blog/${older.slug}`} className="blog-pn">
+                    <span>← Older story</span>
+                    <strong>{older.title}</strong>
+                  </Link>
+                ) : <span />}
+                {newer ? (
+                  <Link href={`/blog/${newer.slug}`} className="blog-pn next">
+                    <span>Newer story →</span>
+                    <strong>{newer.title}</strong>
+                  </Link>
+                ) : <span />}
+              </nav>
+            )}
+
+            {related.length > 0 && (
+              <section className="blog-related" aria-label="Keep reading">
+                <div className="blog-sectionhead">
+                  <h2>Keep reading</h2>
+                  <Link href="/blog" style={{ fontSize: 13, fontWeight: 700, color: "var(--brand)", textDecoration: "none" }}>
+                    All stories →
+                  </Link>
+                </div>
+                <div className="blog-related-grid">
+                  {related.map((p: any) => (
+                    <Link key={p.id} href={`/blog/${p.slug}`} className="blog-card-link" aria-label={p.title}>
+                      <article className="blog-card">
+                        <div className="blog-card-media">
+                          {p.cover_url ? (
+                            <CoverImage src={p.cover_url} alt={p.title} sizes="(max-width: 680px) 100vw, 240px" className="blog-zoom" />
+                          ) : (
+                            <div className="blog-card-fallback" style={{ background: `linear-gradient(135deg, ${typeTint(p.post_type)}, var(--brand-light))` }} />
+                          )}
+                          <span className="blog-badge" style={{ background: typeTint(p.post_type) }}>{typeLabel(p.post_type)}</span>
+                        </div>
+                        <div className="blog-card-body">
+                          <h3 className="blog-card-title" style={{ fontSize: 14.5 }}>{p.title}</h3>
+                          <span className="blog-card-meta">{formatBlogDate(p.published_at ?? p.created_at)} · {readingTimeFromAny(p.body ?? p.excerpt ?? "")} min</span>
+                        </div>
+                      </article>
+                    </Link>
+                  ))}
+                </div>
+              </section>
+            )}
+
+            <div style={{ marginTop: 36 }}>
+              <BlogNewsletter />
             </div>
-            <div className="blog-related-grid">
-              {related.map((p) => (
-                <Link key={p.id} href={`/blog/${p.slug}`} style={{ textDecoration: "none", color: "inherit", minWidth: 0 }}>
-                  <article style={{ background: "var(--card-bg)", border: "1px solid var(--border)", borderRadius: 16, overflow: "hidden", height: "100%" }}>
-                    <div style={{ position: "relative", aspectRatio: "16/9" }}>
-                      {p.cover_url ? (
-                        <CoverImage src={p.cover_url} alt={p.title} sizes="(max-width: 680px) 100vw, 240px" />
-                      ) : (
-                        <div style={{ position: "absolute", inset: 0, background: "linear-gradient(135deg, var(--brand), var(--brand-light))" }} />
-                      )}
-                    </div>
-                    <div style={{ padding: "14px 16px 16px" }}>
-                      <span style={{ fontSize: 10.5, fontWeight: 800, letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--brand)" }}>
-                        {TYPE_LABELS[p.post_type] ?? "News"}
-                      </span>
-                      <h3 style={{ fontSize: 14.5, fontWeight: 800, margin: "6px 0 0", lineHeight: 1.4, letterSpacing: "-0.01em", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>
-                        {p.title}
-                      </h3>
-                    </div>
-                  </article>
-                </Link>
-              ))}
-            </div>
-          </section>
-        )}
-      </article>
+          </article>
+
+          {/* TOC rail */}
+          <aside aria-label="On this page">
+            {toc.length >= 2 ? (
+              <div className="blog-toc-wrap">
+                <nav className="blog-toc">
+                  <h4>On this page</h4>
+                  <ol>
+                    {toc.map((h) => (
+                      <li key={h.id}>
+                        <a href={`#${h.id}`} className={h.level === 3 ? "lvl-3" : ""}>{h.text}</a>
+                      </li>
+                    ))}
+                  </ol>
+                </nav>
+                <div className="blog-toc">
+                  <h4>Why ZedBeatz?</h4>
+                  <p style={{ margin: 0, fontSize: 13, lineHeight: 1.6, color: "var(--muted-foreground)" }}>
+                    Every story links the actual songs. Tap any track to play it instantly — no searching.
+                  </p>
+                </div>
+              </div>
+            ) : tracks.length > 0 ? (
+              <div className="blog-toc-wrap">
+                <div className="blog-toc">
+                  <h4>Why ZedBeatz?</h4>
+                  <p style={{ margin: 0, fontSize: 13, lineHeight: 1.6, color: "var(--muted-foreground)" }}>
+                    Every story links the actual songs. Tap any track to play it instantly — no searching.
+                  </p>
+                </div>
+              </div>
+            ) : null}
+          </aside>
+        </div>
+      </div>
     </div>
   )
 }

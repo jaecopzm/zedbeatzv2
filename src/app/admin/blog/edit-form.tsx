@@ -1,11 +1,17 @@
 "use client"
 
-import { useRef, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import { useRouter } from "next/navigation"
 import { api } from "@/lib/api"
 import { toast } from "@/lib/toast-store"
 import { BlogBody } from "@/components/blog-body"
 import { BlogEditor, countWordsFromHtml } from "@/components/admin/blog-editor"
+import { AssistPanel, type AssistDraft } from "./assist-panel"
+
+function SeoDot({ ok, warn }: { ok?: boolean; warn?: boolean }) {
+  const bg = ok ? "#22c55e" : warn ? "#f59e0b" : "#e5e7eb"
+  return <span className="blog-seo-dot" style={{ background: bg }} aria-hidden />
+}
 
 export interface BlogPostForm {
   id?: string
@@ -69,11 +75,62 @@ export function BlogEditForm({ initial }: { initial: BlogPostForm | null }) {
   const [showPreview, setShowPreview] = useState(false)
   const [saving, setSaving] = useState(false)
   const [wordCount, setWordCount] = useState(() => countWordsFromHtml(initial?.body ?? ""))
+  const [restored, setRestored] = useState(false)
   const fileRef = useRef<HTMLInputElement>(null)
+  const draftKey = `zedbeatz_blog_draft_${initial?.id ?? "new"}`
+
+  // Autosave draft locally (never publishes) + restore on new posts.
+  useEffect(() => {
+    if (!isNew) return
+    try {
+      const raw = localStorage.getItem(draftKey)
+      if (raw && !initial?.title && !title && !body) {
+        const d = JSON.parse(raw)
+        if (d.title) setTitle(d.title)
+        if (d.excerpt) setExcerpt(d.excerpt)
+        if (d.body) setBody(d.body)
+        if (d.keywords) setKeywords(d.keywords)
+        if (d.postType) setPostType(d.postType)
+        setRestored(true)
+      }
+    } catch {}
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  useEffect(() => {
+    if (!isNew) return
+    const t = setTimeout(() => {
+      try {
+        localStorage.setItem(draftKey, JSON.stringify({ title, excerpt, body, keywords, postType, at: Date.now() }))
+      } catch {}
+    }, 800)
+    return () => clearTimeout(t)
+  }, [title, excerpt, body, keywords, postType, isNew, draftKey])
 
   function onTitleChange(v: string) {
     setTitle(v)
     if (!slugTouched) setSlug(slugifyInput(v))
+  }
+
+  function onAssistDraft(d: AssistDraft) {
+    onTitleChange(d.title)
+    setExcerpt(d.excerpt)
+    setKeywords(d.keywords)
+    setBody(d.body)
+  }
+
+  function onAssistAddTrack(id: string, label: string) {
+    if (!trackIds.includes(id)) {
+      setTrackIds([...trackIds, id])
+      setTrackNames({ ...trackNames, [id]: label })
+    }
+  }
+
+  function onAssistAddArtist(id: string, label: string) {
+    if (!artistIds.includes(id)) {
+      setArtistIds([...artistIds, id])
+      setArtistNames({ ...artistNames, [id]: label })
+    }
   }
 
   async function searchTracks() {
@@ -135,6 +192,7 @@ export function BlogEditForm({ initial }: { initial: BlogPostForm | null }) {
       if (isNew) {
         saved = await api.adminCreatePost(fd)
         toast("Post created", "success")
+        try { localStorage.removeItem(draftKey) } catch {}
         router.replace(`/admin/blog/${saved.id}`)
       } else {
         saved = await api.adminUpdatePost(initial!.id!, fd)
@@ -164,6 +222,15 @@ export function BlogEditForm({ initial }: { initial: BlogPostForm | null }) {
         @media (max-width: 1023px) { .blog-edit-aside { position: static !important; } }
       `}</style>
         <div style={{ display: "flex", flexDirection: "column", gap: 14, minWidth: 0 }}>
+          <AssistPanel
+            postType={postType}
+            trackIds={trackIds}
+            artistIds={artistIds}
+            onApplyDraft={onAssistDraft}
+            onApplyTitle={onTitleChange}
+            onAddTrack={onAssistAddTrack}
+            onAddArtist={onAssistAddArtist}
+          />
           <div>
             <label style={labelStyle}>Title</label>
             <input value={title} onChange={(e) => onTitleChange(e.target.value)} placeholder="10 Hottest Zambian Songs This Week" style={{ ...inputStyle, fontSize: 18, fontWeight: 700 }} />
@@ -182,11 +249,19 @@ export function BlogEditForm({ initial }: { initial: BlogPostForm | null }) {
             <label style={labelStyle}>Excerpt (shows on cards + Google snippet)</label>
             <textarea value={excerpt} onChange={(e) => setExcerpt(e.target.value)} rows={2} maxLength={300} placeholder="One or two sentences…" style={{ ...inputStyle, resize: "vertical" }} />
           </div>
+          {restored && (
+            <div style={{ padding: "10px 14px", borderRadius: 10, background: "var(--brand-bg)", color: "var(--brand)", fontSize: 13, fontWeight: 600 }}>
+              Restored your unsent draft from this browser.{" "}
+              <button type="button" onClick={() => { try { localStorage.removeItem(draftKey) } catch {} setRestored(false) }} style={{ background: "none", border: "none", color: "inherit", textDecoration: "underline", cursor: "pointer", fontSize: 13, fontWeight: 700 }}>
+                Discard
+              </button>
+            </div>
+          )}
           <div>
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 6, gap: 8, flexWrap: "wrap" }}>
               <label style={{ ...labelStyle, marginBottom: 0 }}>Body</label>
               <span style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                <span style={{ fontSize: 12, color: "var(--muted-foreground)", fontVariantNumeric: "tabular-nums" }}>{wordCount} words</span>
+                <span style={{ fontSize: 12, color: "var(--muted-foreground)", fontVariantNumeric: "tabular-nums" }}>{wordCount} words · ~{Math.max(1, Math.round(wordCount / 200))} min</span>
                 <button
                   type="button"
                   onClick={() => setShowPreview((v) => !v)}
@@ -198,7 +273,15 @@ export function BlogEditForm({ initial }: { initial: BlogPostForm | null }) {
                 </button>
               </span>
             </div>
-            {showPreview ? (
+            {/* Keep TipTap mounted so Preview doesn't lose focus/undo — toggle visibility only */}
+            <div style={{ display: showPreview ? "none" : "block" }}>
+              <BlogEditor
+                value={body}
+                onChange={setBody}
+                onWordCount={setWordCount}
+              />
+            </div>
+            {showPreview && (
               <div className="admin-card" style={{ padding: "clamp(16px, 3vw, 24px)" }}>
                 {body.trim() ? (
                   <BlogBody markdown={body} />
@@ -206,13 +289,10 @@ export function BlogEditForm({ initial }: { initial: BlogPostForm | null }) {
                   <p style={{ color: "var(--muted-foreground)", fontSize: 14, margin: 0 }}>Nothing to preview yet — switch back to Editing and write the story.</p>
                 )}
               </div>
-            ) : (
-              <BlogEditor
-                value={body}
-                onChange={setBody}
-                onWordCount={setWordCount}
-              />
             )}
+            <p style={{ fontSize: 12, color: "var(--muted-foreground)", margin: "8px 0 0", lineHeight: 1.5 }}>
+              Tip: paste a YouTube or Spotify link on its own line — it becomes an embedded player on the site.
+            </p>
           </div>
           <div>
             <label style={labelStyle}>SEO keywords (comma separated)</label>
@@ -303,6 +383,36 @@ export function BlogEditForm({ initial }: { initial: BlogPostForm | null }) {
               </button>
             )}
             <input ref={fileRef} type="file" accept="image/*" onChange={(e) => onCoverFile(e.target.files?.[0])} style={{ display: "none" }} />
+          </div>
+          <div>
+            <label style={labelStyle}>Pre-publish checklist</label>
+            {(() => {
+              const titleLen = title.trim().length
+              const excerptLen = excerpt.trim().length
+              const checks = [
+                { label: `Title ${titleLen}ch (40–60 ideal)`, ok: titleLen >= 40 && titleLen <= 70, warn: titleLen >= 25 && titleLen < 40 },
+                { label: `Excerpt ${excerptLen}ch (<160)`, ok: excerptLen > 0 && excerptLen <= 160, warn: excerptLen > 160 && excerptLen <= 200 },
+                { label: coverPreview ? "Cover image set" : "Add a 16:9 cover", ok: !!coverPreview },
+                { label: `${wordCount} words (300+ ideal)`, ok: wordCount >= 300, warn: wordCount >= 150 },
+                { label: trackIds.length > 0 ? `${trackIds.length} track${trackIds.length > 1 ? "s" : ""} linked` : "Link at least 1 track", ok: trackIds.length > 0 },
+              ]
+              const score = checks.filter((c) => c.ok).length
+              return (
+                <div className="blog-seo" aria-live="polite">
+                  <span className="blog-seo-score">{score}/5 ready</span>
+                  {checks.map((c) => (
+                    <span key={c.label} className="blog-seo-row">
+                      <SeoDot ok={c.ok} warn={(c as any).warn} />{c.label}
+                    </span>
+                  ))}
+                  {!isNew && slug && (
+                    <a href={`/blog/${slug}`} target="_blank" rel="noopener noreferrer" style={{ fontSize: 12.5, fontWeight: 700, color: "var(--brand)", textDecoration: "none" }}>
+                      Preview live page ↗
+                    </a>
+                  )}
+                </div>
+              )
+            })()}
           </div>
           <div className="admin-sticky-bar" style={{ flexDirection: "column" }}>
             <button onClick={() => save()} disabled={saving} className="admin-btn-secondary admin-btn-block">

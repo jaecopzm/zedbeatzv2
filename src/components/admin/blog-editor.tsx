@@ -107,7 +107,7 @@ export function BlogEditor({
   onChange: (html: string) => void
   onWordCount?: (n: number) => void
 }) {
-  const [urlBar, setUrlBar] = useState<null | { mode: "link" | "image"; value: string }>(null)
+  const [urlBar, setUrlBar] = useState<null | { mode: "link" | "image" | "embed"; value: string }>(null)
 
   const editor = useEditor({
     immediatelyRender: false,
@@ -123,10 +123,10 @@ export function BlogEditor({
         defaultProtocol: "https",
         HTMLAttributes: { rel: "noopener noreferrer" },
       }),
-      Image.configure({ inline: false, allowBase64: false }),
+      Image.configure({ inline: false, allowBase64: true }),
       TextAlign.configure({ types: ["heading", "paragraph"] }),
       Placeholder.configure({
-        placeholder: "Write the story… Select text to format it.",
+        placeholder: "Write the story… Paste a YouTube / Spotify link on its own line to embed it.",
       }),
     ],
     content: value ? (looksLikeHtml(value) ? value : markdownLiteToHtml(value)) : "",
@@ -151,11 +151,31 @@ export function BlogEditor({
       } else {
         editor.chain().focus().extendMarkRange("link").setLink({ href: url }).run()
       }
-    } else {
+    } else if (urlBar.mode === "image") {
       if (url) editor.chain().focus().setImage({ src: url }).run()
+    } else {
+      // Embed: insert bare link paragraph — BlogBody auto-converts YouTube/Spotify to a player.
+      if (url) {
+        editor.chain().focus().insertContent(`<p><a href="${url}">${url}</a></p><p></p>`).run()
+      }
     }
     setUrlBar(null)
   }, [editor, urlBar])
+
+  const onImageFile = useCallback((f: File | undefined) => {
+    if (!editor || !f) return
+    if (!f.type.startsWith("image/")) return
+    if (f.size > 4 * 1024 * 1024) {
+      alert("Image must be under 4MB (it embeds into the post). Prefer the cover upload for large photos.")
+      return
+    }
+    const reader = new FileReader()
+    reader.onload = () => {
+      const src = String(reader.result ?? "")
+      if (src) editor.chain().focus().setImage({ src }).run()
+    }
+    reader.readAsDataURL(f)
+  }, [editor])
 
   if (!editor) {
     return <div className="skeleton" style={{ height: 320, borderRadius: 14 }} aria-label="Loading editor" />
@@ -225,6 +245,29 @@ export function BlogEditor({
         >
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><rect x="3" y="3" width="18" height="18" rx="2" /><circle cx="8.5" cy="8.5" r="1.5" /><path d="M21 15l-5-5L5 21" /></svg>
         </ToolButton>
+        <label
+          title="Upload image"
+          aria-label="Upload image"
+          style={{
+            minWidth: 36, height: 36, padding: "0 8px", borderRadius: 9,
+            display: "inline-flex", alignItems: "center", justifyContent: "center",
+            color: "var(--foreground)", fontSize: 13, fontWeight: 800, cursor: "pointer", flexShrink: 0,
+          }}
+        >
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M12 16V4" /><path d="M6 10l6-6 6 6" /><path d="M4 20h16" /></svg>
+          <input
+            type="file"
+            accept="image/*"
+            style={{ display: "none" }}
+            onChange={(e) => { onImageFile(e.target.files?.[0]); e.target.value = "" }}
+          />
+        </label>
+        <ToolButton
+          label="Embed YouTube / Spotify (paste link on its own line)"
+          onClick={() => setUrlBar({ mode: "embed", value: "" })}
+        >
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z" /></svg>
+        </ToolButton>
         <ToolButton label="Align left" active={editor.isActive({ textAlign: "left" })} onClick={() => editor.chain().focus().setTextAlign("left").run()}>
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"><line x1="3" y1="6" x2="21" y2="6" /><line x1="3" y1="12" x2="15" y2="12" /><line x1="3" y1="18" x2="18" y2="18" /></svg>
         </ToolButton>
@@ -243,7 +286,7 @@ export function BlogEditor({
         </ToolButton>
       </div>
 
-      {/* URL bar for link / image */}
+      {/* URL bar for link / image / embed */}
       {urlBar && (
         <div style={{ display: "flex", gap: 8, padding: 10, borderBottom: "1px solid var(--border)", background: "var(--background)" }}>
           <input
@@ -256,10 +299,16 @@ export function BlogEditor({
               if (e.key === "Enter") applyUrl()
               if (e.key === "Escape") setUrlBar(null)
             }}
-            placeholder={urlBar.mode === "link" ? "Paste link URL… (empty + Apply removes the link)" : "Paste image URL…"}
+            placeholder={
+              urlBar.mode === "link"
+                ? "Paste link URL… (empty + Apply removes the link)"
+                : urlBar.mode === "embed"
+                  ? "Paste YouTube / Spotify link… becomes a player"
+                  : "Paste image URL… or use ↑ to upload"
+            }
             className="admin-input"
             style={{ minHeight: 40 }}
-            aria-label={urlBar.mode === "link" ? "Link URL" : "Image URL"}
+            aria-label={urlBar.mode === "link" ? "Link URL" : urlBar.mode === "embed" ? "Embed URL" : "Image URL"}
           />
           <button type="button" onClick={applyUrl} className="admin-btn-primary admin-btn-sm" style={{ flexShrink: 0 }}>
             Apply
