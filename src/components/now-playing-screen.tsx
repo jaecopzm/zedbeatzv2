@@ -136,19 +136,18 @@ export function NowPlayingScreen() {
     if (!track || downloading) return
     setDownloading(true)
     try {
-      const { url } = await api.getStreamURL(track.id)
-      const res = await fetch(url)
-      if (!res.ok) throw new Error("download fetch failed")
-      const blob = await res.blob()
-      const objUrl = URL.createObjectURL(blob)
+      // Attachment-signed URL: the browser saves the file directly.
+      // (Fetching the stream URL as a blob fails on CORS and ignores
+      // the download attribute cross-origin, so it would play, not save.)
+      const { url } = await api.getDownloadURL(track.id)
       const a = document.createElement("a")
-      a.href = objUrl
+      a.href = url
       const safe = (s: string) => s.replace(/[\\/:*?"<>|]/g, "").trim().slice(0, 80) || "track"
       a.download = `${safe(formatArtist(track))} - ${safe(track.title)}.mp3`
+      a.rel = "noopener"
       document.body.appendChild(a)
       a.click()
       a.remove()
-      window.setTimeout(() => URL.revokeObjectURL(objUrl), 5000)
       toast("Download started", "success")
     } catch {
       toast("Download failed. Please try again.", "error")

@@ -139,6 +139,9 @@ export const api = {
   getStreamURL: (trackId: string) =>
     request<import("@/types").StreamURL>(`/tracks/${trackId}/stream`),
 
+  getDownloadURL: (trackId: string) =>
+    request<import("@/types").StreamURL>(`/tracks/${trackId}/stream?download=1`),
+
   recordPlay: (trackId: string, durationListened: number) =>
     request<void>(`/tracks/${trackId}/play`, {
       method: "POST",
