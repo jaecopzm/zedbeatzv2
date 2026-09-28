@@ -34,6 +34,7 @@ interface Props {
   }
   liked?: boolean
   onLikeToggle?: (liked: boolean) => void
+  circular?: boolean
 }
 
 function toTrackInfo(track: Props["track"]): import("@/lib/store").TrackInfo {
@@ -52,7 +53,7 @@ function toTrackInfo(track: Props["track"]): import("@/lib/store").TrackInfo {
   }
 }
 
-export function PremiumTrackMenu({ track, liked, onLikeToggle }: Props) {
+export function PremiumTrackMenu({ track, liked, onLikeToggle, circular }: Props) {
   const [open, setOpen] = useState(false)
   const [showPlaylists, setShowPlaylists] = useState(false)
   const [showShare, setShowShare] = useState(false)
@@ -151,12 +152,26 @@ export function PremiumTrackMenu({ track, liked, onLikeToggle }: Props) {
         onClick={(e) => { e.stopPropagation(); setOpen(true) }}
         style={{
           display: "flex", alignItems: "center", justifyContent: "center",
-          width: 30, minWidth: 44, minHeight: 44, height: 30, borderRadius: 6,
           border: "none",
-          background: "transparent",
-          color: isActiveTrack ? "var(--brand)" : open ? "var(--foreground)" : "var(--muted-foreground)",
           cursor: "pointer", transition: "all 0.12s",
           opacity: 1,
+          ...(circular
+            ? {
+                width: isMobile ? 32 : 36,
+                height: isMobile ? 32 : 36,
+                minWidth: 0,
+                minHeight: 0,
+                borderRadius: "50%",
+                background: "rgba(255,255,255,0.18)",
+                backdropFilter: "blur(12px)",
+                WebkitBackdropFilter: "blur(12px)",
+                color: "rgba(255,255,255,0.8)",
+              }
+            : {
+                width: 30, minWidth: 44, minHeight: 44, height: 30, borderRadius: 6,
+                background: "transparent",
+                color: isActiveTrack ? "var(--brand)" : open ? "var(--foreground)" : "var(--muted-foreground)",
+              }),
         }}
         className="track-menu-btn"
         title="More"
