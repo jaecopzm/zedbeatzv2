@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useRef, useState } from "react"
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
 import { api } from "@/lib/api"
 import { toast } from "@/lib/toast-store"
@@ -14,6 +14,8 @@ export default function AdminSectionsPage() {
   const [filterSection, setFilterSection] = useState("")
   const [search, setSearch] = useState("")
   const [deletingTrack, setDeletingTrack] = useState<Track | null>(null)
+  const [replaceTarget, setReplaceTarget] = useState<Track | null>(null)
+  const replaceFileRef = useRef<HTMLInputElement>(null)
 
   const { data, isLoading } = useQuery({
     queryKey: ["admin-tracks"],
@@ -39,6 +41,19 @@ export default function AdminSectionsPage() {
       setDeletingTrack(null)
     },
     onError: (e: any) => toast(e?.message || "Failed to delete track", "error"),
+  })
+
+  const replaceMutation = useMutation({
+    mutationFn: ({ id, file }: { id: string; file: File }) => api.adminReplaceTrackAudio(id, file),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin-tracks"] })
+      toast("Audio replaced — the track plays on the same link", "success")
+      setReplaceTarget(null)
+    },
+    onError: (e: any) => {
+      toast(e?.message || "Failed to replace audio", "error")
+      setReplaceTarget(null)
+    },
   })
 
   const tracks: Track[] = data?.tracks ?? []
@@ -124,6 +139,13 @@ export default function AdminSectionsPage() {
                 label={`Actions for ${track.title}`}
                 items={[
                   {
+                    label: "Replace audio…",
+                    onClick: () => {
+                      setReplaceTarget(track)
+                      setTimeout(() => replaceFileRef.current?.click(), 0)
+                    },
+                  },
+                  {
                     label: "Delete track",
                     danger: true,
                     onClick: () => setDeletingTrack(track),
@@ -145,6 +167,30 @@ export default function AdminSectionsPage() {
         confirmLabel={deleteMutation.isPending ? "Deleting…" : "Delete"}
         onConfirm={() => { if (deletingTrack) deleteMutation.mutate(deletingTrack.id) }}
         onCancel={() => setDeletingTrack(null)}
+      />
+      <input
+        ref={replaceFileRef}
+        type="file"
+        accept="audio/*"
+        hidden
+        aria-label="Replace track audio"
+        onChange={(e) => {
+          const f = e.target.files?.[0]
+          e.target.value = ""
+          if (!f) {
+            setReplaceTarget(null)
+            return
+          }
+          if (!f.type.startsWith("audio/")) {
+            toast("That file doesn't look like audio.", "error")
+            setReplaceTarget(null)
+            return
+          }
+          if (replaceTarget) {
+            toast(`Uploading audio for “${replaceTarget.title}”…`, "info")
+            replaceMutation.mutate({ id: replaceTarget.id, file: f })
+          }
+        }}
       />
     </div>
   )

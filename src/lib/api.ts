@@ -361,6 +361,23 @@ export const api = {
   adminDeleteTrack: (id: string) =>
     request<void>(`/admin/tracks/${id}`, { method: "DELETE" }),
 
+  adminReplaceTrackAudio: (id: string, file: File) => {
+    const token = localStorage.getItem("access_token")
+    const fd = new FormData()
+    fd.append("audio", file)
+    return fetch(`${API_BASE}/admin/tracks/${id}/audio`, {
+      method: "POST",
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+      body: fd,
+    }).then(async (res) => {
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({ error: res.statusText }))
+        throw new ApiError(res.status, body.error || "Request failed")
+      }
+      return res.json()
+    })
+  },
+
   // Blog
   adminListPosts: (limit = 50, offset = 0, status?: string) => {
     let qs = `?limit=${limit}&offset=${offset}`
