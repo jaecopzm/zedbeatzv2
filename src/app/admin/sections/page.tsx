@@ -6,11 +6,14 @@ import { api } from "@/lib/api"
 import { toast } from "@/lib/toast-store"
 import type { Track } from "@/types"
 import { SECTIONS, SectionSelect, getSectionLabel } from "@/lib/sections"
+import { KebabMenu } from "@/components/admin/kebab-menu"
+import { ConfirmDialog } from "@/components/confirm-dialog"
 
 export default function AdminSectionsPage() {
   const queryClient = useQueryClient()
   const [filterSection, setFilterSection] = useState("")
   const [search, setSearch] = useState("")
+  const [deletingTrack, setDeletingTrack] = useState<Track | null>(null)
 
   const { data, isLoading } = useQuery({
     queryKey: ["admin-tracks"],
@@ -25,6 +28,17 @@ export default function AdminSectionsPage() {
       toast("Section updated", "success")
     },
     onError: (e: any) => toast(e?.message || "Failed to update section", "error"),
+  })
+
+  const deleteMutation = useMutation({
+    mutationFn: (id: string) => api.adminDeleteTrack(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin-tracks"] })
+      queryClient.invalidateQueries({ queryKey: ["admin-stats-tracks"] })
+      toast("Track deleted", "success")
+      setDeletingTrack(null)
+    },
+    onError: (e: any) => toast(e?.message || "Failed to delete track", "error"),
   })
 
   const tracks: Track[] = data?.tracks ?? []
@@ -106,6 +120,16 @@ export default function AdminSectionsPage() {
                 value={track.section || ""}
                 onChange={(key) => updateMutation.mutate({ id: track.id, section: key })}
               />
+              <KebabMenu
+                label={`Actions for ${track.title}`}
+                items={[
+                  {
+                    label: "Delete track",
+                    danger: true,
+                    onClick: () => setDeletingTrack(track),
+                  },
+                ]}
+              />
             </div>
           ))}
           <p style={{ textAlign: "center", color: "var(--muted-foreground)", fontSize: 12.5, margin: "10px 0 0", fontVariantNumeric: "tabular-nums" }}>
@@ -113,6 +137,15 @@ export default function AdminSectionsPage() {
           </p>
         </div>
       )}
+
+      <ConfirmDialog
+        open={!!deletingTrack}
+        title="Delete track?"
+        message={`“${deletingTrack?.title}” by ${deletingTrack?.artist_name} will be permanently removed, including its audio file. This cannot be undone.`}
+        confirmLabel={deleteMutation.isPending ? "Deleting…" : "Delete"}
+        onConfirm={() => { if (deletingTrack) deleteMutation.mutate(deletingTrack.id) }}
+        onCancel={() => setDeletingTrack(null)}
+      />
     </div>
   )
 }

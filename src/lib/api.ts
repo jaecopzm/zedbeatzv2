@@ -358,6 +358,9 @@ export const api = {
       body: JSON.stringify({ section }),
     }),
 
+  adminDeleteTrack: (id: string) =>
+    request<void>(`/admin/tracks/${id}`, { method: "DELETE" }),
+
   // Blog
   adminListPosts: (limit = 50, offset = 0, status?: string) => {
     let qs = `?limit=${limit}&offset=${offset}`
