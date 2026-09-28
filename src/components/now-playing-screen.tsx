@@ -139,15 +139,17 @@ export function NowPlayingScreen() {
       // Attachment-signed URL: the browser saves the file directly.
       // (Fetching the stream URL as a blob fails on CORS and ignores
       // the download attribute cross-origin, so it would play, not save.)
-      // Attachment-signed URL loaded in a hidden iframe: no tab flash,
-      // no popup-blocker trip, and no CORS fetch needed.
+      // Attachment-signed URL clicked in-page: the browser saves the file
+      // without navigating (no tab flash). A hidden iframe gets swallowed
+      // by several mobile browsers, and blob-fetch fails on CORS.
       const { url } = await api.getDownloadURL(track.id)
-      const iframe = document.createElement("iframe")
-      iframe.style.display = "none"
-      iframe.setAttribute("aria-hidden", "true")
-      iframe.src = url
-      document.body.appendChild(iframe)
-      window.setTimeout(() => iframe.remove(), 60000)
+      const a = document.createElement("a")
+      a.href = url
+      const safe = (s: string) => s.replace(/[\\/:*?"<>|]/g, "").trim().slice(0, 80) || "track"
+      a.download = `${safe(formatArtist(track))} - ${safe(track.title)}.mp3`
+      document.body.appendChild(a)
+      a.click()
+      a.remove()
       toast("Download started", "success")
     } catch {
       toast("Download failed. Please try again.", "error")
