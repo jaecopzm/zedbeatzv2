@@ -43,6 +43,7 @@ export default function AdminUploadPage() {
   const queryClient = useQueryClient()
   const [step, setStep] = useState<Step>(1)
   const [artistId, setArtistId] = useState("")
+  const [newArtistName, setNewArtistName] = useState("")
   const [albumId, setAlbumId] = useState("")
   const [albumTitle, setAlbumTitle] = useState("")
   const [title, setTitle] = useState("")
@@ -116,7 +117,8 @@ export default function AdminUploadPage() {
   const uploadMutation = useMutation({
     mutationFn: () => {
       const fd = new FormData()
-      fd.append("artist_id", artistId)
+      if (artistId) fd.append("artist_id", artistId)
+      else if (newArtistName.trim()) fd.append("artist_name", newArtistName.trim())
       fd.append("title", title)
       if (description.trim()) fd.append("description", description.trim())
       if (genreId) fd.append("genre_id", genreId)
@@ -131,8 +133,15 @@ export default function AdminUploadPage() {
       if (coverFile) fd.append("cover", coverFile)
       return api.adminUploadTrack(fd)
     },
-    onSuccess: () => {
+    onSuccess: (data: any) => {
       queryClient.invalidateQueries({ queryKey: ["admin-tracks"] })
+      queryClient.invalidateQueries({ queryKey: ["admin-artists"] })
+      // If the backend just created (or matched) the artist, select it so
+      // follow-up uploads use the dropdown instead of re-typing the name.
+      if (data?.artist_id) {
+        setArtistId(data.artist_id)
+        setNewArtistName("")
+      }
       setSuccess(true)
       setError("")
     },
@@ -143,6 +152,8 @@ export default function AdminUploadPage() {
   })
 
   const selectedArtist = artists?.artists.find((a) => a.id === artistId)
+  const creatingNewArtist = !artistId && newArtistName.trim().length > 0
+  const effectiveArtistName = selectedArtist?.stage_name ?? (creatingNewArtist ? newArtistName.trim() : "")
   const selectedGenre = genres?.genres.find((g) => g.id === genreId)
   const selectedAlbum = albums?.albums.find((a) => a.id === albumId)
   const creatingNewAlbum = !albumId && albumTitle.trim().length > 0
@@ -152,9 +163,9 @@ export default function AdminUploadPage() {
       ? `${albumTitle.trim()} · New`
       : "Single release"
 
-  const canSubmit = artistId && title.trim() && audioFile && !uploadMutation.isPending
+  const canSubmit = (artistId || newArtistName.trim()) && title.trim() && audioFile && !uploadMutation.isPending
   const step1Done = !!audioFile
-  const step2Done = !!(artistId && title.trim())
+  const step2Done = !!((artistId || newArtistName.trim()) && title.trim())
   const waves = useMemo(
     () => waveHeights(audioFile ? `${audioFile.name}-${audioFile.size}` : "empty"),
     [audioFile]
@@ -195,6 +206,8 @@ export default function AdminUploadPage() {
 
   function resetAll() {
     setTitle("")
+    setArtistId("")
+    setNewArtistName("")
     setGenreId("")
     setSection("")
     setAlbumId("")
@@ -332,10 +345,10 @@ export default function AdminUploadPage() {
               <h2 style={{ margin: "0 0 6px", fontSize: 18, fontWeight: 650, color: "var(--foreground)" }}>
                 Track shipped
               </h2>
-              <p style={{ margin: "0 0 18px", fontSize: 13.5, color: "var(--muted-foreground)", lineHeight: 1.5 }}>
-                “{title || "Untitled"}” by {selectedArtist?.stage_name ?? "artist"} is{" "}
-                {publish ? "live" : "saved as a draft"}.
-              </p>
+                <p style={{ margin: "0 0 18px", fontSize: 13.5, color: "var(--muted-foreground)", lineHeight: 1.5 }}>
+                  “{title || "Untitled"}” by {effectiveArtistName || "artist"} is{" "}
+                  {publish ? "live" : "saved as a draft"}.
+                </p>
               <div style={{ display: "flex", gap: 8, justifyContent: "center", flexWrap: "wrap" }}>
                 <button type="button" onClick={resetAll} className="admin-btn-primary">
                   Upload another
@@ -560,8 +573,8 @@ export default function AdminUploadPage() {
                       <label className="admin-label">Artist owner *</label>
                       <select
                         value={artistId}
-                        onChange={(e) => { setArtistId(e.target.value); setAlbumId(""); setAlbumTitle("") }}
-                        required
+                        onChange={(e) => { setArtistId(e.target.value); setNewArtistName(""); setAlbumId(""); setAlbumTitle("") }}
+                        required={!creatingNewArtist}
                         className="admin-input"
                         style={{ cursor: "pointer" }}
                       >
@@ -570,6 +583,22 @@ export default function AdminUploadPage() {
                           <option key={a.id} value={a.id}>{a.stage_name}</option>
                         ))}
                       </select>
+                      {!artistId && (
+                        <input
+                          type="text"
+                          value={newArtistName}
+                          onChange={(e) => setNewArtistName(e.target.value)}
+                          placeholder="Or type a name to add a new artist…"
+                          maxLength={80}
+                          className="admin-input"
+                          style={{ marginTop: 8 }}
+                        />
+                      )}
+                      {creatingNewArtist && (
+                        <p style={{ fontSize: 12, color: "#16a34a", fontWeight: 600, margin: "6px 0 0" }}>
+                          ✓ New artist “{newArtistName.trim()}” will be created.
+                        </p>
+                      )}
                     </div>
                     <div className="admin-field">
                       <label className="admin-label">Song title *</label>
@@ -599,7 +628,7 @@ export default function AdminUploadPage() {
                         <option key={a.id} value={a.id}>{a.title}</option>
                       ))}
                     </select>
-                    {!albumId && artistId && (
+                    {!albumId && (artistId || creatingNewArtist) && (
                       <input
                         type="text"
                         value={albumTitle}
@@ -708,7 +737,7 @@ export default function AdminUploadPage() {
                       Review
                     </p>
                     <div className="up-kv"><span style={{ color: "var(--muted-foreground)" }}>Track</span><strong style={{ color: "var(--foreground)", textAlign: "right" }}>{title.trim() || "—"}</strong></div>
-                    <div className="up-kv"><span style={{ color: "var(--muted-foreground)" }}>Artist</span><strong style={{ color: "var(--foreground)", textAlign: "right" }}>{selectedArtist?.stage_name ?? "—"}</strong></div>
+                    <div className="up-kv"><span style={{ color: "var(--muted-foreground)" }}>Artist</span><strong style={{ color: "var(--foreground)", textAlign: "right" }}>{effectiveArtistName || "—"}{creatingNewArtist ? " · New" : ""}</strong></div>
                     <div className="up-kv"><span style={{ color: "var(--muted-foreground)" }}>Release</span><span style={{ color: "var(--foreground)", textAlign: "right" }}>{albumLabel}</span></div>
                     <div className="up-kv"><span style={{ color: "var(--muted-foreground)" }}>Audio</span><span style={{ color: "var(--foreground)", textAlign: "right" }}>{audioFile ? `${audioFile.name} · ${formatTime(effectiveSec ?? null)}` : "—"}</span></div>
                     <div className="up-kv"><span style={{ color: "var(--muted-foreground)" }}>Section</span><span style={{ color: "var(--foreground)", textAlign: "right" }}>{getSectionLabel(section)}</span></div>
@@ -831,7 +860,7 @@ export default function AdminUploadPage() {
                   {title.trim() || "Untitled track"}
                 </p>
                 <p style={{ margin: "3px 0 0", fontSize: 13, color: "var(--muted-foreground)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                  {selectedArtist?.stage_name ?? "Select an artist"}
+                  {effectiveArtistName || "Select or add an artist"}
                   {featuredArtists.trim() ? ` · feat. ${featuredArtists.trim()}` : ""}
                 </p>
                 <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginTop: 10 }}>
@@ -855,7 +884,7 @@ export default function AdminUploadPage() {
               {[
                 { ok: !!audioFile, label: "Audio attached" },
                 { ok: !!coverFile, label: "Artwork attached" },
-                { ok: !!(artistId && title.trim()), label: "Artist + title set" },
+                { ok: !!((artistId || newArtistName.trim()) && title.trim()), label: "Artist + title set" },
                 { ok: !!section, label: `Section · ${getSectionLabel(section)}` },
               ].map((c) => (
                 <div key={c.label} style={{ display: "flex", alignItems: "center", gap: 8, padding: "4px 0", fontSize: 12.5, color: c.ok ? "var(--foreground)" : "var(--muted-foreground)" }}>

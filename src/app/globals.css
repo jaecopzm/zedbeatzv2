@@ -4560,7 +4560,7 @@ button.set-row:active, a.set-row:active { background: var(--hover-bg); }
 .admin-input::placeholder { color: var(--muted-foreground); opacity: 0.8; }
 .admin-input:focus {
   border-color: var(--brand);
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--brand) 14%, transparent);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--brand) 22%, transparent);
   background: var(--background);
 }
 .admin-input:disabled { opacity: 0.5; }
