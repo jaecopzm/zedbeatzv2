@@ -140,13 +140,17 @@ export function NowPlayingScreen() {
       // (Fetching the stream URL as a blob fails on CORS and ignores
       // the download attribute cross-origin, so it would play, not save.)
       // Attachment-signed URL clicked in-page: the browser saves the file
-      // without navigating (no tab flash). A hidden iframe gets swallowed
-      // by several mobile browsers, and blob-fetch fails on CORS.
+      // without navigating (no tab flash). iOS can't save files from the
+      // web at all, so there it opens a preview tab instead — open it
+      // explicitly in a new tab so the app tab stays intact.
       const { url } = await api.getDownloadURL(track.id)
+      const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+        (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1)
       const a = document.createElement("a")
       a.href = url
       const safe = (s: string) => s.replace(/[\\/:*?"<>|]/g, "").trim().slice(0, 80) || "track"
       a.download = `${safe(formatArtist(track))} - ${safe(track.title)}.mp3`
+      if (isIOS) a.target = "_blank"
       document.body.appendChild(a)
       a.click()
       a.remove()
