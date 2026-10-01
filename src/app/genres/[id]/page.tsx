@@ -6,7 +6,8 @@ import { useParams } from "next/navigation"
 import Link from "next/link"
 import { api } from "@/lib/api"
 import { usePlayerStore } from "@/lib/store"
-import { genreArt, genreAccent } from "@/lib/genre-art"
+import { genreAccent } from "@/lib/genre-art"
+import { GenreMosaic } from "@/components/mosaic-art"
 import { TrackList } from "@/components/track-list"
 import { GenreRail } from "@/components/home/rails"
 import { HorizontalScroller, ScrollRegion, ScrollChevrons } from "@/components/home/horizontal-scroller"
@@ -68,8 +69,8 @@ export default function GenrePage() {
 
   const tracks = data?.tracks ?? []
   // Real artwork: the genre's most-played track cover (no extra request —
-  // tracks are already loaded), Unsplash fallback while loading/empty.
-  const art = (tracks[0] as any)?.cover_url || genreArt(genre, 0)
+  // tracks are already loaded), generated mosaic while loading/empty.
+  const topCover = (tracks[0] as any)?.cover_url as string | undefined
   const queueTracks = tracks.map((t: any) => ({
     id: t.id,
     artist_id: t.artist_id,
@@ -123,7 +124,11 @@ export default function GenrePage() {
     >
       {/* ── Hero — the home card, expanded ── */}
       <header className="genre-hero">
-        <img className="genre-hero-bg" src={art} alt="" draggable={false} />
+        {topCover ? (
+          <img className="genre-hero-bg" src={topCover} alt="" draggable={false} />
+        ) : (
+          <GenreMosaic genre={genre} index={0} className="genre-hero-bg" />
+        )}
         <div className="genre-hero-scrim" aria-hidden />
         <div className="genre-hero-inner">
           <p className="genre-eyebrow">Genre</p>

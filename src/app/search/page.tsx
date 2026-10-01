@@ -6,13 +6,9 @@ import { useRouter } from "next/navigation"
 import { api } from "@/lib/api"
 import { usePlayerStore, type TrackInfo } from "@/lib/store"
 import type { Track, Artist, Album, Genre } from "@/types"
-import { PremiumTrackMenu } from "@/components/track-menu"
-import { ArtistLinks } from "@/components/artist-links"
 import { CoverImage } from "@/components/cover-image"
-import { EqBars } from "@/components/eq"
-import { TrackRow as ChartRow } from "@/components/home/track-cards"
+import { TrackTable } from "@/components/track-table"
 import { GenreCoverImg } from "@/components/genre-cover"
-import { formatDuration } from "@/lib/utils"
 
 function toTrackInfo(t: Track): TrackInfo {
   const a = t as any
@@ -179,9 +175,7 @@ export default function SearchPage() {
                 </div>
               ) : (
                 <div>
-                  {(freshData?.tracks ?? []).map((t: any, i: number, arr: any[]) => (
-                    <ChartRow key={t.id} track={t} index={i} isLast={i === arr.length - 1} />
-                  ))}
+                  <TrackTable tracks={freshData?.tracks ?? []} showHeader={false} />
                 </div>
               )}
             </section>
@@ -206,9 +200,7 @@ export default function SearchPage() {
                 </div>
               ) : (
                 <div>
-                  {(chartsData?.tracks ?? []).map((t: any, i: number, arr: any[]) => (
-                    <ChartRow key={t.id} track={t} index={i} isLast={i === arr.length - 1} />
-                  ))}
+                  <TrackTable tracks={chartsData?.tracks ?? []} showHeader={false} />
                 </div>
               )}
             </section>
@@ -277,9 +269,7 @@ export default function SearchPage() {
               {showTracks && listTracks.length > 0 && (
                 <section>
                   <h2 style={{ fontSize: "15px", fontWeight: 700, color: "var(--foreground)", letterSpacing: "-0.2px", margin: "0 0 4px" }}>Songs</h2>
-                  <div>
-                    {listTracks.map((track) => <TrackRow key={track.id} track={track} />)}
-                  </div>
+                  <TrackTable tracks={listTracks} showHeader={false} showRank={false} />
                 </section>
               )}
             </div>
@@ -310,91 +300,6 @@ function AlbumCard({ album, router }: { album: Album; router: any }) {
         >{album.artist_name || "Unknown Artist"}</span>
       </p>
     </button>
-  )
-}
-
-/* ─── Track row ─── */
-
-function TrackRow({ track }: { track: Track }) {
-  const router = useRouter()
-  const play = usePlayerStore((s) => s.play)
-  const togglePlay = usePlayerStore((s) => s.togglePlay)
-  const isPlaying = usePlayerStore((s) => s.isPlaying)
-  const currentTrack = usePlayerStore((s) => s.currentTrack)
-  const loading = usePlayerStore((s) => s._loading) === track.id
-  const isCurrent = currentTrack?.id === track.id
-  const active = isCurrent && (isPlaying || loading)
-
-  const handlePlay = () => {
-    if (isCurrent) togglePlay()
-    else play(toTrackInfo(track))
-  }
-
-  return (
-    <div
-      className={`search-track-row track-row${isCurrent ? " is-current" : ""}`}
-      style={{
-        display: "flex", alignItems: "center", gap: "12px",
-        padding: "8px 12px", cursor: "pointer",
-        borderBottom: "1px solid var(--border)", transition: "background 0.12s",
-        position: "relative",
-      }}
-      onClick={handlePlay}
-    >
-      {/* Cover */}
-      <span className="sr-thumb-wrap">
-        {track.cover_url ? (
-          <CoverImage src={track.cover_url} alt={track.title} sizes="88px" />
-        ) : (
-          <span className="sr-thumb-fallback" aria-hidden>
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M9 18V5l12-2v13" /><circle cx="6" cy="18" r="3" /><circle cx="18" cy="16" r="3" /></svg>
-          </span>
-        )}
-        <span className="sr-play" aria-hidden>
-          {loading ? (
-            <svg className="spinner" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><circle cx="12" cy="12" r="10" strokeDasharray="31.4 31.4" strokeLinecap="round" /></svg>
-          ) : active && isPlaying ? (
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="4" width="4" height="16" rx="1" /><rect x="14" y="4" width="4" height="16" rx="1" /></svg>
-          ) : (
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><polygon points="5,3 19,12 5,21" /></svg>
-          )}
-        </span>
-      </span>
-
-       {/* Title + artist */}
-       <div style={{ flex: 1, minWidth: 0 }}>
-         <p className="sr-title" style={{ margin: 0, fontSize: "14px", fontWeight: 500, color: "var(--foreground)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}
-           onClick={(e) => { e.stopPropagation(); router.push(`/track/${track.id}`) }}
-         >{track.title}{active ? <span> <EqBars paused={!isPlaying} /></span> : null}</p>
-         <p style={{ margin: "2px 0 0", fontSize: "12px", color: "var(--muted-foreground)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-           <ArtistLinks track={track} />
-         </p>
-       </div>
-
-        {/* Album */}
-        {track.album_name ? (
-          <div className="sr-album" style={{ flex: 1, minWidth: 0, display: "flex", alignItems: "center" }}>
-           <span onClick={(e) => { e.stopPropagation(); router.push(`/album/${track.album_id}`) }}
-             onMouseEnter={(e) => { e.currentTarget.style.textDecoration = "underline" }}
-             onMouseLeave={(e) => { e.currentTarget.style.textDecoration = "none" }}
-             style={{ fontSize: 13, color: "var(--muted-foreground)", cursor: "pointer", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}
-           >{track.album_name}</span>
-         </div>
-       ) : null}
-
-      {/* Play count */}
-      <span className="sr-plays" style={{ fontSize: 11, color: "var(--muted-foreground)", flexShrink: 0, width: 36, textAlign: "center", fontVariantNumeric: "tabular-nums" }}>
-        {formatCount(track.play_count)}
-      </span>
-
-      {/* Duration */}
-      <span className="sr-duration" style={{ fontSize: 12, color: "var(--muted-foreground)", flexShrink: 0, width: 40, textAlign: "right" }}>
-        {formatDuration(track.duration_sec)}
-      </span>
-
-      {/* Menu */}
-      <PremiumTrackMenu track={track} />
-    </div>
   )
 }
 
@@ -433,9 +338,7 @@ function GenreBrowse({ genres, router }: { genres: Genre[]; router: any }) {
             className="search-genre-tile"
             aria-label={`Browse ${genre.name}`}
           >
-            <GenreCoverImg genre={genre} index={idx} className="search-genre-img" />
-            <span className="hp-genre-scrim" aria-hidden />
-            <span className="search-genre-label">{genre.name}</span>
+            <GenreCoverImg genre={genre} index={idx} baked className="search-genre-img" />
           </button>
         ))}
       </div>

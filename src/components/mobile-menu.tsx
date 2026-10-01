@@ -53,7 +53,7 @@ function MRow({ href, label, icons, active, onNavigate }: RowDef & { active: boo
       className={`mm-row${active ? " is-active" : ""}`}
     >
       <span className="mm-row-icon">
-        <SolarNavIcon linear={icons.linear} duotone={icons.duotone} active={active} size={21} />
+        <SolarNavIcon linear={icons.linear} duotone={icons.duotone} active={active} size={19} />
       </span>
       <span className="mm-row-label">{label}</span>
     </Link>
@@ -174,9 +174,9 @@ export function MobileMenu() {
             <button type="button" className="mm-row" onClick={toggleTheme}>
               <span className="mm-row-icon mm-row-icon-tint">
                 {theme === "dark" ? (
-                  <SunLinear size={21} color="var(--brand)" strokeWidth={1.8} />
+                  <SunLinear size={19} color="var(--brand)" strokeWidth={1.8} />
                 ) : (
-                  <MoonLinear size={21} color="var(--brand)" strokeWidth={1.8} />
+                  <MoonLinear size={19} color="var(--brand)" strokeWidth={1.8} />
                 )}
               </span>
               <span className="mm-row-label">{theme === "dark" ? "Light mode" : "Dark mode"}</span>
@@ -189,7 +189,7 @@ export function MobileMenu() {
               onClick={() => { logout(); close(); router.push("/") }}
             >
               <span className="mm-row-icon mm-row-icon-danger">
-                <LogoutLinear size={21} color="currentColor" strokeWidth={1.8} />
+                <LogoutLinear size={19} color="currentColor" strokeWidth={1.8} />
               </span>
               <span className="mm-row-label">Log out</span>
             </button>

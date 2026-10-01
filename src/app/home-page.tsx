@@ -339,7 +339,7 @@ function BestNewSongsSection({ initialData }: { initialData?: any }) {
           {columns.map((col, colIdx) => (
             <div key={colIdx} className="hp-bns-column">
               {col.map((t: any, idx: number) => (
-                <TrackRow key={t.id} track={t} index={colIdx * 4 + idx} isLast={idx === col.length - 1} />
+                <TrackRow key={t.id} track={t} isLast={idx === col.length - 1} />
               ))}
             </div>
           ))}
@@ -358,7 +358,6 @@ function MoreChartsSection({ initialData }: { initialData?: any }) {
   })
 
   const tracks = data?.tracks ?? []
-  const offset = 12
   const col1 = tracks.slice(0, 4)
   const col2 = tracks.slice(4, 8)
   const col3 = tracks.slice(8, 12)
@@ -399,7 +398,7 @@ function MoreChartsSection({ initialData }: { initialData?: any }) {
           {columns.map((col, colIdx) => (
             <div key={colIdx} className="hp-bns-column">
               {col.map((t: any, idx: number) => (
-                <TrackRow key={t.id} track={t} index={offset + colIdx * 4 + idx} isLast={idx === col.length - 1} />
+                <TrackRow key={t.id} track={t} isLast={idx === col.length - 1} />
               ))}
             </div>
           ))}
@@ -458,7 +457,7 @@ function NewReleasesSection() {
           {columns.map((col, colIdx) => (
             <div key={colIdx} className="hp-bns-column">
               {col.map((t: any, idx: number) => (
-                <TrackRow key={t.id} track={t} index={colIdx * 4 + idx} isLast={idx === col.length - 1} />
+                <TrackRow key={t.id} track={t} isLast={idx === col.length - 1} />
               ))}
             </div>
           ))}

@@ -12,12 +12,8 @@ import type { Album, Track } from "@/types"
 import { useState, useEffect } from "react"
 import { formatDuration } from "@/lib/utils"
 import { toast } from "@/lib/toast-store"
-
-function formatCount(n: number) {
-  if (n >= 1_000_000) return (n / 1_000_000).toFixed(1) + "M"
-  if (n >= 1_000) return (n / 1_000).toFixed(1) + "K"
-  return String(n)
-}
+import { PlayIcon as PlayBold } from "@solar-icons/react/bold/play"
+import { PauseIcon as PauseBold } from "@solar-icons/react/bold/pause"
 
 function formatDate(s: string) {
   return new Date(s).toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" })
@@ -121,6 +117,12 @@ export default function AlbumPage() {
   }
 
   const anyTrackPlaying = tracks.length > 0 && tracks.some(t => t.id === currentTrack?.id) && isPlaying
+  const releaseYear = album?.released_at ? new Date(album.released_at).getFullYear() : null
+  const heroMeta = [
+    ...(releaseYear ? [String(releaseYear)] : []),
+    `${tracks.length} song${tracks.length !== 1 ? "s" : ""}`,
+    ...(totalDuration > 0 ? [formatDuration(totalDuration)] : []),
+  ].join(" · ")
 
   if (isLoading) {
     const artSize = isPhone ? 160 : isMobile ? 180 : 260
@@ -153,16 +155,11 @@ export default function AlbumPage() {
         {/* Track list skeleton (no column header — lists start straight into rows) */}
         <div style={{ padding: isPhone ? "16px 12px 48px" : isMobile ? "24px 20px 56px" : "32px 40px 64px" }}>
           {Array.from({ length: 10 }).map((_, i) => (
-            <div key={i} style={{ display: "grid", gridTemplateColumns: "40px 1fr 100px 60px 40px", alignItems: "center", padding: "10px 16px" }}>
+            <div key={i} style={{ display: "grid", gridTemplateColumns: "34px 1fr 52px 32px", alignItems: "center", padding: "7px 8px" }}>
               <div className="skeleton" style={{ width: 14, height: 14, borderRadius: 4 }} />
-              <div style={{ display: "flex", alignItems: "center", gap: 12, minWidth: 0 }}>
-                <div className="skeleton" style={{ width: 40, height: 40, borderRadius: 4, flexShrink: 0 }} />
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div className="skeleton" style={{ width: "55%", height: 14, marginBottom: 4 }} />
-                  <div className="skeleton" style={{ width: "35%", height: 11 }} />
-                </div>
+              <div style={{ minWidth: 0 }}>
+                <div className="skeleton" style={{ width: "55%", height: 14 }} />
               </div>
-              <div className="skeleton" style={{ width: 36, height: 12, marginLeft: "auto" }} />
               <div className="skeleton" style={{ width: 30, height: 12, marginLeft: "auto" }} />
               <div />
             </div>
@@ -198,13 +195,8 @@ export default function AlbumPage() {
     <div className="fade-in" style={{ minHeight: "100%", background: "var(--content-bg)" }}>
       <style>{`
         @media (max-width: 640px) {
-          .alb-tl-header { grid-template-columns: 28px 1fr 40px !important; padding: 6px 8px !important; }
-          .alb-tl-header span:nth-child(3),
-          .alb-tl-header span:nth-child(4) { display: none !important; }
-          .alb-tl-row { grid-template-columns: 28px 1fr 40px !important; padding: 10px 8px !important; }
-          .alb-tl-row .alb-tl-thumb { width: 36px !important; height: 36px !important; }
-          .alb-tl-plays,
-          .alb-tl-duration { display: none !important; }
+          .alb-tl-row { grid-template-columns: minmax(0,1fr) 32px !important; padding: 8px 4px !important; }
+          .alb-tl-num, .alb-tl-duration { display: none !important; }
         }
       `}</style>
 
@@ -225,33 +217,37 @@ export default function AlbumPage() {
             ? "linear-gradient(to bottom, rgba(0,0,0,0.15) 0%, rgba(0,0,0,0.55) 100%)"
             : "linear-gradient(135deg, var(--brand) 0%, #1d1d1f 100%)",
         }} />
-        {/* bottom melt into page background */}
+        {/* bottom melt — fixed dark so white hero text stays legible in any theme */}
         <div style={{
           position: "absolute", left: 0, right: 0, bottom: 0, zIndex: 1,
-          height: isPhone ? 48 : 96,
-          background: "linear-gradient(to bottom, transparent 0%, var(--content-bg) 100%)",
-          opacity: isPhone ? 0.55 : 0.9,
+          height: isPhone ? 240 : 96,
+          background: "linear-gradient(to bottom, transparent 0%, #0b0b10 100%)",
+          opacity: isPhone ? 0.92 : 0.9,
         }} />
 
-        {/* Hero content */}
+        {/* Hero content — on phones the details sit on top of the blurred art */}
         <div style={{
           position: "relative", zIndex: 2,
           display: "flex",
           gap: isPhone ? 14 : isMobile ? 28 : 40,
           flexDirection: isPhone ? "column" : "row",
-          alignItems: isPhone ? "center" : "flex-end",
-          textAlign: isPhone ? "center" : "left",
-          padding: isPhone ? "48px 16px 52px" : isMobile ? "56px 28px 64px" : "64px 40px 72px",
+          alignItems: isPhone ? "flex-start" : "flex-end",
+          textAlign: isPhone ? "left" : "left",
+          justifyContent: isPhone ? "flex-start" : "flex-start",
+          minHeight: undefined,
+          padding: isPhone ? "72px 20px 14px" : isMobile ? "56px 28px 64px" : "64px 40px 72px",
           flexWrap: "wrap",
         }}>
-          {/* Cover art */}
+          {/* Cover art — big, centered and sharp on phones (Spotify-style) */}
           <div style={{
-            width: isPhone ? 160 : isMobile ? 180 : 260,
-            height: isPhone ? 160 : isMobile ? 180 : 260,
-            borderRadius: 6,
+            display: "block",
+            alignSelf: isPhone ? "center" : undefined,
+            width: isPhone ? "min(60vw, 260px)" : isMobile ? 180 : 260,
+            height: isPhone ? "min(60vw, 260px)" : isMobile ? 180 : 260,
+            borderRadius: isPhone ? 2 : 6,
             flexShrink: 0,
             overflow: "hidden",
-            boxShadow: isPhone ? "0 8px 32px rgba(0,0,0,0.4)" : "0 24px 64px rgba(0,0,0,0.5), 0 4px 16px rgba(0,0,0,0.3)",
+            boxShadow: isPhone ? "0 24px 64px rgba(0,0,0,0.55), 0 4px 16px rgba(0,0,0,0.35)" : "0 24px 64px rgba(0,0,0,0.5), 0 4px 16px rgba(0,0,0,0.3)",
           }}>
             {album.cover_url ? (
               <img
@@ -274,56 +270,139 @@ export default function AlbumPage() {
 
           {/* Meta */}
           <div style={{ flex: 1, minWidth: 200, width: isPhone ? "100%" : "auto" }}>
-            {/* Type badge */}
-            <span style={{
-              fontSize: 13,
-              fontWeight: 600,
-              color: "rgba(255,255,255,0.72)",
-              letterSpacing: "-0.01em",
-              marginBottom: 8,
-              display: "block",
-            }}>
-              {albumTypeLabel(album.type)}
-            </span>
+            {/* Type badge — desktop only */}
+            {!isPhone && (
+              <span style={{
+                fontSize: 13,
+                fontWeight: 600,
+                color: "rgba(255,255,255,0.72)",
+                letterSpacing: "-0.01em",
+                marginBottom: 8,
+                display: "block",
+              }}>
+                {albumTypeLabel(album.type)}
+              </span>
+            )}
 
             <h1 style={{
-              fontSize: isPhone ? "clamp(24px, 7vw, 32px)" : isMobile ? "clamp(24px, 3.5vw, 36px)" : "clamp(28px, 4vw, 48px)",
-              fontWeight: 700,
+              fontSize: isPhone ? "clamp(24px, 7vw, 30px)" : isMobile ? "clamp(24px, 3.5vw, 36px)" : "clamp(28px, 4vw, 48px)",
+              fontWeight: 800,
+              fontFamily: "var(--font-display, inherit)",
+              textTransform: isPhone ? "uppercase" : "none",
               color: "#fff",
               margin: "0 0 4px",
               lineHeight: 1.05,
-              letterSpacing: "-0.02em",
+              letterSpacing: isPhone ? "-0.01em" : "-0.02em",
               textShadow: "0 2px 16px rgba(0,0,0,0.4)",
               textWrap: "balance",
             }}>
               {album.title}
             </h1>
 
-            {/* Artist — clickable */}
-            <p style={{ fontSize: isMobile ? 13 : 16, fontWeight: 500, color: "rgba(255,255,255,0.82)", margin: "0 0 12px" }}>
-              <span
+            {/* Artist — avatar row on phones, plain link otherwise */}
+            {isPhone ? (
+              <button
+                type="button"
                 onClick={() => router.push(`/artist/${album.artist_id}`)}
-                style={{ cursor: "pointer" }}
-                onMouseEnter={(e) => (e.currentTarget.style.textDecoration = "underline")}
-                onMouseLeave={(e) => (e.currentTarget.style.textDecoration = "none")}
+                style={{
+                  display: "flex", alignItems: "center", gap: 10,
+                  background: "none", border: "none", padding: 0, cursor: "pointer",
+                  margin: "6px 0 8px", fontFamily: "inherit", textAlign: "left",
+                }}
+                aria-label={`More by ${tracks[0]?.artist_name ?? "artist"}`}
               >
-                {tracks[0]?.artist_name ?? "Artist"}
-              </span>
-            </p>
+                <span aria-hidden style={{
+                  width: 30, height: 30, borderRadius: "50%", flexShrink: 0,
+                  background: "rgba(255,255,255,0.22)", color: "#fff",
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                  fontSize: 13, fontWeight: 700,
+                }}>
+                  {(tracks[0]?.artist_name ?? "A").charAt(0).toUpperCase()}
+                </span>
+                <span style={{ fontSize: 17, fontWeight: 600, color: "#fff" }}>
+                  {tracks[0]?.artist_name ?? "Artist"}
+                </span>
+              </button>
+            ) : (
+              <p style={{ fontSize: isMobile ? 13 : 16, fontWeight: 500, color: "rgba(255,255,255,0.82)", margin: "0 0 12px" }}>
+                <span
+                  onClick={() => router.push(`/artist/${album.artist_id}`)}
+                  style={{ cursor: "pointer" }}
+                  onMouseEnter={(e) => (e.currentTarget.style.textDecoration = "underline")}
+                  onMouseLeave={(e) => (e.currentTarget.style.textDecoration = "none")}
+                >
+                  {tracks[0]?.artist_name ?? "Artist"}
+                </span>
+              </p>
+            )}
 
-            {/* Stats row */}
-            <div style={{ display: "flex", gap: isPhone ? 8 : 20, marginBottom: isPhone ? 12 : 24, flexWrap: "wrap", justifyContent: isPhone ? "center" : "flex-start" }}>
-              <StatPill icon={<TrackIcon size={isPhone ? 12 : 14} />} value={`${tracks.length} track${tracks.length !== 1 ? "s" : ""}`} compact={isPhone} />
-              {totalDuration > 0 && (
-                <StatPill icon={<ClockIcon size={isPhone ? 12 : 14} />} value={formatDuration(totalDuration)} compact={isPhone} />
-              )}
-              {album.released_at && (
-                <StatPill icon={<CalIcon size={isPhone ? 12 : 14} />} value={formatDate(album.released_at)} compact={isPhone} />
-              )}
-            </div>
+            {/* Stats row — single meta line on phones */}
+            {isPhone ? (
+              heroMeta ? (
+                <p style={{ margin: "0 0 14px", fontSize: 14, fontWeight: 500, color: "rgba(255,255,255,0.9)" }}>
+                  {heroMeta}
+                </p>
+              ) : null
+            ) : (
+              <div style={{ display: "flex", gap: 20, marginBottom: 24, flexWrap: "wrap", justifyContent: "flex-start" }}>
+                <StatPill icon={<TrackIcon size={14} />} value={`${tracks.length} track${tracks.length !== 1 ? "s" : ""}`} compact={false} />
+                {totalDuration > 0 && (
+                  <StatPill icon={<ClockIcon size={14} />} value={formatDuration(totalDuration)} compact={false} />
+                )}
+                {album.released_at && (
+                  <StatPill icon={<CalIcon size={14} />} value={formatDate(album.released_at)} compact={false} />
+                )}
+              </div>
+            )}
 
-            {/* Action buttons */}
-            <div style={{ display: "flex", gap: 12, flexWrap: "wrap", alignItems: "center", justifyContent: isPhone ? "center" : "flex-start" }}>
+            {/* Action buttons — Spotify-style split on phones: ghost share left, big round play right */}
+            {isPhone ? (
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", width: "100%", marginTop: 2 }}>
+                <button
+                  onClick={() => { navigator.clipboard.writeText(`${window.location.origin}/album/${album.id}`); toast("Link copied", "success") }}
+                  style={{
+                    width: 46, height: 46, borderRadius: "50%",
+                    border: "1.5px solid rgba(255,255,255,0.55)",
+                    background: "rgba(255,255,255,0.12)",
+                    backdropFilter: "blur(8px)",
+                    display: "flex", alignItems: "center", justifyContent: "center",
+                    cursor: "pointer",
+                    color: "rgba(255,255,255,0.85)",
+                    flexShrink: 0,
+                  }}
+                  title="Share"
+                  aria-label="Share album"
+                >
+                  <ShareIcon />
+                </button>
+                {tracks.length > 0 && (
+                  <button
+                    onClick={handlePlayAll}
+                    disabled={!!playLoading}
+                    aria-label={anyTrackPlaying ? "Pause" : "Play"}
+                    style={{
+                      width: 64, height: 64, borderRadius: "50%",
+                      border: "none",
+                      background: "var(--brand)",
+                      color: "#fff",
+                      display: "flex", alignItems: "center", justifyContent: "center",
+                      cursor: playLoading ? "default" : "pointer",
+                      boxShadow: "0 8px 28px rgba(0,0,0,0.45)",
+                      flexShrink: 0,
+                    }}
+                  >
+                    {playLoading ? (
+                      <span style={{ width: 20, height: 20, borderRadius: "50%", border: "2.5px solid currentColor", borderTopColor: "transparent", animation: "app-spin 0.6s linear infinite", display: "inline-block" }} />
+                    ) : anyTrackPlaying ? (
+                      <PauseBold size={26} color="#fff" />
+                    ) : (
+                      <span style={{ marginLeft: 4, display: "flex" }}><PlayBold size={26} color="#fff" /></span>
+                    )}
+                  </button>
+                )}
+              </div>
+            ) : (
+              <div style={{ display: "flex", gap: 12, flexWrap: "wrap", alignItems: "center", justifyContent: "flex-start" }}>
               {tracks.length > 0 && (
                 <button
                   onClick={handlePlayAll}
@@ -373,12 +452,13 @@ export default function AlbumPage() {
                 <ShareIcon />
               </button>
             </div>
+            )}
           </div>
         </div>
       </div>
 
       {/* ══ TRACK LIST ══ */}
-      <div style={{ padding: isPhone ? "16px 12px 48px" : isMobile ? "24px 20px 56px" : "32px 40px 64px" }}>
+      <div style={{ padding: isPhone ? "8px 12px 48px" : isMobile ? "24px 20px 56px" : "32px 40px 64px" }}>
 
         {/* Rows */}
         {tracks.map((track, index) => {
@@ -395,58 +475,41 @@ export default function AlbumPage() {
               onClick={() => handlePlayTrack(track, index)}
               style={{
                 display: "grid",
-                gridTemplateColumns: "40px 1fr 100px 60px 40px",
+                gridTemplateColumns: "34px 1fr 52px 32px",
                 alignItems: "center",
-                padding: "8px 16px",
+                padding: "7px 8px",
                 borderRadius: 6,
+                borderTop: index === 0 ? "none" : "1px solid var(--border)",
                 cursor: "pointer",
                 transition: "background-color 0.15s ease",
-                background: isActive ? "var(--brand-bg)" : isHovered ? "var(--hover-bg)" : "transparent",
+                background: isHovered ? "var(--hover-bg)" : "transparent",
               }}
             >
-              {/* Index / play icon */}
-              <div style={{ display: "flex", alignItems: "center", fontSize: 14, fontWeight: 600 }}>
-                {isHovered ? (
-                  <button
-                    style={{ background: "none", border: "none", padding: 0, cursor: "pointer", color: isActive ? "var(--brand)" : "var(--foreground)", display: "flex", alignItems: "center" }}
-                    onClick={(e) => { e.stopPropagation(); handlePlayTrack(track, index) }}
-                  >
-                    {isActiveAndPlaying ? <PauseIconSolid size={16} /> : <PlayIconSolid size={16} />}
-                  </button>
-                ) : (
-                  <span style={{ color: isActive ? "var(--brand)" : "var(--muted-foreground)" }}>
-                    {index + 1}
-                  </span>
-                )}
+              {/* Number + playing dot */}
+              <div className="alb-tl-num" style={{ display: "flex", alignItems: "center", gap: 7, fontSize: 13, fontWeight: 500, color: "var(--muted-foreground)", fontVariantNumeric: "tabular-nums" }}>
+                <span aria-hidden style={{ width: 5, height: 5, borderRadius: "50%", flexShrink: 0, background: isActiveAndPlaying ? "var(--brand)" : "transparent" }} />
+                <span style={{ color: isActive ? "var(--brand)" : undefined }}>
+                  {index + 1}
+                </span>
               </div>
 
-              {/* Cover + title + artist */}
-              <div style={{ display: "flex", alignItems: "center", gap: 12, minWidth: 0 }}>
-                {track.cover_url ? (
-                  <img src={track.cover_url} alt="" className="alb-tl-thumb" style={{ width: 40, height: 40, borderRadius: 4, objectFit: "cover", flexShrink: 0, boxShadow: "0 2px 8px rgba(0,0,0,0.08)" }} />
-                ) : (
-                  <div className="alb-tl-thumb" style={{ width: 40, height: 40, borderRadius: 4, background: "var(--hover-bg)", flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center" }}>
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--muted-foreground)" strokeWidth="1.8"><path d="M9 18V5l12-2v13" /><circle cx="6" cy="18" r="3" /><circle cx="18" cy="16" r="3" /></svg>
-                  </div>
-                )}
-                <div style={{ minWidth: 0 }}>
-                  <p
+              {/* Title (+ artist on multi-artist albums) */}
+              <div style={{ minWidth: 0 }}>
+                <p
+                  style={{ margin: 0, fontSize: 14, fontWeight: 600, fontFamily: "var(--font-display, inherit)", letterSpacing: "-0.01em", color: isActive ? "var(--brand)" : "var(--foreground)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}
+                >
+                  <span
                     onClick={(e) => { e.stopPropagation(); router.push(`/track/${track.id}`) }}
-                    style={{ margin: 0, fontSize: 14, fontWeight: 600, color: isActive ? "var(--brand)" : "var(--foreground)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", cursor: "pointer" }}
+                    style={{ cursor: "pointer" }}
                     onMouseEnter={(e) => (e.currentTarget.style.textDecoration = "underline")}
                     onMouseLeave={(e) => (e.currentTarget.style.textDecoration = "none")}
                   >
-                    {track.title}{isActiveAndPlaying ? <span> <EqBars /></span> : null}
-                  </p>
-                  <p style={{ margin: 0, fontSize: 12, color: "var(--muted-foreground)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                    <ArtistLinks track={track} />
-                  </p>
-                </div>
-              </div>
-
-              {/* Play count */}
-              <div className="alb-tl-plays" style={{ textAlign: "right", fontSize: 13, color: "var(--muted-foreground)", fontVariantNumeric: "tabular-nums" }}>
-                {formatCount(track.play_count)}
+                    {track.title}
+                  </span>{isActiveAndPlaying ? <span> <EqBars /></span> : null}
+                </p>
+                <p style={{ margin: 0, fontSize: 12, color: "var(--muted-foreground)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                  <ArtistLinks track={track} />
+                </p>
               </div>
 
               {/* Duration */}

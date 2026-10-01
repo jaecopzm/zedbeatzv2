@@ -7,7 +7,6 @@ import { api } from "@/lib/api"
 import { usePlayerStore } from "@/lib/store"
 import type { Track, Album, Artist } from "@/types"
 import { useState, useEffect, useCallback, useMemo } from "react"
-import { PremiumTrackMenu } from "@/components/track-menu"
 import { CoverImage } from "@/components/cover-image"
 import { highlightEntities } from "@/lib/highlight"
 import { PlayIcon as PlayBold } from "@solar-icons/react/bold/play"
@@ -23,7 +22,7 @@ import { AlbumIcon as AlbumLinear } from "@solar-icons/react/linear/album"
 import { CalendarIcon as CalendarLinear } from "@solar-icons/react/linear/calendar"
 import { HeadphonesRoundIcon as HeadphonesLinear } from "@solar-icons/react/linear/headphones-round"
 import { ShareableArtistCard } from "@/components/shareable-artist-card"
-import { formatDuration } from "@/lib/utils"
+import { TrackTable } from "@/components/track-table"
 import { toast } from "@/lib/toast-store"
 import {
   Avatar,
@@ -45,175 +44,6 @@ function albumTypeLabel(type: string) {
   if (type === "single") return "Single"
   if (type === "ep") return "EP"
   return "Album"
-}
-
-/* ─── TrackRow (used in Songs + Featured Collaborations) ─── */
-
-function TrackRow({
-  track,
-  index,
-  isActive,
-  isPlaying,
-  isHovered,
-  onPlay,
-  onHover,
-  onLeave,
-  variant,
-  showRank = true,
-}: {
-  track: Track
-  index: number
-  isActive: boolean
-  isPlaying: boolean
-  isHovered: boolean
-  onPlay: () => void
-  onHover: () => void
-  onLeave: () => void
-  variant?: "chart" | "default"
-  showRank?: boolean
-}) {
-  const router = useRouter()
-  const isActiveAndPlaying = isActive && isPlaying
-  const isChart = variant === "chart"
-
-  return (
-    <div
-      className="track-row"
-      onClick={onPlay}
-      onMouseEnter={onHover}
-      onMouseLeave={onLeave}
-      style={{ position: "relative", ...(isChart ? { padding: "7px 12px 7px 6px" } : {}) }}
-    >
-      {isActive && (
-        <div style={{
-          position: "absolute",
-          left: 0, top: 0, bottom: 0,
-          width: 3,
-          background: "var(--brand)",
-          borderRadius: "0 2px 2px 0",
-        }} />
-      )}
-
-      {showRank && (isHovered ? (
-        <div className="track-play-icon" style={{ display: "flex" }}>
-          {isActiveAndPlaying
-            ? <PauseBold size={14} color="currentColor" />
-            : <PlayBold size={14} color="currentColor" />
-          }
-        </div>
-      ) : (
-      <div className="track-num" style={{
-        color: isActive ? "var(--brand)" : "var(--muted-foreground)",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-      }}>
-        {isActiveAndPlaying ? (
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="var(--brand)">
-            <rect x="5" y="4" width="4" height="16" rx="1.5" />
-            <rect x="15" y="4" width="4" height="16" rx="1.5" />
-          </svg>
-        ) : (
-          index + 1
-        )}
-      </div>
-      ))}
-
-      <div className="track-cover-wrapper">
-        {track.cover_url ? (
-          <CoverImage src={track.cover_url} alt="" sizes="100px" />
-        ) : (
-          <div style={{
-            width: "100%", height: "100%", borderRadius: 4,
-            background: "linear-gradient(135deg, #e0e0ea 0%, #c8c8d6 100%)",
-            display: "flex", alignItems: "center", justifyContent: "center",
-          }}>
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#86868b" strokeWidth="1.5">
-              <path d="M9 18V5l12-2v13" />
-              <circle cx="6" cy="18" r="3" />
-              <circle cx="18" cy="16" r="3" />
-            </svg>
-          </div>
-        )}
-        <div className="track-cover-overlay">
-          {isActiveAndPlaying
-            ? <PauseBold size={16} color="#fff" />
-            : <PlayBold size={16} color="#fff" />
-          }
-        </div>
-      </div>
-
-      <div style={{ flex: 1, minWidth: 0 }}>
-        <p
-          style={{
-            margin: 0, fontSize: 14, fontWeight: 500,
-            color: isActive ? "var(--brand)" : "var(--foreground)",
-            overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
-          }}
-        >
-          <span
-            onClick={(e) => {
-              e.stopPropagation()
-              router.push(`/track/${track.id}`)
-            }}
-            onMouseEnter={(e) => { e.currentTarget.style.textDecoration = "underline" }}
-            onMouseLeave={(e) => { e.currentTarget.style.textDecoration = "none" }}
-            style={{ cursor: "pointer" }}
-          >
-            {track.title}
-          </span>
-        </p>
-        <p style={{
-          margin: "2px 0 0", fontSize: 12,
-          color: "var(--muted-foreground)",
-          overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
-        }}>
-          <span
-            onClick={(e) => { e.stopPropagation(); router.push(`/artist/${track.artist_id}`) }}
-            onMouseEnter={(e) => { e.currentTarget.style.textDecoration = "underline" }}
-            onMouseLeave={(e) => { e.currentTarget.style.textDecoration = "none" }}
-            style={{ cursor: "pointer" }}
-          >
-            {track.artist_name}
-          </span>
-          {track.collaborators && track.collaborators.length > 0 && (
-            <span>
-              {track.collaborators.map((c, i, arr) => (
-                <span key={c.artist_id}>
-                  <span>, </span>
-                  <span
-                    onClick={(e) => { e.stopPropagation(); router.push(`/artist/${c.artist_id}`) }}
-                    onMouseEnter={(e) => { e.currentTarget.style.textDecoration = "underline" }}
-                    onMouseLeave={(e) => { e.currentTarget.style.textDecoration = "none" }}
-                    style={{ cursor: "pointer" }}
-                  >
-                    {c.stage_name}
-                  </span>
-                </span>
-              ))}
-            </span>
-          )}
-        </p>
-      </div>
-
-      <span className="track-play-count" style={{
-        fontSize: 11, color: "var(--muted-foreground)",
-        flexShrink: 0, width: 36, textAlign: "center",
-      }}>
-        {formatCount(track.play_count)}
-      </span>
-
-      <span className="track-duration" style={{
-        fontSize: 12, color: "var(--muted-foreground)",
-        flexShrink: 0, fontVariantNumeric: "tabular-nums",
-        width: 40, textAlign: "right",
-      }}>
-        {formatDuration(track.duration_sec)}
-      </span>
-
-      <PremiumTrackMenu track={track} />
-    </div>
-  )
 }
 
 /* ─── AlbumRail (Albums / Singles & EPs share one card) ─── */
@@ -290,7 +120,7 @@ export default function ArtistContent({ artistId, initialArtist }: ArtistContent
   // e.g. 12.9" tablets report exactly 1024px) use the mobile layout,
   // matching the app shell breakpoint.
   const [isDesktop, setIsDesktop] = useState(true)
-  const [hoveredTrackId, setHoveredTrackId] = useState<string | null>(null)
+  const [isPhone, setIsPhone] = useState(false)
   const [showAllSongs, setShowAllSongs] = useState(false)
   const [bioOpen, setBioOpen] = useState(false)
   const [activeTab, setActiveTab] = useState<"music" | "discography" | "about">("music")
@@ -422,6 +252,14 @@ export default function ArtistContent({ artistId, initialArtist }: ArtistContent
     return () => mq.removeEventListener("change", handler)
   }, [])
 
+  useEffect(() => {
+    const mq = window.matchMedia("(max-width: 640px)")
+    setIsPhone(mq.matches)
+    const handler = (e: MediaQueryListEvent) => setIsPhone(e.matches)
+    mq.addEventListener("change", handler)
+    return () => mq.removeEventListener("change", handler)
+  }, [])
+
   /* ── actions ── */
 
   const handleFollowToggle = useCallback(async () => {
@@ -472,15 +310,6 @@ export default function ArtistContent({ artistId, initialArtist }: ArtistContent
     } else {
       const idx = tracks.findIndex((t) => t.id === track.id)
       playQueue(tracks, idx >= 0 ? idx : 0)
-    }
-  }
-
-  function handlePlayCollabTrack(track: Track) {
-    if (currentTrack?.id === track.id) {
-      togglePlay()
-    } else {
-      const idx = collabTracks.findIndex((t) => t.id === track.id)
-      playQueue(collabTracks, idx >= 0 ? idx : 0)
     }
   }
 
@@ -554,16 +383,18 @@ export default function ArtistContent({ artistId, initialArtist }: ArtistContent
           .artist-hero-body { padding: 40px 28px 56px; }
         }
         @media (max-width: 640px) {
-          /* Phones: left-aligned editorial hero — big balanced name that
-             handles long stage names, avatar anchoring top-left. */
+          /* Phones: Spotify-style hero — big centered circle, details below. */
           .artist-hero-inner {
+            flex-direction: column;
+            align-items: stretch;
             gap: 14px;
-            padding: 44px 16px 22px;
+            padding: 44px 20px 22px;
             justify-content: flex-start;
             text-align: left;
           }
-          .artist-hero-avatar-wrap > * { width: 104px !important; height: 104px !important; }
-          .artist-hero-eyebrow { text-align: left; }
+          .artist-hero-avatar-wrap { align-self: center; filter: drop-shadow(0 24px 48px rgba(0,0,0,0.5)); }
+          .artist-hero-avatar-wrap > * { width: 200px !important; height: 200px !important; }
+          .artist-hero-eyebrow { display: none; }
           .artist-hero-name {
             justify-content: flex-start;
             text-align: left;
@@ -868,8 +699,8 @@ export default function ArtistContent({ artistId, initialArtist }: ArtistContent
                 backgroundImage: `url(${artist.cover_url || artist.photo_url})`,
                 backgroundSize: "cover",
                 backgroundPosition: "center 25%",
-                filter: "blur(70px) saturate(1.6)",
-                opacity: 0.55,
+                filter: "blur(110px) saturate(1.6)",
+                opacity: 0.65,
                 transform: "scale(1.2)",
               }} />
             </>
@@ -883,7 +714,7 @@ export default function ArtistContent({ artistId, initialArtist }: ArtistContent
           {/* readability scrim */}
           <div style={{
             position: "absolute", inset: 0, zIndex: 1,
-            background: "linear-gradient(to bottom, rgba(0,0,0,0.22) 0%, rgba(0,0,0,0.28) 34%, rgba(0,0,0,0.72) 78%, rgba(0,0,0,0.82) 100%)",
+            background: "linear-gradient(to bottom, rgba(0,0,0,0.42) 0%, rgba(0,0,0,0.48) 34%, rgba(0,0,0,0.85) 78%, rgba(0,0,0,0.92) 100%)",
           }} />
           {/* bottom blend into page background (Apple image-to-content melt) */}
           <div style={{
@@ -899,7 +730,7 @@ export default function ArtistContent({ artistId, initialArtist }: ArtistContent
               <Avatar
                 src={artist.photo_url}
                 name={artist.stage_name}
-                size={180}
+                size={isPhone ? 200 : 180}
                 shape="circle"
                 ring
                 fetchPriority="high"
@@ -947,6 +778,13 @@ export default function ArtistContent({ artistId, initialArtist }: ArtistContent
                 )}
               </h1>
 
+              {isPhone ? (
+                typeof artist.follower_count === "number" && artist.follower_count > 0 ? (
+                  <p style={{ margin: "0 0 14px", fontSize: 14, fontWeight: 500, color: "rgba(255,255,255,0.75)" }}>
+                    {formatCount(artist.follower_count)} followers
+                  </p>
+                ) : null
+              ) : (
               <div className="artist-hero-stats">
                 {artist.location && (
                   <span style={{
@@ -1000,9 +838,10 @@ export default function ArtistContent({ artistId, initialArtist }: ArtistContent
                   </span>
                 )}
               </div>
+              )}
 
               <div className="artist-hero-actions">
-                {tracks.length > 0 && (
+                {!isPhone && tracks.length > 0 && (
                   <PillButton
                     size="xs"
                     loading={!!playLoading}
@@ -1056,6 +895,31 @@ export default function ArtistContent({ artistId, initialArtist }: ArtistContent
                 >
                   {shareLabel}
                 </PillButton>
+                {isPhone && tracks.length > 0 && (
+                  <button
+                    type="button"
+                    onClick={handlePlayFirst}
+                    disabled={!!playLoading}
+                    aria-label={isFirstPlaying ? "Pause" : "Play"}
+                    style={{
+                      marginLeft: "auto",
+                      width: 64, height: 64, borderRadius: "50%",
+                      border: "none", background: "var(--brand)", color: "#fff",
+                      display: "flex", alignItems: "center", justifyContent: "center",
+                      cursor: playLoading ? "default" : "pointer",
+                      boxShadow: "0 8px 28px rgba(0,0,0,0.45)",
+                      flexShrink: 0,
+                    }}
+                  >
+                    {playLoading ? (
+                      <span style={{ width: 20, height: 20, borderRadius: "50%", border: "2.5px solid currentColor", borderTopColor: "transparent", animation: "app-spin 0.6s linear infinite", display: "inline-block" }} />
+                    ) : isFirstPlaying ? (
+                      <PauseBold size={26} color="#fff" />
+                    ) : (
+                      <span style={{ marginLeft: 4, display: "flex" }}><PlayBold size={26} color="#fff" /></span>
+                    )}
+                  </button>
+                )}
               </div>
             </div>
           </div>
@@ -1195,7 +1059,7 @@ export default function ArtistContent({ artistId, initialArtist }: ArtistContent
           {/* ── Popular ── */}
           <section style={{ marginBottom: 44 }}>
             <SectionHeading
-              title="Top Songs"
+              title="Popular"
               size="md"
             />
 
@@ -1257,25 +1121,7 @@ export default function ArtistContent({ artistId, initialArtist }: ArtistContent
                   </div>
                 )}
               <div className="artist-tracks chart" style={{ position: "relative" }}>
-                {chartTracks.map((track, i) => {
-                  const index = chartOffset + i
-                  const isActive = currentTrack?.id === track.id
-                  const isHovered = hoveredTrackId === track.id
-                  return (
-                    <TrackRow
-                      key={track.id}
-                      track={track}
-                      index={index}
-                      isActive={isActive}
-                      isPlaying={isPlaying}
-                      isHovered={isHovered}
-                      variant="chart"
-                      onPlay={() => handlePlayTrack(track)}
-                      onHover={() => setHoveredTrackId(track.id)}
-                      onLeave={() => setHoveredTrackId(null)}
-                    />
-                  )
-                })}
+                <TrackTable tracks={chartTracks} rankOffset={chartOffset} showHeader={false} showAlbum={false} showArtist={false} mobileSub="plays" />
                 {tracks.length > 5 && (
                   <button
                     onClick={() => setShowAllSongs((v) => !v)}
@@ -1378,24 +1224,7 @@ export default function ArtistContent({ artistId, initialArtist }: ArtistContent
                 </div>
               ) : (
                 <div className="artist-tracks">
-                  {collabTracks.map((track, index) => {
-                    const isActive = currentTrack?.id === track.id
-                    const isHovered = hoveredTrackId === track.id
-                    return (
-                      <TrackRow
-                        key={track.id}
-                        track={track}
-                        index={index}
-                        isActive={isActive}
-                        isPlaying={isPlaying}
-                        isHovered={isHovered}
-                        showRank={false}
-                        onPlay={() => handlePlayCollabTrack(track)}
-                        onHover={() => setHoveredTrackId(track.id)}
-                        onLeave={() => setHoveredTrackId(null)}
-                      />
-                    )
-                  })}
+                  <TrackTable tracks={collabTracks} showRank={false} showHeader={false} showAlbum={false} showArtist={false} mobileSub="plays" />
                 </div>
               )}
             </section>

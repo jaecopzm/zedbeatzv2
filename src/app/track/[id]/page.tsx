@@ -7,6 +7,7 @@ import { api } from "@/lib/api"
 import { usePlayerStore } from "@/lib/store"
 import { useAuthStore } from "@/lib/auth-store"
 import { useLikesStore } from "@/lib/likes-store"
+import { DetailHero } from "@/components/detail-hero"
 import { ArtistLinks } from "@/components/artist-links"
 import { TrackList } from "@/components/track-list"
 import { PremiumTrackMenu } from "@/components/track-menu"
@@ -15,6 +16,7 @@ import { highlightEntities } from "@/lib/highlight"
 import { SectionHeading } from "@/components/artist/ui"
 import { PlayIcon as PlayBold } from "@solar-icons/react/bold/play"
 import { PauseIcon as PauseBold } from "@solar-icons/react/bold/pause"
+import { toast } from "@/lib/toast-store"
 import { CheckCircleIcon as BadgeBold } from "@solar-icons/react/bold/check-circle"
 import { HeartIcon as HeartLinear } from "@solar-icons/react/linear/heart"
 import { HeartIcon as HeartBold } from "@solar-icons/react/bold/heart"
@@ -132,7 +134,17 @@ export default function TrackPage() {
   const [followLoading, setFollowLoading] = useState(false)
   const [liked, setLiked] = useState(() => (id ? isLiked(id) : false))
   const [shareCopied, setShareCopied] = useState(false)
+  const [downloading, setDownloading] = useState(false)
   const [aboutExpanded, setAboutExpanded] = useState(false)
+  const [isPhone, setIsPhone] = useState(false)
+
+  useEffect(() => {
+    const mq = window.matchMedia("(max-width: 640px)")
+    setIsPhone(mq.matches)
+    const handler = (e: MediaQueryListEvent) => setIsPhone(e.matches)
+    mq.addEventListener("change", handler)
+    return () => mq.removeEventListener("change", handler)
+  }, [])
 
   const { data: track, isLoading, isError } = useQuery({
     queryKey: ["track", id],
@@ -263,6 +275,29 @@ export default function TrackPage() {
     } catch { /* ignore */ }
   }
 
+  async function handleDownload() {
+    if (!track || downloading) return
+    setDownloading(true)
+    try {
+      const { url } = await api.getDownloadURL(track.id)
+      const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+        (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1)
+      const a = document.createElement("a")
+      a.href = url
+      const safe = (s: string) => s.replace(/[\\/:*?"<>|]/g, "").trim().slice(0, 80) || "track"
+      a.download = `${safe(track.artist_name ?? "Unknown Artist")} - ${safe(track.title)}.mp3`
+      if (isIOS) a.target = "_blank"
+      document.body.appendChild(a)
+      a.click()
+      a.remove()
+      toast("Download started", "success")
+    } catch {
+      toast("Download failed. Please try again.", "error")
+    } finally {
+      setDownloading(false)
+    }
+  }
+
   if (isLoading) return <TrackPageSkeleton />
 
   if (isError || !track) {
@@ -302,10 +337,71 @@ export default function TrackPage() {
       fontFamily: "var(--font-sans)",
       paddingBottom: 100,
     }}>
+      {isPhone ? (
+        <DetailHero
+          art={track.cover_url}
+          artAlt={track.title}
+          title={track.title}
+          artistName={track.artist_name ?? "Unknown Artist"}
+          artistId={track.artist_id}
+          artistPhoto={artist?.photo_url ?? null}
+          meta={[
+            track.title,
+            track.released_at ? new Date(track.released_at).getFullYear() : null,
+            track.duration_sec ? formatDuration(track.duration_sec) : null,
+          ].filter((v) => v != null).join(" · ")}
+          playing={isCurrentlyPlaying}
+          loading={loading}
+          onPlay={handlePlay}
+          actionsLeft={<>
+            <button
+              type="button"
+              onClick={handleLike}
+              disabled={likeLoading}
+              aria-label={liked ? "Unlike" : "Like"}
+              style={{ background: "none", border: "none", cursor: "pointer", padding: 8, display: "flex", color: liked ? "var(--like)" : "rgba(255,255,255,0.85)" }}
+            >
+              {liked ? (
+                <HeartBold size={24} color="var(--like)" />
+              ) : (
+                <HeartLinear size={24} color="currentColor" strokeWidth={1.8} />
+              )}
+            </button>
+            <button
+              type="button"
+              onClick={handleShare}
+              aria-label="Share"
+              style={{ background: "none", border: "none", cursor: "pointer", padding: 8, display: "flex", color: "rgba(255,255,255,0.85)" }}
+            >
+              {shareCopied ? (
+                <CheckLinear size={22} color="currentColor" strokeWidth={2.4} />
+              ) : (
+                <ShareLinear size={22} color="currentColor" strokeWidth={2} />
+              )}
+            </button>
+            <button
+              type="button"
+              onClick={handleDownload}
+              aria-label="Download track"
+              style={{ background: "none", border: "none", cursor: "pointer", padding: 8, display: "flex", color: "rgba(255,255,255,0.85)" }}
+            >
+              {downloading ? (
+                <svg className="spinner" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2"><circle cx="12" cy="12" r="10" strokeDasharray="31.4 31.4" strokeLinecap="round" /></svg>
+              ) : (
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="7 10 12 15 17 10" /><line x1="12" y1="15" x2="12" y2="3" /></svg>
+              )}
+            </button>
+            <span style={{ color: "rgba(255,255,255,0.7)", display: "flex" }}>
+              <PremiumTrackMenu track={playerTrack} liked={liked} onLikeToggle={setLiked} />
+            </span>
+          </>}
+        />
+      ) : (
+      <>
       {/* Hero */}
       <div style={{
         position: "relative",
-        background: "linear-gradient(180deg, rgba(0,0,0,0.45) 0%, rgba(0,0,0,0.25) 45%, var(--content-bg) 100%)",
+        background: "linear-gradient(180deg, rgba(0,0,0,0.45) 0%, rgba(0,0,0,0.25) 45%, #0b0b10 100%)",
         color: "#ffffff",
         overflow: "hidden",
       }}>
@@ -447,12 +543,36 @@ export default function TrackPage() {
             >
               {shareCopied ? <CheckLinear size={18} color="currentColor" strokeWidth={2.4} /> : <ShareLinear size={18} color="currentColor" strokeWidth={2} />}
             </button>
+            <button
+              className="icon-btn-hero"
+              onClick={handleDownload}
+              disabled={downloading}
+              style={{
+                width: 48, height: 48, borderRadius: "50%",
+                border: "1.5px solid rgba(255,255,255,0.55)", background: "rgba(255,255,255,0.1)",
+                display: "flex", alignItems: "center", justifyContent: "center",
+                cursor: downloading ? "default" : "pointer",
+                color: "#fff", transition: "transform 0.15s",
+                padding: 0, flexShrink: 0, opacity: downloading ? 0.7 : 1,
+              }}
+              onMouseEnter={(e) => { e.currentTarget.style.transform = "scale(1.05)" }}
+              onMouseLeave={(e) => { e.currentTarget.style.transform = "scale(1)" }}
+              title="Download"
+              aria-label="Download track"
+            >
+              {downloading ? (
+                <svg className="spinner" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><circle cx="12" cy="12" r="10" strokeDasharray="31.4 31.4" strokeLinecap="round" /></svg>
+              ) : (
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="7 10 12 15 17 10" /><line x1="12" y1="15" x2="12" y2="3" /></svg>
+              )}
+            </button>
             <div className="track-hero-menu" style={{ color: "rgba(255,255,255,0.7)" }}>
               <PremiumTrackMenu track={playerTrack} liked={liked} onLikeToggle={setLiked} />
             </div>
           </div>
         </div>
       </div>
+      </>)}
 
       {/* Body */}
       <div className="track-body">
@@ -639,7 +759,7 @@ export default function TrackPage() {
                 </button>
               )}
             />
-            <TrackList tracks={popularTracks} />
+            <TrackList tracks={popularTracks} showHeader={false} showRank={false} />
           </section>
         ) : null}
 
@@ -649,7 +769,7 @@ export default function TrackPage() {
         ) : recommended.length > 0 ? (
           <section style={{ marginBottom: 32 }} className="fade-in">
             <SectionHeading title="Recommended" description="Based on this song" />
-            <TrackList tracks={recommended} />
+            <TrackList tracks={recommended} showHeader={false} showRank={false} />
           </section>
         ) : null}
 
@@ -707,7 +827,7 @@ export default function TrackPage() {
           return (
             <section key={c.id || c.artist_id || i} style={{ marginBottom: 32 }} className="fade-in">
               <SectionHeading title={`More from ${c.stage_name}`} />
-              <TrackList tracks={tracks} />
+              <TrackList tracks={tracks} showHeader={false} showRank={false} />
             </section>
           )
         })}

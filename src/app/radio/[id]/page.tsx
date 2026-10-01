@@ -4,18 +4,10 @@ import { useQuery } from "@tanstack/react-query"
 import { useParams, useRouter } from "next/navigation"
 import { api } from "@/lib/api"
 import { usePlayerStore } from "@/lib/store"
-import { ArtistLinks } from "@/components/artist-links"
-import { EqBars } from "@/components/eq"
-import { PremiumTrackMenu } from "@/components/track-menu"
+import { TrackTable } from "@/components/track-table"
 import type { RadioStationTrack } from "@/types"
 import { useState, useEffect } from "react"
 import { formatDuration } from "@/lib/utils"
-
-function formatCount(n: number) {
-  if (n >= 1_000_000) return (n / 1_000_000).toFixed(1) + "M"
-  if (n >= 1_000) return (n / 1_000).toFixed(1) + "K"
-  return String(n)
-}
 
 function stationTypeLabel(type: string) {
   if (type === "genre") return "Genre Station"
@@ -54,14 +46,22 @@ export default function StationPage() {
   const { id } = useParams<{ id: string }>()
   const router = useRouter()
   const { play, playQueue, currentTrack, isPlaying, togglePlay } = usePlayerStore()
-  const [hoveredTrackId, setHoveredTrackId] = useState<string | null>(null)
   const [isMobile, setIsMobile] = useState(false)
+  const [isPhone, setIsPhone] = useState(false)
   const [playLoading, setPlayLoading] = useState(false)
 
   useEffect(() => {
     const mq = window.matchMedia("(max-width: 768px)")
     setIsMobile(mq.matches)
     const handler = (e: MediaQueryListEvent) => setIsMobile(e.matches)
+    mq.addEventListener("change", handler)
+    return () => mq.removeEventListener("change", handler)
+  }, [])
+
+  useEffect(() => {
+    const mq = window.matchMedia("(max-width: 640px)")
+    setIsPhone(mq.matches)
+    const handler = (e: MediaQueryListEvent) => setIsPhone(e.matches)
     mq.addEventListener("change", handler)
     return () => mq.removeEventListener("change", handler)
   }, [])
@@ -102,14 +102,6 @@ export default function StationPage() {
     } else {
       setPlayLoading(true)
       playQueue(tracks as any, 0)
-    }
-  }
-
-  function handlePlayTrack(track: RadioStationTrack, index: number) {
-    if (currentTrack?.id === track.id) {
-      togglePlay()
-    } else {
-      playQueue(tracks as any, index)
     }
   }
 
@@ -191,6 +183,13 @@ export default function StationPage() {
             ? "linear-gradient(to bottom, rgba(0,0,0,0.15) 0%, rgba(0,0,0,0.55) 100%)"
             : "linear-gradient(135deg, var(--brand) 0%, #1d1d1f 100%)",
         }} />
+        {/* bottom melt — fixed dark so white hero text stays legible in any theme */}
+        <div style={{
+          position: "absolute", left: 0, right: 0, bottom: 0, zIndex: 1,
+          height: 96,
+          background: "linear-gradient(to bottom, transparent 0%, #0b0b10 100%)",
+          opacity: 0.9,
+        }} />
 
         {/* Hero content */}
         <div style={{
@@ -198,19 +197,20 @@ export default function StationPage() {
           display: "flex",
           gap: isMobile ? 16 : 40,
           flexDirection: isMobile ? "column" : "row",
-          alignItems: isMobile ? "center" : "flex-end",
-          textAlign: isMobile ? "center" : "left",
-          padding: isMobile ? "52px 16px 16px" : "64px 40px 40px",
+          alignItems: isPhone ? "stretch" : isMobile ? "center" : "flex-end",
+          textAlign: isPhone ? "left" : isMobile ? "center" : "left",
+          padding: isPhone ? "72px 20px 22px" : isMobile ? "52px 16px 16px" : "64px 40px 40px",
           flexWrap: "wrap",
         }}>
           {/* Cover art */}
           <div style={{
-            width: isMobile ? 150 : 260,
-            height: isMobile ? 150 : 260,
-            borderRadius: 8,
+            width: isPhone ? "min(60vw, 260px)" : isMobile ? 150 : 260,
+            height: isPhone ? "min(60vw, 260px)" : isMobile ? 150 : 260,
+            borderRadius: isPhone ? 2 : 8,
             flexShrink: 0,
+            alignSelf: isPhone ? "center" : undefined,
             overflow: "hidden",
-            boxShadow: isMobile ? "0 8px 32px rgba(0,0,0,0.4)" : "0 24px 64px rgba(0,0,0,0.5), 0 4px 16px rgba(0,0,0,0.3)",
+            boxShadow: isPhone ? "0 24px 64px rgba(0,0,0,0.55), 0 4px 16px rgba(0,0,0,0.35)" : isMobile ? "0 8px 32px rgba(0,0,0,0.4)" : "0 24px 64px rgba(0,0,0,0.5), 0 4px 16px rgba(0,0,0,0.3)",
           }}>
             {coverUrl ? (
               <img
@@ -255,12 +255,14 @@ export default function StationPage() {
             </span>
 
             <h1 style={{
-              fontSize: isMobile ? 22 : "clamp(28px, 4vw, 48px)",
+              fontSize: isPhone ? "clamp(26px, 8vw, 34px)" : isMobile ? 22 : "clamp(28px, 4vw, 48px)",
               fontWeight: 800,
+              fontFamily: "var(--font-display, inherit)",
+              textTransform: isPhone ? "uppercase" : "none",
               color: "#fff",
               margin: "0 0 4px",
               lineHeight: 1.1,
-              letterSpacing: "-0.5px",
+              letterSpacing: isPhone ? "-0.01em" : "-0.5px",
               textShadow: "0 2px 16px rgba(0,0,0,0.4)",
             }}>
               {station.name}
@@ -272,17 +274,23 @@ export default function StationPage() {
               </p>
             )}
 
-            {/* Stats row */}
-            <div style={{ display: "flex", gap: isMobile ? 12 : 20, marginBottom: isMobile ? 16 : 24, flexWrap: "wrap", justifyContent: isMobile ? "center" : "flex-start" }}>
-              <StatPill icon={<TrackIcon />} value={`${tracks.length} track${tracks.length !== 1 ? "s" : ""}`} />
-              {totalDuration > 0 && (
-                <StatPill icon={<ClockIcon />} value={formatDuration(totalDuration)} />
-              )}
-            </div>
+            {/* Stats row — single meta line on phones */}
+            {isPhone ? (
+              <p style={{ margin: "0 0 14px", fontSize: 14, fontWeight: 500, color: "rgba(255,255,255,0.9)" }}>
+                {tracks.length} track{tracks.length !== 1 ? "s" : ""}{totalDuration > 0 ? ` · ${formatDuration(totalDuration)}` : ""}
+              </p>
+            ) : (
+              <div style={{ display: "flex", gap: isMobile ? 12 : 20, marginBottom: isMobile ? 16 : 24, flexWrap: "wrap", justifyContent: isMobile ? "center" : "flex-start" }}>
+                <StatPill icon={<TrackIcon />} value={`${tracks.length} track${tracks.length !== 1 ? "s" : ""}`} />
+                {totalDuration > 0 && (
+                  <StatPill icon={<ClockIcon />} value={formatDuration(totalDuration)} />
+                )}
+              </div>
+            )}
 
             {/* Action buttons */}
-            <div style={{ display: "flex", gap: 12, flexWrap: "wrap", alignItems: "center", justifyContent: isMobile ? "center" : "flex-start" }}>
-              {tracks.length > 0 && (
+            <div style={{ display: "flex", gap: 12, flexWrap: "wrap", alignItems: "center", justifyContent: isPhone ? "space-between" : isMobile ? "center" : "flex-start", width: isPhone ? "100%" : undefined }}>
+              {!isPhone && tracks.length > 0 && (
                 <button
                   onClick={handlePlayAll}
                   style={{
@@ -331,6 +339,28 @@ export default function StationPage() {
               >
                 <ShareIcon />
               </button>
+              {isPhone && tracks.length > 0 && (
+                <button
+                  onClick={handlePlayAll}
+                  aria-label={anyTrackPlaying ? "Pause" : "Play"}
+                  style={{
+                    width: 64, height: 64, borderRadius: "50%",
+                    border: "none", background: "var(--brand)", color: "#fff",
+                    display: "flex", alignItems: "center", justifyContent: "center",
+                    cursor: "pointer",
+                    boxShadow: "0 8px 28px rgba(0,0,0,0.45)",
+                    flexShrink: 0,
+                  }}
+                >
+                  {playLoading ? (
+                    <svg className="spinner" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><circle cx="12" cy="12" r="10" strokeDasharray="31.4 31.4" strokeLinecap="round" /></svg>
+                  ) : anyTrackPlaying ? (
+                    <PauseIconSolid size={24} />
+                  ) : (
+                    <PlayIconSolid size={24} />
+                  )}
+                </button>
+              )}
             </div>
           </div>
         </div>
@@ -339,30 +369,6 @@ export default function StationPage() {
       {/* ══ TRACK LIST ══ */}
       <div style={{ padding: isMobile ? "16px 12px 48px" : "32px 40px 64px" }}>
 
-        {/* Column header */}
-        <div className="radio-tl-header" style={{
-          display: "grid",
-          gridTemplateColumns: "40px 1fr 100px 60px 40px",
-          padding: "8px 16px",
-          fontSize: 11,
-          fontWeight: 700,
-          color: "var(--muted-foreground)",
-          textTransform: "uppercase",
-          letterSpacing: "0.1em",
-          borderBottom: "1px solid var(--border)",
-          marginBottom: 8,
-        }}>
-          <span>#</span>
-          <span>Title</span>
-          <span className="radio-tl-plays" style={{ textAlign: "right" }}>Plays</span>
-          <span className="radio-tl-duration" style={{ textAlign: "right" }}>
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" style={{ display: "inline-block", verticalAlign: "middle" }}>
-              <circle cx="12" cy="12" r="10" /><path d="M12 6v6l4 2" />
-            </svg>
-          </span>
-          <span />
-        </div>
-
         {/* Rows */}
         {tracks.length === 0 ? (
           <div style={{ textAlign: "center", padding: "60px 0", color: "var(--muted-foreground)" }}>
@@ -370,86 +376,7 @@ export default function StationPage() {
             <p style={{ fontSize: 14, margin: 0 }}>This station doesn't have any tracks yet.</p>
           </div>
         ) : (
-          tracks.map((track, index) => {
-            const isActive = currentTrack?.id === track.id
-            const isActiveAndPlaying = isActive && isPlaying
-            const isHovered = hoveredTrackId === track.id
-
-            return (
-              <div
-                key={track.id}
-                className="radio-tl-row"
-                onMouseEnter={() => setHoveredTrackId(track.id)}
-                onMouseLeave={() => setHoveredTrackId(null)}
-                onClick={() => handlePlayTrack(track, index)}
-                style={{
-                  display: "grid",
-                  gridTemplateColumns: "40px 1fr 100px 60px 40px",
-                  alignItems: "center",
-                  padding: "8px 16px",
-                  borderRadius: 6,
-                  cursor: "pointer",
-                  transition: "background-color 0.15s ease",
-                  background: isActive ? "var(--brand-bg)" : isHovered ? "var(--hover-bg)" : "transparent",
-                }}
-              >
-                {/* Index / play icon */}
-                <div style={{ display: "flex", alignItems: "center", fontSize: 14, fontWeight: 600 }}>
-                  {isHovered ? (
-                    <button
-                      style={{ background: "none", border: "none", padding: 0, cursor: "pointer", color: isActive ? "var(--brand)" : "var(--foreground)", display: "flex", alignItems: "center" }}
-                      onClick={(e) => { e.stopPropagation(); handlePlayTrack(track, index) }}
-                    >
-                      {isActiveAndPlaying ? <PauseIconSolid size={16} /> : <PlayIconSolid size={16} />}
-                    </button>
-                  ) : (
-                      <span style={{ color: isActive ? "var(--brand)" : "var(--muted-foreground)" }}>
-                        {index + 1}
-                      </span>
-                    )}
-                </div>
-
-                {/* Cover + title + artist */}
-                <div style={{ display: "flex", alignItems: "center", gap: 12, minWidth: 0 }}>
-                  {track.cover_url ? (
-                    <img src={track.cover_url} alt="" className="radio-tl-thumb" style={{ width: 40, height: 40, borderRadius: 4, objectFit: "cover", flexShrink: 0, boxShadow: "0 2px 8px rgba(0,0,0,0.08)" }} />
-                  ) : (
-                    <div className="radio-tl-thumb" style={{ width: 40, height: 40, borderRadius: 4, background: "var(--hover-bg)", flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center" }}>
-                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--muted-foreground)" strokeWidth="1.8"><path d="M9 18V5l12-2v13" /><circle cx="6" cy="18" r="3" /><circle cx="18" cy="16" r="3" /></svg>
-                    </div>
-                  )}
-                  <div style={{ minWidth: 0 }}>
-                    <p
-                      onClick={(e) => { e.stopPropagation(); router.push(`/track/${track.id}`) }}
-                      style={{ margin: 0, fontSize: 14, fontWeight: 600, color: isActive ? "var(--brand)" : "var(--foreground)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", cursor: "pointer" }}
-                      onMouseEnter={(e) => (e.currentTarget.style.textDecoration = "underline")}
-                      onMouseLeave={(e) => (e.currentTarget.style.textDecoration = "none")}
-                    >
-                      {track.title}{isActiveAndPlaying ? <span> <EqBars /></span> : null}
-                    </p>
-                    <p style={{ margin: 0, fontSize: 12, color: "var(--muted-foreground)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                      <ArtistLinks track={track} />
-                    </p>
-                  </div>
-                </div>
-
-                {/* Play count */}
-                <div className="radio-tl-plays" style={{ textAlign: "right", fontSize: 13, color: "var(--muted-foreground)", fontVariantNumeric: "tabular-nums" }}>
-                  {formatCount(track.play_count)}
-                </div>
-
-                {/* Duration */}
-                <div className="radio-tl-duration" style={{ textAlign: "right", fontSize: 13, color: "var(--muted-foreground)", fontVariantNumeric: "tabular-nums" }}>
-                  {formatDuration(track.duration_sec)}
-                </div>
-
-                {/* Three-dots menu */}
-                <div style={{ display: "flex", alignItems: "center", justifyContent: "center" }}>
-                  <PremiumTrackMenu track={track} />
-                </div>
-              </div>
-            )
-          })
+          <TrackTable tracks={tracks} />
         )}
 
         {/* Featured artists */}

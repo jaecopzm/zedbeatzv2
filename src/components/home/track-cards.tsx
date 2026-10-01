@@ -10,12 +10,6 @@ import { EqBars } from "@/components/eq"
 import { PlayIcon as PlayBold } from "@solar-icons/react/bold/play"
 import { PauseIcon as PauseBold } from "@solar-icons/react/bold/pause"
 
-const formatDuration = (sec: number) => {
-  const m = Math.floor(sec / 60)
-  const s = Math.floor(sec % 60)
-  return `${m}:${s.toString().padStart(2, "0")}`
-}
-
 function isTrackPlaying(trackId: string) {
   const { currentTrack, isPlaying } = usePlayerStore.getState()
   return isPlaying && currentTrack?.id === trackId
@@ -113,13 +107,12 @@ export function TrackCardRow({ track }: { track: Track }) {
   )
 }
 
-export function TrackRow({ track, index, isLast }: { track: Track; index?: number; isLast?: boolean }) {
+export function TrackRow({ track, isLast }: { track: Track; isLast?: boolean }) {
   const router = useRouter()
   const play = usePlayerStore((s) => s.play)
   const togglePlay = usePlayerStore((s) => s.togglePlay)
   const isPlaying = useIsTrackPlaying(track.id)
   const isCurrentTrack = useIsCurrentTrack(track.id)
-  const loading = usePlayerStore((s) => s._loading) === track.id
 
   const handleRowClick = () => {
     if (isCurrentTrack) {
@@ -140,38 +133,9 @@ export function TrackRow({ track, index, isLast }: { track: Track; index?: numbe
   return (
     <div style={{ display: "flex", flexDirection: "column" }}>
       <div
-        className={`hp-track-row track-row-hover ${isCurrentTrack && isPlaying ? "hp-track-row-playing" : ""}`}
+        className="hp-track-row track-row-hover"
         onClick={handleRowClick}
       >
-        {index !== undefined && (
-          <>
-            <span className="hp-track-number">{index + 1}</span>
-            <button
-              className="hp-track-play-num-btn"
-              onClick={(e) => {
-                e.stopPropagation()
-                handleRowClick()
-              }}
-              aria-label={isPlaying ? "Pause" : "Play"}
-              type="button"
-            >
-              {loading ? (
-                <svg className="spinner" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                  <circle cx="12" cy="12" r="10" strokeDasharray="31.4 31.4" strokeLinecap="round" />
-                </svg>
-              ) : isPlaying ? (
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
-                  <rect x="6" y="4" width="4" height="16" />
-                  <rect x="14" y="4" width="4" height="16" />
-                </svg>
-              ) : (
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
-                  <polygon points="5,3 19,12 5,21" />
-                </svg>
-              )}
-            </button>
-          </>
-          )}
           <div className="hp-track-art">
           {track.cover_url ? (
             <CoverImage src={track.cover_url} alt={track.title} sizes="120px" />
@@ -207,12 +171,7 @@ export function TrackRow({ track, index, isLast }: { track: Track; index?: numbe
             <ArtistLinks track={track} />
           </p>
         </div>
-        <div style={{ display: "flex", alignItems: "center", gap: "8px", flexShrink: 0 }}>
-          <span className="track-duration" style={{ fontSize: "12px", color: "var(--muted-foreground)" }}>
-            {formatDuration(track.duration_sec)}
-          </span>
-          <PremiumTrackMenu track={track} />
-        </div>
+        <PremiumTrackMenu track={track} />
       </div>
       {!isLast && <div className="hp-track-divider" />}
     </div>

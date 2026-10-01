@@ -5,8 +5,8 @@ import { api } from "@/lib/api"
 import { usePlayerStore, type TrackInfo } from "@/lib/store"
 import { useParams } from "next/navigation"
 import { useMemo, useState } from "react"
-import { TrackRow } from "@/components/home/track-cards"
-import { genreArt } from "@/lib/genre-art"
+import { TrackTable } from "@/components/track-table"
+import { GenreMosaic } from "@/components/mosaic-art"
 
 const SECTION_LABELS: Record<string, string> = {
   best_new_songs: "Best New Songs",
@@ -60,7 +60,6 @@ export default function SectionPage() {
 
   const sectionKey = typeof slug === "string" ? slug : ""
   const label = SECTION_LABELS[sectionKey] || sectionKey.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase())
-  const art = genreArt({ slug: sectionKey, name: label })
 
   const { data, isLoading } = useQuery({
     queryKey: ["tracks", sectionKey, page],
@@ -94,7 +93,11 @@ export default function SectionPage() {
     <div className="fade-in sec-page">
       {/* ── Hero — the explore tile, expanded ── */}
       <header className="sec-hero">
-        <img className="sec-hero-bg" src={art} alt="" draggable={false} />
+        {(tracks[0] as any)?.cover_url ? (
+          <img className="sec-hero-bg" src={(tracks[0] as any).cover_url} alt="" draggable={false} />
+        ) : (
+          <GenreMosaic genre={{ slug: sectionKey, name: label }} index={0} className="sec-hero-bg" />
+        )}
         <div className="sec-hero-scrim" aria-hidden />
         <div className="sec-hero-inner">
           <p className="sec-eyebrow">Collection</p>
@@ -152,14 +155,7 @@ export default function SectionPage() {
           </div>
         ) : (
           <>
-            {tracks.map((track: any, idx: number) => (
-              <TrackRow
-                key={track.id}
-                track={track}
-                index={search ? undefined : page * limit + idx}
-                isLast={idx === tracks.length - 1}
-              />
-            ))}
+            <TrackTable tracks={tracks} rankOffset={search ? 0 : page * limit} />
             {!search && total >= limit && (
               <div className="sec-pager">
                 <button

@@ -1,104 +1,10 @@
 "use client"
 
-import { useState } from "react"
-import { useRouter } from "next/navigation"
-import { usePlayerStore } from "@/lib/store"
-import { ArtistLinks } from "@/components/artist-links"
-import { PremiumTrackMenu } from "@/components/track-menu"
-import { CoverImage } from "@/components/cover-image"
-import { EqBars } from "@/components/eq"
+import { TrackTable } from "@/components/track-table"
 
-function formatDuration(sec: number) {
-  const m = Math.floor(sec / 60)
-  const s = Math.floor(sec % 60)
-  return `${m}:${s.toString().padStart(2, "0")}`
-}
-
-function formatCount(n: number) {
-  if (n >= 1_000_000) return (n / 1_000_000).toFixed(1) + "M"
-  if (n >= 1_000) return (n / 1_000).toFixed(1) + "K"
-  return String(n)
-}
-
-export function TrackList({ tracks, accentColor }: { tracks: any[]; accentColor?: string }) {
-  const { play, currentTrack, isPlaying, togglePlay } = usePlayerStore()
-  const router = useRouter()
-  const [hoveredId, setHoveredId] = useState<string | null>(null)
-
+export function TrackList({ tracks, accentColor, showHeader = true, showRank = true, showAlbum = true }: { tracks: any[]; accentColor?: string; showHeader?: boolean; showRank?: boolean; showAlbum?: boolean }) {
   if (!tracks || tracks.length === 0) return null
-
-  return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-      {tracks.map((t, idx) => {
-        const isCurrent = currentTrack?.id === t.id
-        const isPlayingNow = isCurrent && isPlaying
-        const isHovered = hoveredId === t.id
-        const albumName = t.album_name || t.albumName || ""
-        return (
-          <div key={t.id} className="tl-row" onMouseEnter={() => setHoveredId(t.id)} onMouseLeave={() => setHoveredId(null)}
-            onClick={() => { if (isCurrent) togglePlay(); else play({ id: t.id, artist_id: t.artist_id, title: t.title, artist_name: t.artist_name ?? "", cover_url: t.cover_url, duration_sec: t.duration_sec, collaborators: t.collaborators || [] }) }}
-            style={{ display: "grid", gridTemplateColumns: "40px 1fr 1fr 80px 44px 40px", alignItems: "center", padding: "8px 12px", borderRadius: 6, cursor: "pointer", transition: "background-color 0.15s", background: isCurrent ? "var(--brand-bg)" : isHovered ? "var(--hover-bg)" : "transparent" }}
-          >
-            <div style={{ display: "flex", alignItems: "center", fontSize: 14, fontWeight: 600 }}>
-              {isHovered ? (
-                <button style={{ background: "none", border: "none", padding: 0, cursor: "pointer", color: isCurrent ? (accentColor || "var(--brand)") : "var(--foreground)", display: "flex", alignItems: "center" }}
-                  onClick={(e) => { e.stopPropagation(); if (isCurrent) togglePlay(); else play({ id: t.id, artist_id: t.artist_id, title: t.title, artist_name: t.artist_name ?? "", cover_url: t.cover_url, duration_sec: t.duration_sec, collaborators: t.collaborators || [] }) }}
-                >
-                  {isPlayingNow ? <PauseIcon size={16} /> : <PlayIconSolid size={16} />}
-                </button>
-              ) : (
-                <span style={{ color: isCurrent ? (accentColor || "var(--brand)") : "var(--muted-foreground)" }}>{idx + 1}</span>
-              )}
-            </div>
-            <div style={{ display: "flex", alignItems: "center", gap: 12, minWidth: 0 }}>
-              {t.cover_url ? (
-                <span style={{ position: "relative", width: 40, height: 40, borderRadius: 4, overflow: "hidden", boxShadow: "0 2px 8px rgba(0,0,0,0.05)", flexShrink: 0, display: "block" }}>
-                  <CoverImage src={t.cover_url} alt="" sizes="100px" />
-                </span>
-              ) : (
-                <div className="tl-thumb" style={{ width: 40, height: 40, borderRadius: 4, background: "var(--hover-bg)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--muted-foreground)" strokeWidth="1.8"><path d="M9 18V5l12-2v13" /><circle cx="6" cy="18" r="3" /><circle cx="18" cy="16" r="3" /></svg>
-                </div>
-              )}
-              <div style={{ minWidth: 0 }}>
-                <p onClick={(e) => { e.stopPropagation(); router.push(`/track/${t.id}`) }}
-                  style={{ margin: 0, fontSize: 14, fontWeight: 600, color: isCurrent ? (accentColor || "var(--brand)") : "var(--foreground)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}
-                  onMouseEnter={(e) => (e.currentTarget.style.textDecoration = "underline")}
-                  onMouseLeave={(e) => (e.currentTarget.style.textDecoration = "none")}
-                >
-                  {t.title}{isPlayingNow ? <span> <EqBars /></span> : null}
-                </p>
-                <p style={{ margin: 0, fontSize: 12, color: "var(--muted-foreground)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                  <ArtistLinks track={t} />
-                </p>
-              </div>
-            </div>
-            <div className="tl-album" style={{ fontSize: 13, color: "var(--muted-foreground)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", paddingRight: 8 }}>
-              {albumName ? (
-                <span
-                  onClick={(e) => { e.stopPropagation(); router.push(`/album/${t.album_id}`) }}
-                  style={{ cursor: "pointer" }}
-                  onMouseEnter={(e) => (e.currentTarget.style.textDecoration = "underline")}
-                  onMouseLeave={(e) => (e.currentTarget.style.textDecoration = "none")}
-                >
-                  {albumName}
-                </span>
-              ) : "—"}
-            </div>
-            <div className="tl-plays" style={{ textAlign: "right", fontSize: 13, color: "var(--muted-foreground)", fontVariantNumeric: "tabular-nums" }}>
-              {formatCount(t.play_count || 0)}
-            </div>
-            <div className="tl-duration" style={{ textAlign: "right", fontSize: 13, color: "var(--muted-foreground)", fontVariantNumeric: "tabular-nums" }}>
-              {formatDuration(t.duration_sec)}
-            </div>
-            <div style={{ display: "flex", justifyContent: "center" }} onClick={(e) => e.stopPropagation()}>
-              <PremiumTrackMenu track={{ id: t.id, artist_id: t.artist_id, title: t.title, artist_name: t.artist_name, cover_url: t.cover_url, duration_sec: t.duration_sec, collaborators: t.collaborators }} />
-            </div>
-          </div>
-        )
-      })}
-    </div>
-  )
+  return <TrackTable tracks={tracks} accentColor={accentColor} showHeader={showHeader} showRank={showRank} showAlbum={showAlbum} />
 }
 
 export function PlayIconSolid({ size = 16, color = "currentColor" }: { size?: number; color?: string }) {

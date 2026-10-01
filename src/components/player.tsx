@@ -138,10 +138,10 @@ export function Player() {
             gap: "var(--player-grid-gap, 16px)",
           }}
         >
-          {/* LEFT — track info */}
+          {/* LEFT — track info: tap toggles play, tap title opens Now Playing */}
           <div
-            onClick={() => { if (currentTrack) openNowPlaying() }}
-            title={currentTrack ? "Open Now Playing" : undefined}
+            onClick={() => { if (currentTrack) togglePlay() }}
+            title={currentTrack ? (isPlaying ? "Pause" : "Play") : undefined}
             style={{
               display: "flex",
               alignItems: "center",
@@ -174,7 +174,7 @@ export function Player() {
 
                 <div style={{ minWidth: 0 }}>
                     <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-                      <p style={{ margin: 0, fontSize: "13px", fontWeight: 600, color: "var(--foreground)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", lineHeight: 1.3 }}>
+                      <p onClick={(e) => { e.stopPropagation(); if (currentTrack) openNowPlaying() }} title={currentTrack ? "Open Now Playing" : undefined} style={{ margin: 0, fontSize: "13px", fontWeight: 600, color: "var(--foreground)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", lineHeight: 1.3, cursor: currentTrack ? "pointer" : "default" }}>
                         {track.title}
                       </p>
                     </div>
@@ -408,7 +408,7 @@ function MobileMiniPlayer({
       >
         {track?.cover_url && (
           <div
-            onClick={() => onOpenNowPlaying()}
+            onClick={() => onTogglePlay()}
             style={{
               flexShrink: 0,
               position: "relative",
@@ -450,7 +450,7 @@ function MobileMiniPlayer({
 
         {track && (
           <div
-            onClick={() => onOpenNowPlaying()}
+            onClick={() => onTogglePlay()}
             style={{
               flex: 1,
               minWidth: 0,
@@ -465,6 +465,7 @@ function MobileMiniPlayer({
             >
               <span
                 ref={titleRef}
+                onClick={(e) => { e.stopPropagation(); onOpenNowPlaying() }}
                 className={`player-mobile-title-inner${titleOverflows ? " marquee" : ""}`}
                 style={{
                   fontSize: "14px",

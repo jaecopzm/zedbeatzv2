@@ -11,7 +11,7 @@ import { HorizontalScroller, ScrollRegion, ScrollChevrons } from "@/components/h
 import { SectionHeader, EmptyState, SkeletonCards } from "@/components/home/section-utils"
 import { CoverImage } from "@/components/cover-image"
 
-import { genreArt } from "@/lib/genre-art"
+import { GenreMosaic } from "@/components/mosaic-art"
 import { GenreCoverImg } from "@/components/genre-cover"
 
 export function GenreRail({ label = "Browse genres" }: { label?: string }) {
@@ -44,9 +44,7 @@ export function GenreRail({ label = "Browse genres" }: { label?: string }) {
               className="hp-genre-card"
               aria-label={`Browse ${g.name}`}
             >
-              <GenreCoverImg genre={g} index={i} className="hp-genre-img" />
-              <span className="hp-genre-scrim" aria-hidden />
-              <span className="hp-genre-label">{g.name}</span>
+              <GenreCoverImg genre={g} index={i} baked className="hp-genre-img" />
             </button>
           ))}
         </HorizontalScroller>
@@ -201,22 +199,12 @@ export function ExploreMore({ sections }: { sections: { sectionKey: string; labe
             className="hp-explore-card"
             aria-label={`Explore ${s.label}`}
           >
-            <img
+            <GenreMosaic
+              genre={{ slug: s.sectionKey, name: s.label }}
+              index={i}
+              label={s.label}
               className="hp-explore-img"
-              src={genreArt({ slug: s.sectionKey, name: s.label }, i)}
-              alt=""
-              loading="lazy"
-              draggable={false}
             />
-            <span className="hp-genre-scrim" aria-hidden />
-            <span className="hp-explore-copy">
-              <span className="hp-explore-label">{s.label}</span>
-              <span className="hp-explore-go" aria-hidden>
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M5 12h14" /><path d="M13 6l6 6-6 6" />
-                </svg>
-              </span>
-            </span>
           </button>
         ))}
       </div>

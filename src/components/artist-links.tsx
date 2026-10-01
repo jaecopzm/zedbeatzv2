@@ -37,7 +37,14 @@ export function ArtistLinks({ track }: Props) {
               {a.name}
             </span>
           ) : (
-            <span>{a.name}</span>
+            <span
+              onClick={(e) => { e.stopPropagation(); router.push(`/search?q=${encodeURIComponent(a.name)}`) }}
+              style={{ cursor: "pointer" }}
+              onMouseEnter={(e) => (e.currentTarget.style.textDecoration = "underline")}
+              onMouseLeave={(e) => (e.currentTarget.style.textDecoration = "none")}
+            >
+              {a.name}
+            </span>
           )}
         </span>
       ))}

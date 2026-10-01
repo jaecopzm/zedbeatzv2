@@ -489,13 +489,13 @@
     display: flex;
     align-items: flex-start;
     gap: 8px;
-    padding: 4px 4px 12px;
+    padding: 2px 2px 10px;
   }
   .mm-profile {
     flex: 1;
     display: flex;
     align-items: center;
-    gap: 12px;
+    gap: 10px;
     background: none;
     border: none;
     padding: 0;
@@ -506,13 +506,13 @@
     color: inherit;
   }
   .mm-avatar {
-    width: 44px;
-    height: 44px;
+    width: 38px;
+    height: 38px;
     border-radius: 50%;
     flex-shrink: 0;
     background: linear-gradient(135deg, var(--brand), var(--brand-light));
     color: #fff;
-    font-size: 17px;
+    font-size: 15px;
     font-weight: 700;
     display: flex;
     align-items: center;
@@ -544,22 +544,22 @@
     display: flex;
     flex-direction: column;
     align-items: flex-start;
-    gap: 12px;
+    gap: 10px;
     min-width: 0;
   }
   .mm-logo {
-    height: 28px;
+    height: 24px;
     width: auto;
     object-fit: contain;
     display: block;
   }
   .mm-signin {
-    padding: 10px 26px;
+    padding: 8px 22px;
     border-radius: 999px;
     border: none;
     background: var(--brand);
     color: #fff;
-    font-size: 14px;
+    font-size: 13px;
     font-weight: 700;
     cursor: pointer;
     box-shadow: 0 4px 14px var(--brand-shadow);
@@ -588,8 +588,8 @@
     padding: 4px 0 8px;
   }
   .mm-group-title {
-    margin: 14px 12px 6px;
-    font-size: 12px;
+    margin: 10px 10px 4px;
+    font-size: 11px;
     font-weight: 700;
     color: var(--muted-foreground);
   }
@@ -599,10 +599,10 @@
   .mm-row {
     display: flex;
     align-items: center;
-    gap: 12px;
-    min-height: 52px;
-    padding: 6px 12px;
-    border-radius: 12px;
+    gap: 10px;
+    min-height: 44px;
+    padding: 4px 10px;
+    border-radius: 10px;
     text-decoration: none;
     color: var(--foreground);
     background: transparent;
@@ -620,8 +620,8 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 40px;
-    height: 40px;
+    width: 34px;
+    height: 34px;
     border-radius: 50%;
     flex-shrink: 0;
     background: var(--hover-bg);
@@ -638,7 +638,7 @@
     color: #ef4444;
   }
   .mm-row-label {
-    font-size: 15px;
+    font-size: 14px;
     font-weight: 600;
     letter-spacing: -0.01em;
   }
@@ -1307,13 +1307,6 @@ input[type="range"]::-webkit-slider-thumb:hover {
   background: var(--hover-bg);
 }
 .hp-track-row:active { transform: scale(0.995); }
-
-.hp-track-row-playing {
-  background: var(--brand-bg);
-}
-.hp-track-row-playing:hover {
-  background: var(--brand-bg);
-}
 
 .hp-track-number {
   width: 22px;
@@ -2779,25 +2772,40 @@ input[type="range"]::-webkit-slider-thumb:hover {
 @media (max-width: 768px) {
   .track-hero {
     flex-direction: column;
-    align-items: center;
-    text-align: center;
-    padding: 56px 20px 12px;
+    align-items: stretch;
+    text-align: left;
+    padding: 72px 20px 12px;
     gap: 14px;
   }
   .track-hero-art {
-    width: 150px;
-    height: 150px;
+    width: min(60vw, 260px);
+    height: min(60vw, 260px);
+    border-radius: 2px;
+    margin: 0 auto;
+    box-shadow: 0 24px 64px rgba(0,0,0,0.55), 0 4px 16px rgba(0,0,0,0.35);
   }
   .track-hero-info {
-    text-align: center;
+    text-align: left;
+  }
+  .track-hero-title {
+    text-transform: uppercase;
+    font-weight: 800;
   }
   .track-hero-meta {
-    justify-content: center;
+    justify-content: flex-start;
   }
   .track-actions {
     padding: 0 20px 16px;
-    justify-content: center;
+    justify-content: flex-end;
     gap: 14px;
+  }
+  .track-actions .play-btn-hero {
+    width: 64px;
+    height: 64px;
+    background: var(--brand);
+    color: #fff;
+    border: none;
+    box-shadow: 0 8px 28px rgba(0,0,0,0.45);
   }
   .track-body {
     padding: 20px 16px;

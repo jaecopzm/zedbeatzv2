@@ -25,11 +25,20 @@ export default function PlaylistPage() {
   const queryClient = useQueryClient()
   const { playQueue, currentTrack, isPlaying, togglePlay } = usePlayerStore()
   const [isMobile, setIsMobile] = useState(false)
+  const [isPhone, setIsPhone] = useState(false)
 
   useEffect(() => {
     const mq = window.matchMedia("(max-width: 1024px)")
     setIsMobile(mq.matches)
     const handler = (e: MediaQueryListEvent) => setIsMobile(e.matches)
+    mq.addEventListener("change", handler)
+    return () => mq.removeEventListener("change", handler)
+  }, [])
+
+  useEffect(() => {
+    const mq = window.matchMedia("(max-width: 640px)")
+    setIsPhone(mq.matches)
+    const handler = (e: MediaQueryListEvent) => setIsPhone(e.matches)
     mq.addEventListener("change", handler)
     return () => mq.removeEventListener("change", handler)
   }, [])
@@ -102,11 +111,11 @@ export default function PlaylistPage() {
             ? "linear-gradient(to bottom, rgba(0,0,0,0.15) 0%, rgba(0,0,0,0.55) 100%)"
             : "linear-gradient(135deg, var(--brand) 0%, #1d1d1f 100%)",
         }} />
-        {/* bottom melt into page background */}
+        {/* bottom melt — fixed dark so white hero text stays legible in any theme */}
         <div style={{
           position: "absolute", left: 0, right: 0, bottom: 0, zIndex: 1,
           height: isMobile ? 72 : 96,
-          background: "linear-gradient(to bottom, transparent 0%, var(--content-bg) 100%)",
+          background: "linear-gradient(to bottom, transparent 0%, #0b0b10 100%)",
           opacity: 0.9,
         }} />
         <div style={{
@@ -114,42 +123,60 @@ export default function PlaylistPage() {
           display: "flex",
           gap: isMobile ? 16 : 32,
           flexDirection: isMobile ? "column" : "row",
-          alignItems: isMobile ? "center" : "flex-end",
-          textAlign: isMobile ? "center" : "left",
-          padding: isMobile ? "52px 14px 56px" : "64px 40px 72px",
+          alignItems: isPhone ? "stretch" : isMobile ? "center" : "flex-end",
+          textAlign: isPhone ? "left" : isMobile ? "center" : "left",
+          padding: isPhone ? "72px 20px 22px" : isMobile ? "52px 14px 56px" : "64px 40px 72px",
         }}>
-          <div style={{ width: isMobile ? 150 : 200, height: isMobile ? 150 : 200, borderRadius: 6, background: display?.cover_url ? `url(${display.cover_url}) center/cover` : "rgba(255,255,255,0.12)", flexShrink: 0, boxShadow: "0 18px 48px rgba(0,0,0,0.35)", display: "flex", alignItems: "center", justifyContent: "center", overflow: "hidden" }}>
+          <div style={{ width: isPhone ? "min(60vw, 260px)" : isMobile ? 150 : 200, height: isPhone ? "min(60vw, 260px)" : isMobile ? 150 : 200, borderRadius: isPhone ? 2 : 6, background: display?.cover_url ? `url(${display.cover_url}) center/cover` : "rgba(255,255,255,0.12)", flexShrink: 0, alignSelf: isPhone ? "center" : undefined, boxShadow: isPhone ? "0 24px 64px rgba(0,0,0,0.55), 0 4px 16px rgba(0,0,0,0.35)" : "0 18px 48px rgba(0,0,0,0.35)", display: "flex", alignItems: "center", justifyContent: "center", overflow: "hidden" }}>
             {!display?.cover_url && (
               <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.7)" strokeWidth="1.4"><path d="M9 18H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v10" /><path d="M3 10h18" /><path d="M14 14l4 2-4 2" /></svg>
             )}
           </div>
-          <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", alignItems: isMobile ? "center" : "flex-start", justifyContent: "flex-end", color: "#fff" }}>
+          <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", alignItems: isPhone ? "stretch" : isMobile ? "center" : "flex-start", justifyContent: "flex-end", color: "#fff" }}>
             <span style={{ fontSize: 13, fontWeight: 600, letterSpacing: "-0.01em", color: "rgba(255,255,255,0.72)", marginBottom: 8 }}>
               Playlist
             </span>
-            <h1 style={{ fontFamily: "var(--font-display, Inter, sans-serif)", fontSize: "clamp(28px, 4.5vw, 52px)", fontWeight: 700, margin: "0 0 8px", letterSpacing: "-0.02em", lineHeight: 1.05 }}>
+            <h1 style={{ fontFamily: "var(--font-display, Inter, sans-serif)", fontSize: isPhone ? "clamp(26px, 8vw, 34px)" : "clamp(28px, 4.5vw, 52px)", fontWeight: isPhone ? 800 : 700, textTransform: isPhone ? "uppercase" : "none", margin: "0 0 8px", letterSpacing: isPhone ? "-0.01em" : "-0.02em", lineHeight: 1.05 }}>
               {display?.title || "Playlist"}
             </h1>
-            {display?.description && (
+            {!isPhone && display?.description && (
               <p style={{ margin: "0 0 4px", fontSize: 14, opacity: 0.75, lineHeight: 1.45, maxWidth: 560 }}>{display.description}</p>
             )}
-            <p style={{ margin: "6px 0 0", fontSize: 13, fontWeight: 600, opacity: 0.75 }}>
+            <p style={{ margin: "6px 0 0", fontSize: isPhone ? 14 : 13, fontWeight: isPhone ? 500 : 600, opacity: isPhone ? 0.9 : 0.75 }}>
               {displayTracks.length}{" "}track{displayTracks.length === 1 ? "" : "s"}{totalDuration > 0 ? ` · ${totalMins} min` : ""}
             </p>
-            <div style={{ display: "flex", gap: 12, marginTop: 16, alignItems: "center" }}>
-              <button
-                onClick={handlePlayAll}
-                disabled={displayTracks.length === 0}
-                style={{ display: "inline-flex", alignItems: "center", gap: 8, padding: "12px 28px", borderRadius: 999, border: "1.5px solid #fff", background: "#fff", color: "#111", fontSize: 14, fontWeight: 700, cursor: displayTracks.length ? "pointer" : "default", opacity: displayTracks.length ? 1 : 0.5, boxShadow: "0 8px 24px rgba(0,0,0,0.25)" }}
-              >
-                {anyPlaying ? (
-                  <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="4" width="4" height="16" /><rect x="14" y="4" width="4" height="16" /></svg>
-                ) : (
-                  <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor" style={{ marginLeft: 2 }}><polygon points="6,4 20,12 6,20" /></svg>
-                )}
-                {anyPlaying ? "Pause" : "Play All"}
-              </button>
-            </div>
+            {isPhone ? (
+              displayTracks.length > 0 && (
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "flex-end", width: "100%", marginTop: 14 }}>
+                  <button
+                    onClick={handlePlayAll}
+                    aria-label={anyPlaying ? "Pause" : "Play"}
+                    style={{ width: 64, height: 64, borderRadius: "50%", border: "none", background: "var(--brand)", color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", boxShadow: "0 8px 28px rgba(0,0,0,0.45)", flexShrink: 0 }}
+                  >
+                    {anyPlaying ? (
+                      <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="4" width="4" height="16" rx="1" /><rect x="14" y="4" width="4" height="16" rx="1" /></svg>
+                    ) : (
+                      <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor" style={{ marginLeft: 3 }}><polygon points="7,4 20,12 7,20" /></svg>
+                    )}
+                  </button>
+                </div>
+              )
+            ) : (
+              <div style={{ display: "flex", gap: 12, marginTop: 16, alignItems: "center" }}>
+                <button
+                  onClick={handlePlayAll}
+                  disabled={displayTracks.length === 0}
+                  style={{ display: "inline-flex", alignItems: "center", gap: 8, padding: "12px 28px", borderRadius: 999, border: "1.5px solid #fff", background: "#fff", color: "#111", fontSize: 14, fontWeight: 700, cursor: displayTracks.length ? "pointer" : "default", opacity: displayTracks.length ? 1 : 0.5, boxShadow: "0 8px 24px rgba(0,0,0,0.25)" }}
+                >
+                  {anyPlaying ? (
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="4" width="4" height="16" /><rect x="14" y="4" width="4" height="16" /></svg>
+                  ) : (
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor" style={{ marginLeft: 2 }}><polygon points="6,4 20,12 6,20" /></svg>
+                  )}
+                  {anyPlaying ? "Pause" : "Play All"}
+                </button>
+              </div>
+            )}
           </div>
         </div>
       </div>
