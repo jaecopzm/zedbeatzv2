@@ -1404,6 +1404,20 @@ input[type="range"]::-webkit-slider-thumb:hover {
 .hp-track-title-text:hover {
   text-decoration: underline;
 }
+.hp-card-title a,
+.hp-track-title a,
+.hp-artist-name a,
+.hp-card-meta a,
+.hp-artist-avatar-wrap {
+  color: inherit;
+  text-decoration: none;
+}
+.hp-card-title a:hover,
+.hp-track-title a:hover,
+.hp-artist-name a:hover,
+.hp-card-meta a:hover {
+  text-decoration: underline;
+}
 .hp-track-title {
   font-size: 13px;
   font-weight: 500;
@@ -1916,6 +1930,8 @@ input[type="range"]::-webkit-slider-thumb:hover {
 
 /* ── Genre rail — premium image cards ── */
 .hp-genre-card {
+  display: block;
+  text-decoration: none;
   flex-shrink: 0;
   width: 152px;
   height: 92px;
@@ -2071,6 +2087,8 @@ input[type="range"]::-webkit-slider-thumb:hover {
   padding: 2px 0 6px;
 }
 .hp-explore-card {
+  display: block;
+  text-decoration: none;
   position: relative;
   height: 132px;
   border-radius: 6px;

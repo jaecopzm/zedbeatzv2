@@ -39,7 +39,7 @@ export function ArtistCard({ artist }: { artist: Artist }) {
 
   return (
     <div className="hp-artist-card">
-      <Link href={`/artist/${artist.id}`} className="hp-artist-avatar-wrap" style={{ textDecoration: "none", color: "inherit" }}>
+      <Link href={`/artist/${artist.id}`} className="hp-artist-avatar-wrap" style={{ display: "block", textDecoration: "none", color: "inherit" }}>
         {artist.photo_url ? (
           <CoverImage src={artist.photo_url} alt={artist.stage_name} sizes="160px" />
         ) : (
@@ -48,7 +48,7 @@ export function ArtistCard({ artist }: { artist: Artist }) {
           </div>
         )}
       </Link>
-      <p className="hp-artist-name"><Link href={`/artist/${artist.id}`}>{artist.stage_name}</Link></p>
+      <p className="hp-artist-name"><Link href={`/artist/${artist.id}`} style={{ color: "inherit", textDecoration: "none" }}>{artist.stage_name}</Link></p>
       <p className="hp-artist-meta">
         {artist.follower_count ?? 0} {artist.follower_count === 1 ? "follower" : "followers"}
       </p>
