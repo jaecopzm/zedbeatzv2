@@ -130,9 +130,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(orgSchema) }}
         />
-        <Script src="https://www.googletagmanager.com/gtag/js?id=G-LD26CHY2WQ" strategy="afterInteractive" />
+        <Script src="https://www.googletagmanager.com/gtag/js?id=G-RVY3X4J6BG" strategy="afterInteractive" />
         <Script id="google-analytics" strategy="afterInteractive">
-          {`window.dataLayer = window.dataLayer || []; function gtag(){dataLayer.push(arguments);} gtag('js', new Date()); gtag('config', 'G-LD26CHY2WQ');`}
+          {`window.dataLayer = window.dataLayer || []; function gtag(){dataLayer.push(arguments);} gtag('js', new Date()); gtag('config', 'G-RVY3X4J6BG');`}
         </Script>
       </head>
       <body style={{ display: "flex", flexDirection: "column", height: "100%", margin: 0, overflow: "hidden" }}>
