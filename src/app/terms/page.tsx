@@ -1,9 +1,10 @@
 import type { Metadata } from "next"
-import { SITE_NAME } from "@/lib/seo"
+import { SITE_URL } from "@/lib/seo"
 
 export const metadata: Metadata = {
-  title: `Terms of Service | ${SITE_NAME}`,
+  title: "Terms of Service",
   description: "Terms of Service for ZedBeatz — rules and guidelines for using the platform.",
+  alternates: { canonical: `${SITE_URL}/terms` },
 }
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {

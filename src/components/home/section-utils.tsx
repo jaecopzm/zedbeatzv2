@@ -1,9 +1,7 @@
 "use client"
 
-import { useRouter } from "next/navigation"
+import Link from "next/link"
 import type { ReactNode } from "react"
-// ReactNode used by SectionHeader actions
-import { usePlayerStore } from "@/lib/store"
 
 export function SectionHeader({
   label,
@@ -19,22 +17,20 @@ export function SectionHeader({
   /** Extra header actions (e.g. Apple-style scroll chevrons) */
   actions?: ReactNode
 }) {
-  const router = useRouter()
   const clickable = !!href
+  const header = (
+    <div className="hp-section-header" style={clickable ? undefined : { cursor: "default" }}>
+      <h2 className={size === "lg" ? "hp-section-title" : "hp-section-title-sm"}>{label}</h2>
+      {clickable && (
+        <svg className="hp-section-chevron" width={size === "lg" ? 18 : 16} height={size === "lg" ? 18 : 16} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M9 6l6 6-6 6" />
+        </svg>
+      )}
+    </div>
+  )
   return (
     <div className="hp-section-header-row">
-      <div
-        className="hp-section-header"
-        onClick={clickable ? () => router.push(href as string) : undefined}
-        style={clickable ? undefined : { cursor: "default" }}
-      >
-        <h2 className={size === "lg" ? "hp-section-title" : "hp-section-title-sm"}>{label}</h2>
-        {clickable && (
-          <svg className="hp-section-chevron" width={size === "lg" ? 18 : 16} height={size === "lg" ? 18 : 16} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M9 6l6 6-6 6" />
-          </svg>
-        )}
-      </div>
+      {clickable ? <Link href={href as string}>{header}</Link> : header}
       {(actions || onPlayAll) && (
         <div className="hp-section-actions">
           {actions}

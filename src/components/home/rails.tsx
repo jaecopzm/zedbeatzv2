@@ -1,7 +1,7 @@
 "use client"
 
+import Link from "next/link"
 import { useQuery, useQueryClient } from "@tanstack/react-query"
-import { useRouter } from "next/navigation"
 import { api } from "@/lib/api"
 import { useAuthStore } from "@/lib/auth-store"
 import { usePlayerStore, type TrackInfo, loadLocalResumePoints, removeLocalResumePoint } from "@/lib/store"
@@ -15,7 +15,6 @@ import { GenreMosaic } from "@/components/mosaic-art"
 import { GenreCoverImg } from "@/components/genre-cover"
 
 export function GenreRail({ label = "Browse genres" }: { label?: string }) {
-  const router = useRouter()
   const { data, isLoading } = useQuery({
     queryKey: ["genres"],
     queryFn: () => api.listGenres(),
@@ -37,15 +36,14 @@ export function GenreRail({ label = "Browse genres" }: { label?: string }) {
       ) : (
         <HorizontalScroller>
           {genres.map((g: any, i: number) => (
-            <button
+            <Link
               key={g.id}
-              type="button"
-              onClick={() => router.push(`/genres/${g.id}`)}
+              href={`/genres/${g.id}`}
               className="hp-genre-card"
               aria-label={`Browse ${g.name}`}
             >
               <GenreCoverImg genre={g} index={i} baked className="hp-genre-img" />
-            </button>
+            </Link>
           ))}
         </HorizontalScroller>
       )}
@@ -186,16 +184,14 @@ export function JumpBackInSection() {
 }
 
 export function ExploreMore({ sections }: { sections: { sectionKey: string; label: string }[] }) {
-  const router = useRouter()
   return (
     <section className="hp-section">
       <SectionHeader label="More to explore" size="sm" />
       <div className="hp-explore-grid">
         {sections.map((s, i) => (
-          <button
+          <Link
             key={s.sectionKey}
-            type="button"
-            onClick={() => router.push(`/section/${s.sectionKey}`)}
+            href={`/section/${s.sectionKey}`}
             className="hp-explore-card"
             aria-label={`Explore ${s.label}`}
           >
@@ -205,7 +201,7 @@ export function ExploreMore({ sections }: { sections: { sectionKey: string; labe
               label={s.label}
               className="hp-explore-img"
             />
-          </button>
+          </Link>
         ))}
       </div>
     </section>

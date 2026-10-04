@@ -1,7 +1,12 @@
+import type { Metadata } from "next"
 import HomePage, { type HomeInitialData } from "./home-page"
 import { SITE_URL } from "@/lib/seo"
 
 export const revalidate = 300
+
+export const metadata: Metadata = {
+  alternates: { canonical: SITE_URL },
+}
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL
   ? process.env.NEXT_PUBLIC_API_URL.replace(/\/+$/, "")
@@ -83,41 +88,12 @@ export default async function HomePageServer() {
     })),
   }
 
-  const allTracks: Track[] = [...(best?.tracks ?? []), ...(fresh?.tracks ?? [])].filter(
-    (t): t is Record<string, unknown> & Track => Boolean(t && t.id)
-  ).slice(0, 24)
-
-  const allAlbums = (albums?.albums ?? []).filter((a) => a && a.id).slice(0, 12)
-  const allArtists = (artists?.artists ?? []).filter((a) => a && a.id).slice(0, 12)
-
   return (
     <>
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(chartJsonLd) }}
       />
-      <nav aria-label="Browse" className="seo-link-list">
-        {allTracks.map((t) => (
-          <a key={`t-${t.id}`} href={`/track/${t.id}`}>
-            {t.title} by {t.artist_name ?? "Unknown Artist"}
-          </a>
-        ))}
-        {allAlbums.map((a) => (
-          <a key={`a-${a.id}`} href={`/album/${a.id}`}>
-            {String(a.title ?? "")}
-          </a>
-        ))}
-        {allArtists.map((ar) => (
-          <a key={`ar-${ar.id}`} href={`/artist/${ar.id}`}>
-            {String(ar.stage_name ?? "")}
-          </a>
-        ))}
-        {["best_new_songs", "new_this_week", ...browseSectionSlugs].map((slug) => (
-          <a key={`s-${slug}`} href={`/section/${slug}`}>
-            {slug.replace(/_/g, " ")}
-          </a>
-        ))}
-      </nav>
       <HomePage initialData={initialData} />
     </>
   )

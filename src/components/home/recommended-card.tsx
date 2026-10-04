@@ -1,6 +1,6 @@
 "use client"
 
-import { useRouter } from "next/navigation"
+import Link from "next/link"
 import type { RecommendedTrack } from "@/types"
 import { usePlayerStore } from "@/lib/store"
 import { useIsTrackPlaying, useIsCurrentTrack } from "@/components/home/track-cards"
@@ -10,7 +10,6 @@ import { PlayIcon as PlayBold } from "@solar-icons/react/bold/play"
 import { PauseIcon as PauseBold } from "@solar-icons/react/bold/pause"
 
 export function RecommendedCard({ track }: { track: RecommendedTrack }) {
-  const router = useRouter()
   const play = usePlayerStore((s) => s.play)
   const togglePlay = usePlayerStore((s) => s.togglePlay)
   const isPlaying = useIsTrackPlaying(track.id)
@@ -73,14 +72,11 @@ export function RecommendedCard({ track }: { track: RecommendedTrack }) {
           )}
         </button>
       </div>
-      <p
-        className="hp-card-title hp-card-title-hoverable"
-        onClick={(e) => {
-          e.stopPropagation()
-          router.push(`/track/${track.id}`)
-        }}
-      >
-        {track.title}{isCurrentTrack ? <span> <EqBars paused={!isPlaying} /></span> : null}
+      <p className="hp-card-title hp-card-title-hoverable">
+        <Link href={`/track/${track.id}`} onClick={(e) => e.stopPropagation()}>
+          {track.title}
+        </Link>
+        {isCurrentTrack ? <span> <EqBars paused={!isPlaying} /></span> : null}
       </p>
       <p className="hp-card-meta">{track.artist_name}</p>
     </div>

@@ -97,9 +97,11 @@ function AlbumRail({ albums }: { albums: Album[] }) {
 interface ArtistContentProps {
   artistId: string
   initialArtist: Artist
+  initialTracksData?: { tracks?: any[] } | null
+  initialAlbumsData?: { albums?: any[] } | null
 }
 
-export default function ArtistContent({ artistId, initialArtist }: ArtistContentProps) {
+export default function ArtistContent({ artistId, initialArtist, initialTracksData, initialAlbumsData }: ArtistContentProps) {
   const router = useRouter()
   const playQueue = usePlayerStore((s) => s.playQueue)
   const currentTrack = usePlayerStore((s) => s.currentTrack)
@@ -136,6 +138,7 @@ export default function ArtistContent({ artistId, initialArtist }: ArtistContent
     queryKey: ["artist-tracks", artistId],
     queryFn: () => api.getArtistTracks(artistId),
     enabled: !!artistId,
+    ...(initialTracksData ? { initialData: initialTracksData, staleTime: 5 * 60 * 1000 } : {}),
   })
 
   const { data: collabTracksData, isLoading: collabLoading } = useQuery({
@@ -163,6 +166,7 @@ export default function ArtistContent({ artistId, initialArtist }: ArtistContent
     queryKey: ["artist-albums", artistId],
     queryFn: () => api.getArtistAlbums(artistId),
     enabled: !!artistId,
+    ...(initialAlbumsData ? { initialData: initialAlbumsData, staleTime: 5 * 60 * 1000 } : {}),
   })
 
   const tracks = useMemo(

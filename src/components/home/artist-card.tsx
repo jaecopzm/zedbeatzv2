@@ -1,5 +1,6 @@
 "use client"
 
+import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { useEffect, useState } from "react"
 import type { Artist } from "@/types"
@@ -37,11 +38,8 @@ export function ArtistCard({ artist }: { artist: Artist }) {
   }
 
   return (
-    <div
-      className="hp-artist-card"
-      onClick={() => router.push(`/artist/${artist.id}`)}
-    >
-      <div className="hp-artist-avatar-wrap">
+    <div className="hp-artist-card">
+      <Link href={`/artist/${artist.id}`} className="hp-artist-avatar-wrap" style={{ textDecoration: "none", color: "inherit" }}>
         {artist.photo_url ? (
           <CoverImage src={artist.photo_url} alt={artist.stage_name} sizes="160px" />
         ) : (
@@ -49,8 +47,8 @@ export function ArtistCard({ artist }: { artist: Artist }) {
             {artist.stage_name?.charAt(0).toUpperCase()}
           </div>
         )}
-      </div>
-      <p className="hp-artist-name">{artist.stage_name}</p>
+      </Link>
+      <p className="hp-artist-name"><Link href={`/artist/${artist.id}`}>{artist.stage_name}</Link></p>
       <p className="hp-artist-meta">
         {artist.follower_count ?? 0} {artist.follower_count === 1 ? "follower" : "followers"}
       </p>

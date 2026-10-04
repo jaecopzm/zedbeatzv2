@@ -1,6 +1,6 @@
 "use client"
 
-import { useRouter } from "next/navigation"
+import Link from "next/link"
 import type { Track } from "@/types"
 import { usePlayerStore } from "@/lib/store"
 import { ArtistLinks } from "@/components/artist-links"
@@ -41,7 +41,6 @@ export function TrackArt({ track, size = 168 }: { track: Track; size?: number })
 }
 
 export function TrackCardRow({ track }: { track: Track }) {
-  const router = useRouter()
   const play = usePlayerStore((s) => s.play)
   const togglePlay = usePlayerStore((s) => s.togglePlay)
   const isPlaying = useIsTrackPlaying(track.id)
@@ -91,14 +90,11 @@ export function TrackCardRow({ track }: { track: Track }) {
           )}
         </button>
       </div>
-      <p
-        className="hp-card-title hp-card-title-hoverable"
-        onClick={(e) => {
-          e.stopPropagation()
-          router.push(`/track/${track.id}`)
-        }}
-      >
-        {track.title}{isCurrentTrack ? <span> <EqBars paused={!isPlaying} /></span> : null}
+      <p className="hp-card-title hp-card-title-hoverable">
+        <Link href={`/track/${track.id}`} onClick={(e) => e.stopPropagation()}>
+          {track.title}
+        </Link>
+        {isCurrentTrack ? <span> <EqBars paused={!isPlaying} /></span> : null}
       </p>
       <p className="hp-card-meta">
         <ArtistLinks track={track} />
@@ -108,7 +104,6 @@ export function TrackCardRow({ track }: { track: Track }) {
 }
 
 export function TrackRow({ track, isLast }: { track: Track; isLast?: boolean }) {
-  const router = useRouter()
   const play = usePlayerStore((s) => s.play)
   const togglePlay = usePlayerStore((s) => s.togglePlay)
   const isPlaying = useIsTrackPlaying(track.id)
@@ -156,15 +151,13 @@ export function TrackRow({ track, isLast }: { track: Track; isLast?: boolean }) 
         </div>
         <div className="hp-track-info">
           <p className="hp-track-title">
-            <span
+            <Link
               className="hp-track-title-text"
-              onClick={(e) => {
-                e.stopPropagation()
-                router.push(`/track/${track.id}`)
-              }}
+              href={`/track/${track.id}`}
+              onClick={(e) => e.stopPropagation()}
             >
               {track.title}
-            </span>
+            </Link>
             {isPlaying ? <span> <EqBars /></span> : null}
           </p>
           <p className="hp-track-artist">

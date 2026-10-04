@@ -1,6 +1,6 @@
 "use client"
 
-import { useRouter } from "next/navigation"
+import Link from "next/link"
 import { usePlayerStore, type TrackInfo } from "@/lib/store"
 import { CoverImage } from "@/components/cover-image"
 import { PremiumTrackMenu } from "@/components/track-menu"
@@ -66,7 +66,6 @@ export function TrackTable({
   const togglePlay = usePlayerStore((s) => s.togglePlay)
   const currentTrack = usePlayerStore((s) => s.currentTrack)
   const isPlaying = usePlayerStore((s) => s.isPlaying)
-  const router = useRouter()
 
   if (!tracks || tracks.length === 0) return null
 
@@ -176,12 +175,13 @@ export function TrackTable({
               )}
               <span className="tt-cell">
                 <p className="tt-title" style={isCurrent ? { color } : undefined}>
-                  <span
+                  <Link
                     className="tt-title-text"
-                    onClick={(e) => { e.stopPropagation(); router.push(`/track/${t.id}`) }}
+                    href={`/track/${t.id}`}
+                    onClick={(e) => e.stopPropagation()}
                   >
                     {t.title}
-                  </span>
+                  </Link>
                   {playingNow ? <span> <EqBars /></span> : null}
                 </p>
                 <p className="tt-artist-sub">
@@ -200,14 +200,13 @@ export function TrackTable({
               {showAlbum && (
                 <span className="tt-cell tt-col-album" style={{ fontSize: 13, color: "var(--muted-foreground)" }}>
                   {albumName ? (
-                    <span
-                      onClick={(e) => { e.stopPropagation(); router.push(`/album/${t.album_id}`) }}
+                    <Link
+                      href={`/album/${t.album_id}`}
+                      onClick={(e) => e.stopPropagation()}
                       style={{ cursor: "pointer" }}
-                      onMouseEnter={(e) => (e.currentTarget.style.textDecoration = "underline")}
-                      onMouseLeave={(e) => (e.currentTarget.style.textDecoration = "none")}
                     >
                       {albumName}
-                    </span>
+                    </Link>
                   ) : (
                     <span aria-hidden style={{ opacity: 0.5 }}>—</span>
                   )}

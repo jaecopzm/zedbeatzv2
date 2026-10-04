@@ -1,5 +1,6 @@
 "use client"
 
+import Link from "next/link"
 import { useRouter } from "next/navigation"
 import type { Album } from "@/types"
 import { CoverImage } from "@/components/cover-image"
@@ -34,27 +35,19 @@ export function AlbumCard({ album }: { album: Album }) {
           </span>
         </button>
       </div>
-      <p
-        className="hp-card-title hp-card-title-hoverable"
-        onClick={(e) => {
-          e.stopPropagation()
-          router.push(`/album/${album.id}`)
-        }}
-      >
-        {album.title}
+      <p className="hp-card-title hp-card-title-hoverable">
+        <Link href={`/album/${album.id}`} onClick={(e) => e.stopPropagation()}>
+          {album.title}
+        </Link>
       </p>
       <p className="hp-card-meta">
-        <span
-          onClick={(e) => {
-            e.stopPropagation()
-            router.push(`/artist/${album.artist_id}`)
-          }}
+        <Link
+          href={`/artist/${album.artist_id}`}
+          onClick={(e) => e.stopPropagation()}
           style={{ cursor: "pointer" }}
-          onMouseEnter={(e) => (e.currentTarget.style.textDecoration = "underline")}
-          onMouseLeave={(e) => (e.currentTarget.style.textDecoration = "none")}
         >
           {album.artist_name}
-        </span>
+        </Link>
       </p>
     </div>
   )

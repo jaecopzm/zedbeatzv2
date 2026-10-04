@@ -1,9 +1,10 @@
 import type { Metadata } from "next"
-import { SITE_NAME } from "@/lib/seo"
+import { SITE_URL } from "@/lib/seo"
 
 export const metadata: Metadata = {
-  title: `Contact Us | ${SITE_NAME}`,
+  title: "Contact Us",
   description: "Get in touch with the ZedBeatz team.",
+  alternates: { canonical: `${SITE_URL}/contact` },
 }
 
 const socials = [

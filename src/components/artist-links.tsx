@@ -1,4 +1,4 @@
-import { useRouter } from "next/navigation"
+import Link from "next/link"
 
 interface Props {
   track: {
@@ -9,7 +9,6 @@ interface Props {
 }
 
 export function ArtistLinks({ track }: Props) {
-  const router = useRouter()
   const artists: { id?: string; name: string }[] = []
   if (track.artist_name) {
     artists.push({ id: track.artist_id, name: track.artist_name })
@@ -28,23 +27,21 @@ export function ArtistLinks({ track }: Props) {
         <span key={a.id ?? a.name}>
           {i > 0 && <span style={{ color: "var(--muted-foreground)" }}>, </span>}
           {a.id ? (
-            <span
-              onClick={(e) => { e.stopPropagation(); router.push(`/artist/${a.id}`) }}
+            <Link
+              href={`/artist/${a.id}`}
+              onClick={(e) => e.stopPropagation()}
               style={{ cursor: "pointer" }}
-              onMouseEnter={(e) => (e.currentTarget.style.textDecoration = "underline")}
-              onMouseLeave={(e) => (e.currentTarget.style.textDecoration = "none")}
             >
               {a.name}
-            </span>
+            </Link>
           ) : (
-            <span
-              onClick={(e) => { e.stopPropagation(); router.push(`/search?q=${encodeURIComponent(a.name)}`) }}
+            <Link
+              href={`/search?q=${encodeURIComponent(a.name)}`}
+              onClick={(e) => e.stopPropagation()}
               style={{ cursor: "pointer" }}
-              onMouseEnter={(e) => (e.currentTarget.style.textDecoration = "underline")}
-              onMouseLeave={(e) => (e.currentTarget.style.textDecoration = "none")}
             >
               {a.name}
-            </span>
+            </Link>
           )}
         </span>
       ))}

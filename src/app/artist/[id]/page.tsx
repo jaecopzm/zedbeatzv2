@@ -38,7 +38,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const artist = await fetchArtist(id)
   if (!artist) return { title: "Artist not found - ZedBeatz" }
 
-  const title = `${artist.stage_name} - ZedBeatz`
+  const title = artist.stage_name
   const description = artist.bio || `Listen to ${artist.stage_name} on ZedBeatz.`
 
   return {
@@ -67,16 +67,13 @@ export default async function ArtistPage({ params }: Props) {
   if (!artist) notFound()
 
   const [tracksData, albumsData] = await Promise.all([
-    fetchJSON<{ tracks: { id: string; title: string }[] }>(
+    fetchJSON<{ tracks: { id: string; title: string; artist_name?: string; cover_url?: string | null; duration_sec?: number; play_count?: number; album_id?: string | null; album_name?: string | null; genre_id?: string | null }[] }>(
       `${SERVER_API_BASE}/artists/${id}/tracks`
     ),
-    fetchJSON<{ albums: { id: string; title: string }[] }>(
+    fetchJSON<{ albums: { id: string; title: string; cover_url?: string | null; type?: string; artist_name?: string; released_at?: string | null }[] }>(
       `${SERVER_API_BASE}/artists/${id}/albums`
     ),
   ])
-  const seoTracks = (tracksData?.tracks ?? []).slice(0, 20)
-  const seoAlbums = (albumsData?.albums ?? []).slice(0, 10)
-
   const jsonLd = {
     "@context": "https://schema.org",
     "@type": "MusicGroup",
@@ -113,21 +110,7 @@ export default async function ArtistPage({ params }: Props) {
           { label: artist.stage_name },
         ]}
       />
-      <nav aria-label="Artist catalogue" className="seo-link-list">
-        <a href={`/artist/${id}`}>{artist.stage_name}</a>
-        {seoTracks.map((t) => (
-          <a key={t.id} href={`/track/${t.id}`}>
-            {t.title} by {artist.stage_name}
-          </a>
-        ))}
-        {seoAlbums.map((a) => (
-          <a key={a.id} href={`/album/${a.id}`}>
-            {a.title} by {artist.stage_name}
-          </a>
-        ))}
-        <span>{artist.bio || `Listen to ${artist.stage_name} on ZedBeatz.`}</span>
-      </nav>
-      <ArtistContent artistId={id} initialArtist={artist} />
+      <ArtistContent artistId={id} initialArtist={artist} initialTracksData={tracksData} initialAlbumsData={albumsData} />
     </div>
   )
 }

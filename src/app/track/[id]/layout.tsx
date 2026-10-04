@@ -75,30 +75,6 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 export default async function TrackLayout({ params, children }: Props) {
   const { id } = await params
   const track = await getTrack(id)
-
-  // Best-effort related links so crawlers see real HTML + internal links
-  // even before the client player hydrates. Never blocks rendering.
-  const [artistTracks, radio] = track
-    ? await Promise.all([
-        track.artist_id
-          ? fetchJSON<{ tracks: { id: string; title: string; artist_name?: string }[] }>(
-              `${SERVER_API_BASE}/artists/${track.artist_id}/tracks`
-            )
-          : Promise.resolve(null),
-        fetchJSON<{ queue: { id: string; title: string; artist_name?: string }[] }>(
-          `${SERVER_API_BASE}/tracks/${id}/radio?limit=10`
-        ),
-      ])
-    : [null, null]
-
-  const related = [
-    ...(artistTracks?.tracks ?? []),
-    ...(radio?.queue ?? []),
-  ]
-    .filter((t) => t?.id && t.id !== id)
-    .filter((t, i, arr) => arr.findIndex((x) => x.id === t.id) === i)
-    .slice(0, 10)
-
   const collaboratorNames = track?.collaborators?.map((c) => c.stage_name) ?? []
 
   return (
@@ -151,34 +127,6 @@ export default async function TrackLayout({ params, children }: Props) {
             { label: track.title },
           ]}
         />
-      )}
-      {track && (
-        <nav aria-label="Related tracks" className="seo-link-list">
-          <a href={`/track/${id}`}>
-            {track.title} by {track.artist_name}
-          </a>
-          <a href={`/artist/${track.artist_id}`}>{track.artist_name}</a>
-          {track.album_id && (
-            <a href={`/album/${track.album_id}`}>{track.album_name ?? "Album"}</a>
-          )}
-          {track.genre_id && (
-            <a href={`/genres/${track.genre_id}`}>More in this genre</a>
-          )}
-          {(track.collaborators ?? []).map((c) => (
-            <a key={c.artist_id} href={`/artist/${c.artist_id}`}>
-              {c.stage_name}
-            </a>
-          ))}
-          {related.map((t) => (
-            <a key={t.id} href={`/track/${t.id}`}>
-              {t.title} by {t.artist_name ?? track.artist_name}
-            </a>
-          ))}
-          <span>
-            {track.description ||
-              `Listen to "${track.title}" by ${track.artist_name} on ${SITE_NAME}. Stream Zambian music online.`}
-          </span>
-        </nav>
       )}
       {children}
     </div>

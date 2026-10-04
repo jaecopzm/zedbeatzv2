@@ -67,12 +67,6 @@ export const metadata: Metadata = {
         }
       : {}),
   },
-  alternates: {
-    canonical: SITE_URL,
-    types: {
-      "application/rss+xml": `${SITE_URL}/rss.xml`,
-    },
-  },
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

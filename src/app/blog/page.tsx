@@ -1,9 +1,7 @@
 import type { Metadata } from "next"
-import Link from "next/link"
 import { SITE_URL, SITE_NAME } from "@/lib/seo"
 import { BlogHubClient, type HubPost } from "@/components/blog-hub-client"
 import { BlogNewsletter } from "@/components/blog-newsletter"
-import { typeLabel } from "@/lib/blog"
 
 export const revalidate = 300
 
@@ -78,13 +76,6 @@ export default async function BlogHub() {
           <>
             <BlogHubClient posts={posts} />
             <BlogNewsletter />
-
-            {/* Crawlable type index for SEO */}
-            <nav className="seo-link-list" aria-hidden>
-              {["article", "spotlight", "profile", "chart", "roundup"].map((t) => (
-                <Link key={t} href={`/blog#${t}`}>{typeLabel(t)}</Link>
-              ))}
-            </nav>
           </>
         )}
       </div>
