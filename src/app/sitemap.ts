@@ -32,19 +32,18 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   ]
   const sectionPages: MetadataRoute.Sitemap = sectionSlugs.map((slug) => ({
     url: `${SITE_URL}/section/${slug}`,
-    lastModified: new Date(),
     changeFrequency: "daily" as const,
     priority: 0.6,
   }))
 
   const staticPages: MetadataRoute.Sitemap = [
-    { url: SITE_URL, lastModified: new Date(), changeFrequency: "hourly", priority: 1.0 },
-    { url: `${SITE_URL}/releases`, lastModified: new Date(), changeFrequency: "daily", priority: 0.8 },
-    { url: `${SITE_URL}/radio`, lastModified: new Date(), changeFrequency: "daily", priority: 0.7 },
-    { url: `${SITE_URL}/become-an-artist`, lastModified: new Date(), changeFrequency: "monthly", priority: 0.5 },
-    { url: `${SITE_URL}/privacy`, lastModified: new Date(), changeFrequency: "yearly", priority: 0.2 },
-    { url: `${SITE_URL}/terms`, lastModified: new Date(), changeFrequency: "yearly", priority: 0.2 },
-    { url: `${SITE_URL}/contact`, lastModified: new Date(), changeFrequency: "yearly", priority: 0.2 },
+    { url: SITE_URL, changeFrequency: "hourly", priority: 1.0 },
+    { url: `${SITE_URL}/releases`, changeFrequency: "daily", priority: 0.8 },
+    { url: `${SITE_URL}/radio`, changeFrequency: "daily", priority: 0.7 },
+    { url: `${SITE_URL}/become-an-artist`, changeFrequency: "monthly", priority: 0.5 },
+    { url: `${SITE_URL}/privacy`, changeFrequency: "yearly", priority: 0.2 },
+    { url: `${SITE_URL}/terms`, changeFrequency: "yearly", priority: 0.2 },
+    { url: `${SITE_URL}/contact`, changeFrequency: "yearly", priority: 0.2 },
   ]
 
   const sitemapData = await fetchJSON<{
@@ -65,7 +64,6 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   )
   const genrePages: MetadataRoute.Sitemap = (genreData?.genres ?? []).map((g) => ({
     url: `${SITE_URL}/genres/${g.id}`,
-    lastModified: new Date(),
     changeFrequency: "weekly" as const,
     priority: 0.5,
   }))
@@ -85,7 +83,6 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const genreStationSlugs = ["personalized", ...(stationData?.stations?.genre ?? []).map((g) => g.slug)]
   const genreStationPages: MetadataRoute.Sitemap = genreStationSlugs.map((slug) => ({
     url: `${SITE_URL}/radio/${slug}`,
-    lastModified: new Date(),
     changeFrequency: "daily" as const,
     priority: 0.6,
   }))
@@ -116,7 +113,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 
   return [
     ...staticPages,
-    { url: `${SITE_URL}/blog`, lastModified: new Date(), changeFrequency: "daily" as const, priority: 0.8 },
+    { url: `${SITE_URL}/blog`, changeFrequency: "daily" as const, priority: 0.8 },
     ...postPages,
     ...sectionPages,
     ...albumPages,
