@@ -25,13 +25,8 @@ const nextConfig: NextConfig = {
   allowedDevOrigins: ["prescholastic-preabundantly-erline.ngrok-free.dev"],
   poweredByHeader: false,
   images: {
-    formats: ["image/avif", "image/webp"],
-    remotePatterns: [
-      {
-        protocol: "https",
-        hostname: "**",
-      },
-    ],
+    loader: "custom",
+    loaderFile: "./src/lib/image-loader.ts",
   },
   async headers() {
     return [
